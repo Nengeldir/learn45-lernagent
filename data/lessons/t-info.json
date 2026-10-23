@@ -22,7 +22,7 @@
         {
           "afterScene": 1,
           "prompt": "Warum schreibt die KI «Montag»?",
-          "options": ["Die Notiz nennt ausdrücklich einen Montag", "Das Wort passt gut nach dem Satzanfang", "Teams treffen sich meistens am Montag"],
+          "options": ["Die Notiz nennt ausdrücklich einen Montag", "Das Wort passt gut zum Satzanfang", "Teams treffen sich meistens am Montag"],
           "correct": 1,
           "explanation": "Das Modell wählt, was sprachlich gut passt. Ob die Quelle es deckt, ist eine andere Frage.",
           "criterion": "quelle"
@@ -30,7 +30,7 @@
         {
           "afterScene": 3,
           "prompt": "Was prüfst du in einer KI-Zusammenfassung zuerst?",
-          "options": ["Ob der Text freundlich und klar klingt", "Ob Rechtschreibung und Satzbau stimmen", "Konkrete Angaben wie Daten und Namen"],
+          "options": ["Ob der Text freundlich klingt", "Ob Rechtschreibung und Satzbau stimmen", "Konkrete Angaben: Daten und Namen"],
           "correct": 2,
           "explanation": "Konkrete Angaben sind die Stellen, an denen Lücken mit Erfundenem gefüllt werden.",
           "criterion": "quelle"

@@ -73,7 +73,7 @@
         {
           "afterScene": 3,
           "prompt": "In deinen Notizen fehlt ein Termin. Was schreibst du in den Auftrag?",
-          "options": ["Ergänze fehlende Termine passend.", "Lass alle Termine einfach ganz weg.", "Markiere fehlende Termine als offen."],
+          "options": ["Ergänze fehlende Termine einfach passend.", "Lass fehlende Termine einfach weg.", "Markiere fehlende Termine als offen."],
           "correct": 2,
           "explanation": "So bleibt sichtbar, was noch fehlt. «Ergänzen» lädt die KI zum Erfinden ein, und ohne Termine fehlt Wichtiges.",
           "criterion": "luecken"

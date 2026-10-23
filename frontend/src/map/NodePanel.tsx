@@ -1,19 +1,68 @@
 // Side panel next to the map: the agent's next step with its reasons, or details of a selected node.
-import type { MapNode, Recommendation, SessionView } from '@l45/shared';
-import { MODE_LABEL, SOURCE_LABEL, TYPE_LABEL } from '@l45/shared';
+import type { Lesson, MapNode, Recommendation, SessionView } from '@l45/shared';
+import { LERNSTAND_LABEL, MODE_LABEL, SOURCE_LABEL, TYPE_LABEL } from '@l45/shared';
 import { useStore } from '../lib/store.tsx';
 
-function Reason({ rec }: { rec: Recommendation }) {
+/** Which plan this is: the agent's (A1), the rules' while the agent still works, or the rules' alone. */
+export function planLabel(rec: Recommendation, view: SessionView) {
+  if (rec.ruleId === 'A1') return 'Agent-Plan';
+  if (rec.provisional) return 'vorläufig';
+  return view.agentAvailable ? 'Regel' : 'Plan nach Regeln';
+}
+
+/** The records and events a recommendation cites, in words. */
+export function BasedOn({ rec, view }: { rec: Recommendation; view: SessionView }) {
+  if (!rec.basedOn?.length) return null;
+  const { records } = view.workspace;
+  const { events, nodes } = view.session;
+  return (
+    <ul className="based-on">
+      {rec.basedOn.map((id) => {
+        const r = records.find((x) => x.id === id);
+        const e = events.find((x) => x.id === id);
+        const text = r ? `${r.id}: ${r.title}` : e ? `Ergebnis «${nodes.find((n) => n.id === e.nodeId)?.label ?? e.lessonId}»: ${e.result.summary}` : id;
+        return <li key={id}>{text}</li>;
+      })}
+    </ul>
+  );
+}
+
+/** Shown while the planner agent works on the next step. */
+export function PlanStatus({ view }: { view: SessionView }) {
+  if (view.session.planning) {
+    return <p className="planning" role="status"><span className="dot-pulse" aria-hidden="true" />Agent plant … Bis dahin gilt der vorläufige Vorschlag nach Regeln.</p>;
+  }
+  if (!view.agentAvailable) return <p className="small muted">Plan nach Regeln: Ohne KI plant der Agent mit den Regeln und den vorbereiteten Lektionen.</p>;
+  return null;
+}
+
+/** Where a lesson comes from: made by the AI (with its source) or prepared. */
+export function LessonSource({ lesson }: { lesson: Lesson }) {
+  if (lesson.source === 'model') {
+    return (
+      <p className="small source-line">
+        <span className="tag model">Von der KI erstellt</span>
+        <span className="tag model">Beispiel erfunden</span>
+        {lesson.primarySource && <> Quelle: <a href={lesson.primarySource.url} target="_blank" rel="noreferrer">{lesson.primarySource.title}</a></>}
+      </p>
+    );
+  }
+  return <p className="small source-line"><span className="tag prepared">Vorbereitet</span></p>;
+}
+
+function Reason({ rec, view }: { rec: Recommendation; view: SessionView }) {
   return (
     <dl className="reason">
       <div><dt>Was der Agent gesehen hat</dt><dd>{rec.observation}</dd></div>
       <div><dt>Vorschlag</dt><dd>{rec.reason}</dd></div>
       <div><dt>Warum das jetzt hilft</dt><dd>{rec.why}</dd></div>
+      {rec.basedOn?.length ? <div><dt>Gestützt auf</dt><dd><BasedOn rec={rec} view={view} /></dd></div> : null}
       <div>
         <dt>Regel</dt>
         <dd>
           {rec.ruleId} {rec.ruleName}{' '}
           {rec.tags.map((t) => <span key={t} className={`tag ${t}`}>{SOURCE_LABEL[t]}</span>)}
+          <span className={`tag${rec.provisional ? ' provisional' : ''}`}>{planLabel(rec, view)}</span>
         </dd>
       </div>
     </dl>
@@ -41,11 +90,12 @@ export function NodePanel({
     return (
       <div className="panel-inner">
         <p className="eyebrow-free muted small">Nächster Schritt</p>
+        <PlanStatus view={view} />
         {recNode && rec ? (
           <>
             <h2>{recNode.label}</h2>
             <LessonFacts node={recNode} />
-            <Reason rec={rec} />
+            <Reason rec={rec} view={view} />
             <div className="row">
               <button className="btn primary" onClick={() => onStart(recNode.id)}>Starten</button>
               {altNode && <button className="btn secondary" onClick={() => onSelect(altNode.id)}>Alternative ansehen</button>}
@@ -54,7 +104,7 @@ export function NodePanel({
         ) : (
           <>
             <h2>Für heute fertig</h2>
-            {rec && <Reason rec={rec} />}
+            {rec && <Reason rec={rec} view={view} />}
             <button className="btn secondary" onClick={onMoreTime}>10 Minuten mehr</button>
           </>
         )}
@@ -75,8 +125,9 @@ export function NodePanel({
         <h2>{selected.label}</h2>
         <LessonFacts node={selected} />
         <p>{lesson.intro}</p>
+        <LessonSource lesson={lesson} />
         {selected.addedByAgent && <p className="note small">Diesen Knoten hat der Agent nach deinen Ergebnissen neu hinzugefügt.</p>}
-        {isRec && rec && <Reason rec={rec} />}
+        {isRec && rec && <><PlanStatus view={view} /><Reason rec={rec} view={view} /></>}
         {isAlt && recNode && (
           <p className="note">Das ist die Alternative zur Empfehlung «{recNode.label}». Wenn du sie startest, merkt sich der Agent, dass du die Empfehlung abgelehnt hast.</p>
         )}
@@ -101,6 +152,9 @@ export function NodePanel({
     const skill = content?.skills.find((s) => s.tracks.some((t) => t.id === selected.trackId));
     const lv = selected.trackId ? dcc.levels[selected.trackId] : null;
     const lessons = session.nodes.filter((n) => n.kind === 'lesson' && n.trackId === selected.trackId);
+    const track = skill?.tracks.find((t) => t.id === selected.trackId);
+    const mission = view.workspace.missions.find((m) => m.trackId === selected.trackId);
+    const stand = view.workspace.lernstand.filter((l) => l.trackId === selected.trackId);
     return (
       <div className="panel-inner">
         <button className="linkbtn small" onClick={() => onSelect(null)}>Zurück zum nächsten Schritt</button>
@@ -110,6 +164,16 @@ export function NodePanel({
             <>DCC-Position: <strong>{lv ?? 'nicht erhoben'}</strong> <span className="muted small">(aus dem DCC, wird hier nicht verändert)</span></>
           ) : 'Kein DCC-Bereich. Der Agent plant hier nur aus deinem Lernverlauf.'}
         </p>
+        <p className="small"><strong>Mission:</strong> {mission ? mission.text : <span className="muted">noch offen, wird beim ersten Start gefragt</span>}</p>
+        <h3 className="small-head">Lernstand (aus dem Lernen, kein DCC)</h3>
+        <ul className="lernstand">
+          {stand.map((l) => (
+            <li key={l.criterion}>
+              <span className="grow">{track?.criteria.find((c) => c.id === l.criterion)?.label ?? l.criterion}</span>
+              <span className={`ls ${l.state}`}>{LERNSTAND_LABEL[l.state]}</span>
+            </li>
+          ))}
+        </ul>
         <ul className="nodelist">
           {lessons.map((n) => (
             <li key={n.id}>

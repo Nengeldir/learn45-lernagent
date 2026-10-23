@@ -22,7 +22,7 @@
         {
           "afterScene": 1,
           "prompt": "Warum landet die Feder später als der Ball?",
-          "options": ["Die Luft bremst die Feder stark", "Die Feder ist viel leichter", "Bälle fallen von Natur aus schneller"],
+          "options": ["Die Luft bremst die Feder stark", "Die Feder ist einfach viel leichter", "Bälle fallen von Natur aus schneller"],
           "correct": 0,
           "explanation": "Der Unterschied kommt vom Luftwiderstand. Ohne Luft wäre die Feder genauso schnell.",
           "criterion": "luft"
@@ -30,7 +30,7 @@
         {
           "afterScene": 2,
           "prompt": "Was passiert ohne Luft mit Ball und Feder?",
-          "options": ["Der Ball fällt etwas schneller", "Die Feder fällt jetzt schneller", "Beide fallen gleich schnell"],
+          "options": ["Der Ball fällt etwas schneller", "Die Feder fällt jetzt schneller", "Beide fallen genau gleich schnell"],
           "correct": 2,
           "explanation": "Im Vakuum bremst nichts. Dann fallen alle Körper gleich schnell, egal wie schwer.",
           "criterion": "masse"

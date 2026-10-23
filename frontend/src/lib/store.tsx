@@ -25,6 +25,8 @@ interface Store {
   loading: boolean;
   error: string | null;
   setView: (v: SessionView | null, generated?: Lesson[]) => void;
+  /** Reloads the session and the generated lessons (used while the agent plans) */
+  refresh: () => Promise<SessionView | null>;
   logout: () => void;
   lessonOf: (id?: string) => Lesson | undefined;
 }
@@ -66,6 +68,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     write(v?.session.id ?? null);
   }, []);
 
+  const sessionId = view?.session.id;
+  const refresh = useCallback(async () => {
+    if (!sessionId) return null;
+    const [v, gen] = await Promise.all([api.session(sessionId), api.generated(sessionId)]);
+    setViewState(v);
+    setGenerated(gen);
+    return v;
+  }, [sessionId]);
+
   const value = useMemo<Store>(
     () => ({
       content,
@@ -73,12 +84,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       setView,
+      refresh,
       logout: () => {
         setView(null, []);
       },
       lessonOf: (id) => (id ? content?.lessons.find((l) => l.id === id) ?? generated.find((l) => l.id === id) : undefined),
     }),
-    [content, view, loading, error, setView, generated],
+    [content, view, loading, error, setView, refresh, generated],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

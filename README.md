@@ -4,6 +4,8 @@ Prototyp für den Zentral Hack 2026 (Challenge CoreTeam AG). Eine PWA mit Fronte
 
 Du meldest dich mit deinem DCC-Resultat an. Daraus plant der Agent eine Lernkarte als Mindmap: in der Mitte du, oben «Digitale Kompetenz» mit den fünf DigComp-Bereichen, unten links Mathematik, unten rechts Naturwissenschaften. Geplante Lektionen sind blass. Der Agent hebt den nächsten Schritt hervor, begründet ihn und bietet eine Alternative an. Während du lernst, wächst die Karte: Der Agent hängt neue Knoten an, wenn etwas zweimal schwierig war oder zu leicht ist.
 
+Mit KI arbeitet der Agent wie eine Lehrperson (nach dem Skill «teach» von mattpocock/skills). Pro Bereich kennt er deine Mission, schreibt Lerneinträge mit Belegen und erzeugt kurze Lektionen, die zu dir passen. Die Regeln bleiben als Prüfung und als Rückfall. Dein Fortschritt liegt auf der Festplatte und übersteht einen Neustart.
+
 Die Spielmechanik kommt später. Alle Daten sind synthetisch.
 
 ## Starten
@@ -41,7 +43,9 @@ ANTHROPIC_API_KEY=...
 ANTHROPIC_MODEL=claude-haiku-5-5
 ```
 
-Der Schlüssel bleibt im Backend. Der Browser spricht nie direkt mit einem Modell. An das Modell gehen nur die Übung und die Texte der lernenden Person, nie der Name oder das DCC-Profil. Antwortet das Modell nicht innerhalb von 8 Sekunden, nimmt die App die vorbereitete Antwort und kennzeichnet sie.
+Der Schlüssel bleibt im Backend. Der Browser spricht nie direkt mit einem Modell. Antwortet das Modell im Chat nicht innerhalb von 8 Sekunden, nimmt die App die vorbereitete Antwort und kennzeichnet sie. Was an das Modell geht, steht unter «Datenschutz».
+
+Der Planer-Agent läuft nur mit `MODEL_PROVIDER=anthropic` (Werkzeuge über die Messages API). Er nutzt `ANTHROPIC_PLANNER_MODEL` (Standard `claude-opus-5-5` mit tiefer Denkstufe, damit ein Schritt in 20 Sekunden passt). Mit `openai` oder ohne Anbieter planen nur die Regeln.
 
 ## Anmeldung mit DCC
 
@@ -83,7 +87,7 @@ Lösungen bleiben im Backend. Der Browser bekommt die Lektionen ohne Lösungen.
 
 ## Wie der Agent entscheidet
 
-Regeln entscheiden, das Modell schreibt nur (Chat-Antworten, Hinweise, Bewertung von freiem Text).
+Die Regeln antworten sofort. Mit KI plant danach der Planer-Agent (A1), und die Regeln prüfen seinen Plan. Ohne KI gelten die Regeln allein, angeschrieben als «Plan nach Regeln».
 
 | Regel | Wann | Was |
 |---|---|---|
@@ -93,34 +97,138 @@ Regeln entscheiden, das Modell schreibt nur (Chat-Antworten, Hinweise, Bewertung
 | R2 Unterfordert | die letzten zwei Lektionen im Bereich ohne Hilfe gelöst | neuer Knoten mit einer Lektion eine Stufe höher |
 | R4 Wenig Zeit | Lektion passt nicht in die Restzeit | kürzerer Schritt, der längere bleibt Alternative |
 | R7 Bereich abgeschlossen | Bereich fertig | weiter zum nächsten Bereich |
+| A1 Agent-Plan | nach jeder Lektion, wenn der Planer-Agent läuft | Plan des Agenten, von den Regeln geprüft (siehe unten), Tags «KI» und «Regel» |
+
+### Der Planer-Agent (A1)
+
+Nach jeder Lektion zeigt die App sofort den Vorschlag der Regeln, markiert als «vorläufig». Im Hintergrund startet der Agent. Das Frontend fragt alle 1,5 Sekunden nach. Ist der Agent fertig und sein Plan gültig, ersetzt dieser den vorläufigen Vorschlag. Die App meldet dann «Der Agent hat deinen Plan angepasst».
+
+Der Agent arbeitet in einer Schleife mit Werkzeugen: höchstens 6 Schritte, 45 Sekunden gesamt und 20 Sekunden pro Aufruf.
+
+| Werkzeug | Was es tut |
+|---|---|
+| `get_learner_state(trackId)` | Mission, DCC-Stufe nur dieses Bereichs, aktive Lerneinträge, letzte 5 Ergebnisse, fällige Wiederholungen, Restzeit, Karte des Bereichs |
+| `list_pool_lessons(trackId, criterion?)` | vorbereitete und schon erzeugte Lektionen |
+| `generate_lesson({type, trackId, criterion, level, contextHint, reviewOf?})` | erzeugt und prüft eine Lektion; bei Fehlern kommen sie zurück, ein zweiter Versuch ist erlaubt |
+| `add_to_map(lessonId, parentNodeId)` | neuer Knoten, höchstens 2 pro Lauf |
+| `write_learning_record({...})` | Lerneintrag; der Server prüft die Belege |
+| `update_reference(trackId, entry)` | Merkblatt, nur für ohne Hilfe Gezeigtes |
+| `note_preference(text)` | Vorliebe in `notes.md` |
+| `recommend({nodeId, alternativeNodeId, reason, basedOn})` | beendet die Schleife |
+
+Der Systemprompt enthält die Grundsätze aus «teach»: Zone der nächsten Entwicklung, eine Sache pro Lektion, Wissen leicht und Übung fordernd, jede Lektion hängt an der Mission, Abrufen, Abstand und Mischen, kein eigenes Wissen ausserhalb der Quellen.
+
+Bevor A1 gilt, prüfen die Regeln:
+
+- Der Knoten existiert und ist erreichbar.
+- Die Lektion passt in die Restzeit (R4).
+- Es gibt eine erreichbare Alternative.
+- Die Begründung nennt mindestens einen Lerneintrag (`LR-…`) oder ein Ereignis (`ev-…`), und alle genannten IDs gibt es.
+
+Fällt eine Prüfung durch, gilt der Plan der Regeln. Das gilt auch, wenn das Modell ausfällt, die Zeit abläuft oder beide Versuche einer Lektion ungültig sind. Der Grund steht im Verlauf unter «Läufe des Planer-Agenten». Hat die Person inzwischen schon eine Lektion gestartet, verwirft die App den Plan des Agenten.
+
+Grenzen: 1 Lauf pro abgeschlossene Lektion, höchstens 10 erzeugte Lektionen pro Sitzung.
+
+### Erzeugte Lektionen
+
+Der Agent erfindet keine neuen Lektionsarten. Er füllt nur Inhalte in die vier bestehenden Arten. Jede erzeugte Lektion geht durch denselben Validator wie die Dateien in `data/lessons/` (`backend/src/validate.ts`):
+
+- Schema pro Art, höchstens 5 Minuten, Schweizer Schreibweise ohne ß.
+- Text prüfen: mindestens ein erfundener Satz mit einem Kriterium des Bereichs.
+- Webseite prüfen: nur erfundene Marken und `.example`-Adressen. Entscheid und Warnzeichen passen zusammen.
+- Quiz: Alle Antworten einer Frage haben gleich viele Wörter. Der Server setzt die richtige Antwort in jeder Frage an eine andere Stelle. Steht sie in jeder Frage an derselben Stelle, lehnt der Validator die Lektion ab.
+- Eine Primärquelle aus `data/resources/<trackId>.md`.
+
+Ungültige Lektionen werden verworfen und protokolliert. In der App heissen erzeugte Lektionen «Von der KI erstellt», ihre Beispiele «Beispiel erfunden». Vorbereitete Lektionen heissen weiter «Vorbereitet».
+
+`data/resources/<trackId>.md` listet geprüfte Quellen, zum Beispiel BACS, S-U-P-E-R.ch, «eBanking – aber sicher!» und DigComp 2.2. Jeder Link wurde am 24.10.2026 geöffnet. Was sich nicht prüfen liess, steht unter `## Gaps`.
+
+### Lerneinträge, Lernstand und Wiederholung
+
+Ein Lerneintrag ist eine Erkenntnis mit Belegen, kein Protokoll. Behandelt ist nicht gelernt. Es gibt vier Arten:
+
+| Art | Beleg, den der Server verlangt |
+|---|---|
+| `demonstrated` | In allen genannten Ereignissen ist das Kriterium alleine, ohne Hinweis und beim ersten Prüfen erfüllt |
+| `misconception` | ein Ereignis mit verpasstem Kriterium und ein späteres, in dem es ohne Hinweis erfüllt ist |
+| `prior-knowledge` | ein Ereignis in diesem Bereich |
+| `mission-shift` | eine von der Person bestätigte Missionsänderung (`mi-…`) |
+
+Einträge haben `status: active` oder `superseded by LR-n`. Die Regeln schreiben `demonstrated` und `misconception` selbst, auch ohne KI. Der Agent kann weitere schreiben.
+
+Der Lernstand pro Kriterium kommt nur aus den Lerneinträgen:
+
+- «unbekannt»: kein Eintrag.
+- «am Üben»: Fehlvorstellung korrigiert, oder nach «sicher» wieder verpasst.
+- «sicher»: ohne Hilfe gezeigt.
+
+Er steht getrennt vom DCC unter «Lernstand (aus dem Lernen, kein DCC)».
+
+Wird ein Kriterium «demonstrated», kommt es in die Wiederholung. Sie ist fällig nach 2 weiteren Lektionen oder in der nächsten Sitzung. Der Agent kann dann eine kurze gemischte Wiederholung erzeugen (`reviewOf`).
+
+## Lernumgebung pro Person
+
+Jede Person hat einen Ordner unter `backend/var/learners/<learnerId>/` (nicht in git). Jede Datei wird zuerst als Temp-Datei geschrieben und dann umbenannt.
+
+```
+profile.json                       Name, Erstellt am, DCC-Stände (Datum, Quelle)
+state.json                         Karte, Ereignisse, Empfehlungen, Beobachtungen, Wiederholung, Läufe des Agenten
+missions/<trackId>.md              Mission pro Bereich
+learning-records/0001-<slug>.md    Lerneinträge mit Frontmatter (track, criterion, kind, status, evidence)
+lessons/0001-<slug>.json           erzeugte Lektionen mit Herkunft (Modell, Zeit, basedOn, Quelle)
+reference/<trackId>.md             Merkblatt pro Bereich
+notes.md                           Vorlieben, zum Beispiel «mag kurze Lektionen»
+```
+
+- **Anmelden mit einem bekannten Namen** (Gross- und Kleinschreibung egal): «Weitermachen» setzt die bestehende Person fort, «Neu beginnen» legt eine neue an. Nichts wird gelöscht.
+- **Neues DCC-Resultat**: Es kommt als neuer Stand dazu, wenn es sich vom letzten unterscheidet. Lerneinträge bleiben. Bereiche ohne erledigte Lektion bekommen einen neuen Plan.
+- **Mission**: Beim ersten Öffnen eines Bereichs fragt die App nach der Mission: drei Vorschläge oder eigene Worte. Überspringen geht auch, dann gilt ein Standard. Eine Änderung im Profil braucht eine Bestätigung und wird als `mission-shift` festgehalten.
+
+## Datenschutz
+
+- Das Modell bekommt nie den Namen und nie die ID der Person.
+- Der Agent bekommt nur die DCC-Stufe des Bereichs, den er plant, nie das ganze Profil. Knoten anderer Bereiche sieht er nur als ID, ohne Titel.
+- An die KI gehen: die Übung, die Antworten der Person, die Mission und die Vorlieben aus `notes.md`. Die App sagt das bei der Mission und im Profil.
+- Kein Werkzeug und kein Code ändert DCC-Stufen. Lernen, Transfer und DCC bleiben getrennt.
+- Schlüssel liegen nur in `backend/.env`, nie im Frontend oder im Repo.
 
 Jede Empfehlung zeigt: was der Agent gesehen hat, den Vorschlag, warum das jetzt hilft und die Regel. Wer die Alternative startet, lehnt die Empfehlung ab. Das wird im Verlauf festgehalten und der Agent plant danach neu.
 
 Hilfe innerhalb einer Lektion (Hinweis nach dem Prüfen) wird vermerkt. Eine Beobachtung wie «Termine und Fristen 2× übersehen» gilt erst als erledigt, wenn das Kriterium ohne Hilfe gelöst wurde.
 
-Unter «Profil und Verlauf» stehen getrennt: DCC-Profil (nur lesen), Entscheidungen des Agenten, Lernverlauf, Beobachtungen und Transfer-Hinweise für die eigene Arbeit.
+Unter «Profil und Verlauf» stehen getrennt: DCC-Profil (nur lesen), Lernstand (aus dem Lernen, kein DCC), Mission pro Bereich, Lerneinträge (aktiv und ersetzt), Merkblatt, Entscheidungen des Agenten mit seinen Läufen, Lernverlauf, Beobachtungen und Transfer-Hinweise für die eigene Arbeit.
 
 ## Aufbau
 
 ```
 shared/      gemeinsame Typen
 backend/     Express-API, Agent, Bewertung, Modell-Anbindung
-  src/agent.ts      Plan aus dem DCC, Regeln, neue Knoten
+  src/agent.ts      Plan aus dem DCC, Regeln R0 bis R7, neue Knoten
+  src/planner.ts    Planer-Agent (A1): Werkzeuge, Schleife, Rückfall
+  src/guard.ts      Prüfung des Agenten-Plans durch die Regeln
+  src/generator.ts  Lektionen erzeugen, Quiz mischen
+  src/validate.ts   Validator für alle Lektionen
+  src/records.ts    Lerneinträge, Belege, Lernstand, Wiederholung, Merkblatt
+  src/workspace.ts  Ordner pro Person auf der Festplatte
+  src/sessions.ts   Anmelden, Lektionen, Missionen
   src/dcc.ts        DCC-Datei und Eingabe prüfen
   src/judge.ts      Bewertung nach Regeln
   src/services.ts   Chat, Hinweise, Bewertung mit Modell oder Rückfall
-  src/provider.ts   Anthropic, OpenAI oder keine
-  test/             API-Tests
-data/        Bereiche, Kriterien und Lektionen als JSON
+  src/provider.ts   Anthropic, OpenAI, Mock oder keine; Werkzeuge für den Agenten
+  test/             Tests für API, Agent, Validator und Speicher (Mock-Modell)
+data/        Bereiche, Kriterien, Missionsvorschläge, Lektionen (JSON) und Quellen (resources/*.md)
 frontend/    React-PWA: Anmeldung, Mindmap, Lektionen
 ```
 
-Neue Lektionen kommen als JSON nach `data/lessons/`. Beim Start prüft das Backend alle Dateien.
+Neue Lektionen kommen als JSON nach `data/lessons/`. Beim Start prüft das Backend alle Dateien mit demselben Validator wie erzeugte Lektionen. Ungültige werden verworfen und protokolliert.
 
 ## Grenzen
 
 - Keine Spielmechanik (kommt später).
-- Kein Lernen mit anderen Personen. Die Modi sind «Alleine» und «Mit KI».
-- Videos sind Storyboards, keine fertigen Videos.
-- Sitzungen liegen nur im Speicher. Nach einem Neustart des Servers ist der Verlauf weg.
-- Keine echte Anmeldung: Name und DCC-Resultat reichen.
+- Kein Lernen mit anderen Personen. Die Modi sind «Alleine» und «Mit KI». Der Teil «Wisdom/Community» aus «teach» kommt mit diesem Modus.
+- Videos sind Storyboards, keine fertigen Videos. Erzeugte Videos nutzen nur die einfachen Bilder «steps» und «url-parts».
+- Keine echte Anmeldung: Name und DCC-Resultat reichen. Wer den Namen kennt, kann weitermachen.
+- Der Speicher ist ein Ordner pro Person, ohne Datenbank und ohne Sperren für mehrere Server.
+- Der Planer-Agent läuft nur mit Anthropic. Mit OpenAI planen die Regeln.
+- Ein neues DCC-Resultat plant nur Bereiche neu, in denen noch nichts erledigt ist.
+- Die Liste echter Marken im Validator ist nicht vollständig. Der Hauptschutz sind die `.example`-Adressen.

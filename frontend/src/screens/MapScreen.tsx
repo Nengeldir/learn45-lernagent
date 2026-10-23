@@ -22,7 +22,7 @@ function useWide() {
 }
 
 export function MapScreen() {
-  const { view, content, setView, lessonOf, logout } = useStore();
+  const { view, content, setView, lessonOf, logout, refresh } = useStore();
   const nav = useNavigate();
   const wide = useWide();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -30,6 +30,38 @@ export function MapScreen() {
   const [lessonNode, setLessonNode] = useState<string | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(true);
+  const [toast, setToast] = useState<string | null>(null);
+
+  // While the planner agent works, ask the server every 1.5 s. When it is done, its plan replaces the provisional one.
+  const planning = Boolean(view?.session.planning);
+  useEffect(() => {
+    if (!planning) return;
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = async () => {
+      const v = await refresh().catch(() => null);
+      if (stop) return;
+      if (v && !v.session.planning) {
+        if (v.recommendation?.ruleId === 'A1') {
+          setToast('Der Agent hat deinen Plan angepasst');
+          if (!lessonNode) setFocusId(v.recommendation.nodeId);
+        }
+        return;
+      }
+      timer = setTimeout(tick, 1500);
+    };
+    timer = setTimeout(tick, 1500);
+    return () => {
+      stop = true;
+      clearTimeout(timer);
+    };
+  }, [planning, refresh, lessonNode]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   const closeLesson = useCallback((showNext: boolean) => {
     setLessonNode(null);
@@ -54,6 +86,7 @@ export function MapScreen() {
         <strong className="brand">Lernagent</strong>
         <span className="who">{view.session.userName}</span>
         <span className="spacer" />
+        {view.session.planning && <span className="status planning" role="status">Agent plant …</span>}
         <span className={`status ${view.modelStatus}`} title="Ohne KI kommen Gesprächsantworten und Hinweise aus vorbereiteten Texten.">{STATUS[view.modelStatus]}</span>
         <button className="time" onClick={() => setDrawer(true)}>Noch {view.remainingMin} Min.</button>
         <button className="btn quiet small" onClick={() => setDrawer(true)}>Profil und Verlauf</button>
@@ -92,6 +125,7 @@ export function MapScreen() {
         </aside>
       </main>
 
+      {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
       {lessonNode && <LessonOverlay nodeId={lessonNode} onClose={closeLesson} />}
       {drawer && <ProfileDrawer onClose={() => setDrawer(false)} />}
     </div>

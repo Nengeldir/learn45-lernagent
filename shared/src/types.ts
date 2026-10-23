@@ -48,6 +48,8 @@ export interface Track {
   dccArea?: string;
   /** Kinds of things the learner should notice or include, used as criteria */
   criteria: Criterion[];
+  /** Asked the first time the track is opened: three suggestions, plus a default when skipped */
+  mission?: { suggestions: string[]; default: string };
 }
 
 export interface Criterion {
@@ -73,6 +75,21 @@ interface LessonBase {
   targets: string[];
   transfer?: string;
   source: 'prepared' | 'model';
+  /** The one high-trust source the lesson builds on (from data/resources/<trackId>.md) */
+  primarySource?: { title: string; url: string };
+  /** Only for lessons made during learning (by a rule template or by the model) */
+  provenance?: LessonProvenance;
+}
+
+export interface LessonProvenance {
+  by: 'rule' | 'model';
+  model?: string;
+  at: string;
+  /** Learning record and event ids the lesson was made for */
+  basedOn: string[];
+  sessionNo: number;
+  /** Criteria a mixed review lesson brings back */
+  reviewOf?: string[];
 }
 
 // --- Video (Aha video or placeholder storyboard) ---
@@ -218,12 +235,14 @@ export interface MapNode {
   state?: NodeState;
   /** Added by the agent after a result (the map grows) */
   addedByAgent?: boolean;
+  /** Added by the rules only for a provisional plan; removed again if the agent's plan is accepted */
+  provisionalOf?: string;
   recommendationId?: string;
   result?: LessonResult;
   helpUsed?: boolean;
 }
 
-export type RuleId = 'R0' | 'R1' | 'R2' | 'R3' | 'R4' | 'R5' | 'R6' | 'R7';
+export type RuleId = 'R0' | 'R1' | 'R2' | 'R3' | 'R4' | 'R5' | 'R6' | 'R7' | 'A1';
 
 export interface Recommendation {
   id: string;
@@ -240,6 +259,10 @@ export interface Recommendation {
   why: string;
   tags: Source[];
   status: 'open' | 'accepted' | 'declined';
+  /** Rule plan shown while the planner agent still works on it */
+  provisional?: boolean;
+  /** Learning record and event ids the recommendation cites (A1) */
+  basedOn?: string[];
 }
 
 export interface Observation {
@@ -269,7 +292,7 @@ export interface LearningEvent {
 
 export interface ModelCall {
   at: string;
-  purpose: 'chat' | 'judge' | 'hint' | 'generate';
+  purpose: 'chat' | 'judge' | 'hint' | 'generate' | 'plan';
   ok: boolean;
   fallback: boolean;
   ms: number;
@@ -277,8 +300,111 @@ export interface ModelCall {
 
 export type ModelStatus = 'online' | 'offline' | 'simulation';
 
+// ---------------------------------------------------------------------------
+// Teaching workspace per learner (on disk). Learning area only, never diagnostics.
+// ---------------------------------------------------------------------------
+
+/** One DCC result as it came in. The latest snapshot is the active profile. */
+export interface DccSnapshot {
+  at: string;
+  source: DccProfile['source'];
+  fileName?: string;
+  profile: DccProfile;
+}
+
+export interface LearnerProfile {
+  id: string;
+  name: string;
+  createdAt: string;
+  dccSnapshots: DccSnapshot[];
+}
+
+export interface Mission {
+  trackId: string;
+  text: string;
+  /** set: chosen or written by the learner. default: skipped, the track's default is used */
+  status: 'set' | 'default';
+  updatedAt: string;
+}
+
+/** A change of a mission the learner confirmed. Its id is evidence for a mission-shift record. */
+export interface MissionChange {
+  id: string;
+  at: string;
+  trackId: string;
+  from: string;
+  to: string;
+}
+
+export type RecordKind = 'demonstrated' | 'prior-knowledge' | 'misconception' | 'mission-shift';
+
+/** Decision-grade insight, not a log entry. Cites the events that prove it. */
+export interface LearningRecord {
+  id: string;
+  trackId: string;
+  criterion?: string;
+  kind: RecordKind;
+  /** 'active' or 'superseded by LR-0007' */
+  status: string;
+  evidence: string[];
+  title: string;
+  body: string;
+  createdAt: string;
+  author: 'rule' | 'agent';
+}
+
+/** Merkblatt line: a rule of thumb or a glossary term the learner has demonstrated */
+export interface ReferenceEntry {
+  section: 'rule' | 'term';
+  title: string;
+  text: string;
+  basedOn: string[];
+}
+
+/** A demonstrated criterion waiting for spaced retrieval practice */
+export interface ReviewItem {
+  id: string;
+  trackId: string;
+  criterion: string;
+  recordId: string;
+  addedAt: string;
+  /** Number of events when it was added; due after 2 more lessons */
+  addedAfterEvents: number;
+  /** Due in a later session at the latest */
+  addedInSession: number;
+  status: 'waiting' | 'done';
+  doneEventId?: string;
+}
+
+export type LernstandState = 'unbekannt' | 'am-ueben' | 'sicher';
+
+/** Learning progress per criterion, derived from learning records. Not a DCC level. */
+export interface LernstandEntry {
+  trackId: string;
+  criterion: string;
+  state: LernstandState;
+  recordIds: string[];
+}
+
+export interface PlannerRun {
+  id: string;
+  eventId: string;
+  trackId: string;
+  startedAt: string;
+  finishedAt?: string;
+  steps: number;
+  outcome: 'running' | 'accepted' | 'fallback';
+  /** Why the rules decided, or what the agent did */
+  note: string;
+  /** Tools the agent called, in order */
+  tools: string[];
+}
+
 export interface Session {
   id: string;
+  learnerId: string;
+  /** Counts logins of this learner; 1 = first session */
+  sessionNo: number;
   createdAt: string;
   userName: string;
   timeBudgetMin: number;
@@ -294,6 +420,20 @@ export interface Session {
   checks: Record<string, number>;
   modelCalls: ModelCall[];
   generatedLessons: Lesson[];
+  reviewQueue: ReviewItem[];
+  missionChanges: MissionChange[];
+  plannerRuns: PlannerRun[];
+  /** True while the planner agent works on the next step */
+  planning: boolean;
+}
+
+export interface WorkspaceView {
+  missions: Mission[];
+  records: LearningRecord[];
+  reference: Record<string, ReferenceEntry[]>;
+  notes: string[];
+  lernstand: LernstandEntry[];
+  dccSnapshots: Omit<DccSnapshot, 'profile'>[];
 }
 
 /** What the browser gets: session and the read-only DCC profile, kept apart */
@@ -303,6 +443,17 @@ export interface SessionView {
   recommendation: Recommendation | null;
   remainingMin: number;
   modelStatus: ModelStatus;
+  /** Whether a planner agent can run (Anthropic or mock, not simulated offline) */
+  agentAvailable: boolean;
+  workspace: WorkspaceView;
+}
+
+/** Login with a name that already exists: the learner chooses to continue or start fresh */
+export interface LoginConflict {
+  code: 'learner-exists';
+  name: string;
+  createdAt: string;
+  lessonsDone: number;
 }
 
 export interface ContentBundle {
@@ -312,6 +463,13 @@ export interface ContentBundle {
 
 export const MODE_LABEL: Record<Mode, string> = { alone: 'Alleine', ai: 'Mit KI', peer: 'Mit anderen' };
 export const SOURCE_LABEL: Record<Source, string> = { rule: 'Regel', model: 'KI', prepared: 'Vorbereitet', simulation: 'Simulation' };
+export const RECORD_KIND_LABEL: Record<RecordKind, string> = {
+  demonstrated: 'Ohne Hilfe gezeigt',
+  'prior-knowledge': 'Vorwissen',
+  misconception: 'Fehlvorstellung korrigiert',
+  'mission-shift': 'Mission geändert',
+};
+export const LERNSTAND_LABEL: Record<LernstandState, string> = { unbekannt: 'unbekannt', 'am-ueben': 'am Üben', sicher: 'sicher' };
 export const TYPE_LABEL: Record<LessonType, string> = {
   video: 'Video',
   'ai-chat': 'Mit der KI',
