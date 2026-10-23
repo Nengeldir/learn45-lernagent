@@ -28,6 +28,11 @@ export async function session(app: Express, id: string): Promise<SessionView> {
   return (await request(app).get(`/api/sessions/${id}`).expect(200)).body;
 }
 
+/** sich-v1, the starter of Sicherheit: both questions right (adresse, link). */
+export const v1Right = { type: 'video', answers: { 0: 1, 1: 2 } };
+/** sich-v1 with the link question wrong. */
+export const v1MissLink = { type: 'video', answers: { 0: 1, 1: 0 } };
+
 /** All warning signs of sich-s1 found, verdict right: every criterion met without help. */
 export const s1Right = { type: 'mock-site', marked: ['m-from', 'm-subject', 'm-greeting', 'm-link', 'w-url', 'w-fields'], verdict: 'phishing' };
 /** Link and address missed. */

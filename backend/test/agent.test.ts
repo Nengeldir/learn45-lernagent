@@ -9,7 +9,7 @@ import { createApp } from '../src/app.ts';
 import { setMockAgentHandler, setMockHandler, type AgentRequest, type ModelRequest } from '../src/provider.ts';
 import { _idle, _reset } from '../src/sessions.ts';
 import { learnersRoot } from '../src/workspace.ts';
-import { finish, levels, login, mockSiteJson, node, s1MissLink, s1Right, scripted, session, use, type Turn } from './helpers.ts';
+import { finish, levels, login, mockSiteJson, node, s1MissLink, s1Right, scripted, session, use, v1MissLink, v1Right, type Turn } from './helpers.ts';
 
 const app = createApp();
 
@@ -42,9 +42,9 @@ const goodPlan = (seen?: AgentRequest[]) => scripted([
   })],
 ], seen);
 
-async function afterLesson(answer: unknown = s1Right, body: Record<string, unknown> = {}): Promise<SessionView> {
+async function afterLesson(lessonId = 'sich-v1', answer: unknown = v1Right, body: Record<string, unknown> = {}): Promise<SessionView> {
   const v = await login(app, body);
-  const after = await finish(app, v, node(v, 'sich-s1'), answer);
+  const after = await finish(app, v, node(v, lessonId), answer);
   await _idle();
   return session(app, after.session.id);
 }
@@ -55,7 +55,7 @@ describe('Planer-Agent', () => {
   it('fügt Knoten hinzu und empfiehlt mit A1, gestützt auf Lerneinträge', async () => {
     setMockAgentHandler(goodPlan());
     const v = await login(app);
-    const after = await finish(app, v, node(v, 'sich-s1'), s1Right);
+    const after = await finish(app, v, node(v, 'sich-v1'), v1Right);
     // Right after the lesson: the rule plan, marked provisional, while the agent plans.
     expect(after.session.planning).toBe(true);
     expect(after.recommendation?.provisional).toBe(true);
@@ -143,14 +143,14 @@ describe('Planer-Agent', () => {
       })],
       (t) => ((answer = t.results), [use('recommend', { nodeId: 'n-x', alternativeNodeId: 'n-y', reason: 'x', basedOn: [] })]),
     ]));
-    const s = await afterLesson(s1MissLink);
+    const s = await afterLesson('sich-v1', v1MissLink);
     expect(answer[0].isError).toBe(true);
     expect(String(answer[0].content)).toMatch(/«demonstrated» braucht Belege/);
     expect(s.workspace.records.some((r) => r.criterion === 'link' && r.kind === 'demonstrated')).toBe(false);
-    // The rules did record what the evidence carries: the other signs were found without help.
-    expect(s.workspace.records.some((r) => r.criterion === 'absender' && r.kind === 'demonstrated' && r.author === 'rule')).toBe(true);
+    // The rules did record what the evidence carries: the address question was right without help.
+    expect(s.workspace.records.some((r) => r.criterion === 'adresse' && r.kind === 'demonstrated' && r.author === 'rule')).toBe(true);
     expect(s.workspace.lernstand.find((l) => l.trackId === 't-sicherheit' && l.criterion === 'link')!.state).toBe('unbekannt');
-    expect(s.workspace.lernstand.find((l) => l.trackId === 't-sicherheit' && l.criterion === 'absender')!.state).toBe('sicher');
+    expect(s.workspace.lernstand.find((l) => l.trackId === 't-sicherheit' && l.criterion === 'adresse')!.state).toBe('sicher');
   });
 
   it('ändert die DCC-Stufen nach mehreren Lektionen mit aktivem Agenten nie', async () => {
@@ -182,7 +182,7 @@ describe('Planer-Agent', () => {
       return req.purpose === 'generate' ? mockSiteJson() : 'ok';
     });
     setMockAgentHandler(goodPlan(seen));
-    const s = await afterLesson(s1Right, { name: 'Zoe Beispielname' });
+    const s = await afterLesson('sich-v1', v1Right, { name: 'Zoe Beispielname' });
     expect(s.recommendation!.ruleId).toBe('A1');
     expect(seen.length).toBeGreaterThan(2);
     expect(generated.some((r) => r.purpose === 'generate')).toBe(true);
@@ -203,7 +203,7 @@ describe('Planer-Agent', () => {
 
   it('plant ohne Agent nach Regeln, wenn das Modell fehlt', async () => {
     process.env.MODEL_PROVIDER = 'none';
-    const s = await afterLesson();
+    const s = await afterLesson('sich-s1', s1Right);
     expect(s.agentAvailable).toBe(false);
     expect(s.session.planning).toBe(false);
     expect(s.session.plannerRuns).toHaveLength(0);
@@ -213,10 +213,75 @@ describe('Planer-Agent', () => {
   });
 });
 
+describe('KI zuerst, vorbereitete Lektionen als Rückfall', () => {
+  const lessonsOn = (v: SessionView, trackId: string) => v.session.nodes.filter((n) => n.kind === 'lesson' && n.trackId === trackId);
+  const tracks = ['t-info', 't-komm', 't-inhalte', 't-sicherheit', 't-problem', 't-analysis', 't-physik'];
+
+  it('startet mit KI mit einer Lektion pro Bereich, ohne KI mit dem ganzen Plan', async () => {
+    const ai = await login(app);
+    for (const t of tracks) expect(lessonsOn(ai, t), t).toHaveLength(1);
+    process.env.MODEL_PROVIDER = 'none';
+    const offline = await login(app, { name: 'Offline' });
+    expect(tracks.reduce((sum, t) => sum + lessonsOn(offline, t).length, 0)).toBeGreaterThan(tracks.length);
+  });
+
+  it('hängt eine vorbereitete Lektion erst an, wenn die Erzeugung gescheitert ist', async () => {
+    const answers: Turn['results'][] = [];
+    setMockHandler((req) => (req.purpose === 'generate' ? mockSiteJson({ domain: 'kundenportal.ch' }) : 'ok'));
+    const add = () => [use('add_to_map', { lessonId: 'sich-s1', parentNodeId: 'n-sich-v1' })];
+    setMockAgentHandler(scripted([
+      add,
+      (t) => (answers.push(t.results), [use('generate_lesson', { type: 'mock-site', trackId: 't-sicherheit', criterion: 'link', level: 'Grundstufe', contextHint: 'Mail' })]),
+      (t) => (answers.push(t.results), add()),
+      (t) => (answers.push(t.results), [use('recommend', { nodeId: 'n-x', alternativeNodeId: 'n-y', reason: 'x', basedOn: [] })]),
+    ]));
+    await afterLesson();
+    expect(String(answers[0][0].content)).toMatch(/Erzeuge zuerst mit generate_lesson/);
+    expect(answers[1][0].isError).toBe(true);
+    expect(answers[2][0]).toMatchObject({ isError: false });
+  });
+
+  it('entfernt Knoten des vorläufigen Regel-Plans, wenn der Agent-Plan gilt', async () => {
+    setMockAgentHandler(scripted([
+      () => [use('get_learner_state', { trackId: 't-sicherheit' })],
+      () => [use('generate_lesson', { type: 'mock-site', trackId: 't-sicherheit', criterion: 'link', level: 'Grundstufe', contextHint: 'Rechnungsmail' })],
+      (t) => [use('add_to_map', { lessonId: (t.results[0].content as { lessonId: string }).lessonId, parentNodeId: 'n-sich-v1' })],
+      (t) => [use('recommend', {
+        nodeId: (t.results[0].content as { nodeId: string }).nodeId,
+        alternativeNodeId: t.state!.rulePlan!.alternativeNodeId,
+        reason: 'Linkziel an einer Rechnungsmail üben.',
+        basedOn: [t.state!.lastResults.at(-1)!.eventId],
+      })],
+    ]));
+    const v = await login(app);
+    const after = await finish(app, v, node(v, 'sich-v1'), v1MissLink);
+    // The rules took sich-s1 from the pool for the missed link, only for the provisional plan.
+    const ruleNode = after.session.nodes.find((n) => n.lessonId === 'sich-s1')!;
+    expect(ruleNode.provisionalOf).toBe(after.recommendation!.id);
+    await _idle();
+    const s = await session(app, v.session.id);
+    expect(s.recommendation!.ruleId).toBe('A1');
+    expect(s.session.nodes.some((n) => n.lessonId === 'sich-s1')).toBe(false);
+    expect(s.session.nodes.some((n) => n.provisionalOf)).toBe(false);
+    expect(s.session.nodes.find((n) => n.id === s.recommendation!.nodeId)!.addedByAgent).toBe(true);
+  });
+
+  it('nimmt die vorbereiteten Lektionen des Bereichs, wenn der Agent scheitert', async () => {
+    setMockAgentHandler(() => [{ type: 'text', text: 'Ich weiss nicht weiter.' }]);
+    const s = await afterLesson();
+    const run = s.session.plannerRuns.at(-1)!;
+    expect(run.outcome).toBe('fallback');
+    expect(run.note).toMatch(/mit 1 vorbereiteten Lektionen/);
+    const rec = s.recommendation!;
+    expect(rec.provisional).toBeUndefined();
+    expect(s.session.nodes.find((n) => n.id === rec.nodeId)!.lessonId).toBe('sich-s1');
+  });
+});
+
 describe('Lerneinträge und Wiederholung', () => {
   it('schreibt «demonstrated» nur mit Belegen und stellt das Kriterium in die Wiederholung', async () => {
     process.env.MODEL_PROVIDER = 'none';
-    const s = await afterLesson();
+    const s = await afterLesson('sich-s1', s1Right);
     const demo = s.workspace.records.filter((r) => r.kind === 'demonstrated');
     expect(demo.map((r) => r.criterion).sort()).toEqual(['absender', 'adresse', 'anrede', 'daten', 'druck', 'link']);
     expect(demo.every((r) => r.evidence.length === 1 && r.evidence[0] === s.session.events[0].id)).toBe(true);

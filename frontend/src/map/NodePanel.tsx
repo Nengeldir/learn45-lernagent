@@ -109,6 +109,11 @@ export function NodePanel({
           </>
         )}
         <Legend />
+        <p className="small muted">
+          {view.agentAvailable
+            ? 'Mit KI startet jeder Bereich mit einem Einstieg. Nach jeder Lektion erzeugt der Agent die nächste passende Lektion. Vorbereitete Lektionen nimmt er nur, wenn das nicht klappt.'
+            : 'Ohne KI: Die Karte zeigt die vorbereiteten Lektionen, die Regeln wählen den nächsten Schritt.'}
+        </p>
       </div>
     );
   }

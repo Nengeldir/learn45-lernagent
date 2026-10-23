@@ -8,7 +8,7 @@ import { createApp } from '../src/app.ts';
 import { setMockAgentHandler, setMockHandler } from '../src/provider.ts';
 import { _idle, _reset } from '../src/sessions.ts';
 import { learnersRoot } from '../src/workspace.ts';
-import { finish, levels, login, mockSiteJson, node, s1Right, scripted, session, use } from './helpers.ts';
+import { finish, levels, login, mockSiteJson, node, scripted, session, use, v1Right } from './helpers.ts';
 
 beforeEach(() => {
   _reset();
@@ -17,7 +17,7 @@ beforeEach(() => {
   setMockAgentHandler(scripted([
     () => [use('get_learner_state', { trackId: 't-sicherheit' })],
     () => [use('generate_lesson', { type: 'mock-site', trackId: 't-sicherheit', criterion: 'link', level: 'Grundstufe', contextHint: 'Rechnungsmail' })],
-    (t) => [use('add_to_map', { lessonId: (t.results[0].content as { lessonId: string }).lessonId, parentNodeId: 'n-sich-s1' })],
+    (t) => [use('add_to_map', { lessonId: (t.results[0].content as { lessonId: string }).lessonId, parentNodeId: 'n-sich-v1' })],
     (t) => [use('recommend', { nodeId: (t.results[0].content as { nodeId: string }).nodeId, alternativeNodeId: t.state!.rulePlan!.nodeId, reason: 'Linkziel an einer Rechnungsmail üben.', basedOn: [t.state!.activeRecords[0].id] })],
   ]));
 });
@@ -32,14 +32,14 @@ describe('Lernstand auf der Festplatte', () => {
   it('bleibt nach einem Neustart erhalten: Verlauf, Lerneinträge und erzeugte Lektionen', async () => {
     const app1 = createApp();
     const v = await login(app1, { name: 'Mara' });
-    await finish(app1, v, node(v, 'sich-s1'), s1Right);
+    await finish(app1, v, node(v, 'sich-v1'), v1Right);
     await _idle();
     const before = await session(app1, v.session.id);
     expect(before.recommendation!.ruleId).toBe('A1');
 
     const dir = join(learnersRoot(), v.session.learnerId);
     for (const f of ['profile.json', 'state.json']) expect(existsSync(join(dir, f))).toBe(true);
-    expect(readdirSync(join(dir, 'learning-records')).length).toBe(6);
+    expect(readdirSync(join(dir, 'learning-records')).length).toBe(2);
     expect(readdirSync(join(dir, 'lessons')).length).toBe(1);
     expect(existsSync(join(dir, 'reference', 't-sicherheit.md'))).toBe(true);
     expect(readdirSync(dir).some((f) => f.endsWith('.tmp'))).toBe(false);
@@ -57,7 +57,7 @@ describe('Lernstand auf der Festplatte', () => {
     expect(again.session.sessionNo).toBe(2);
     expect(again.session.usedMin).toBe(0);
     expect(again.session.events).toHaveLength(1);
-    expect(again.session.nodes.find((n) => n.lessonId === 'sich-s1')!.state).toBe('done');
+    expect(again.session.nodes.find((n) => n.lessonId === 'sich-v1')!.state).toBe('done');
     expect(again.workspace.records).toEqual(before.workspace.records);
     expect(again.workspace.reference).toEqual(before.workspace.reference);
     // The agent plan is still valid, so it stays the open recommendation.
@@ -68,13 +68,13 @@ describe('Lernstand auf der Festplatte', () => {
     // The old session is closed.
     await request(app2).get(`/api/sessions/${v.session.id}`).expect(404);
     // The review queue from session 1 is kept.
-    expect(again.session.reviewQueue.filter((q) => q.status === 'waiting' && q.addedInSession === 1)).toHaveLength(6);
+    expect(again.session.reviewQueue.filter((q) => q.status === 'waiting' && q.addedInSession === 1)).toHaveLength(2);
   });
 
   it('«Neu beginnen» legt eine neue Person an und löscht nichts', async () => {
     const app = createApp();
     const a = await login(app, { name: 'Mara' });
-    await finish(app, a, node(a, 'sich-s1'), s1Right);
+    await finish(app, a, node(a, 'sich-v1'), v1Right);
     await _idle();
     await login(app, { name: 'Mara' }, 409);
     const b = await login(app, { name: 'Mara', resume: 'new' });
@@ -89,7 +89,7 @@ describe('Lernstand auf der Festplatte', () => {
   it('speichert ein neues DCC-Resultat als neuen Stand und behält die Lerneinträge', async () => {
     const app = createApp();
     const a = await login(app, { name: 'Mara' });
-    await finish(app, a, node(a, 'sich-s1'), s1Right);
+    await finish(app, a, node(a, 'sich-v1'), v1Right);
     await _idle();
     const records = (await session(app, a.session.id)).workspace.records;
     const b = await login(app, { name: 'Mara', resume: 'continue', levels: { ...levels, 't-komm': 'Grundstufe' } });
