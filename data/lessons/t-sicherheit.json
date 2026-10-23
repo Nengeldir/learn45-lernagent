@@ -29,8 +29,8 @@
         {
           "afterScene": 2,
           "prompt": "Was sagt das Schloss-Symbol in der Adresszeile?",
-          "options": ["Die Seite gehört sicher der Bank", "Die Verbindung ist verschlüsselt", "Die Seite wurde vom Bund geprüft"],
-          "correct": 1,
+          "options": ["Die Seite gehört sicher der Bank", "Die Seite wurde vom Bund geprüft", "Die Verbindung zur Seite ist verschlüsselt"],
+          "correct": 2,
           "explanation": "Das Schloss zeigt nur die verschlüsselte Verbindung. Auch Betrüger haben Schlösser.",
           "criterion": "link"
         }

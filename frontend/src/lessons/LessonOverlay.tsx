@@ -4,8 +4,10 @@ import type { Answer, Lesson, LessonResult } from '@l45/shared';
 import { MODE_LABEL, SOURCE_LABEL, TYPE_LABEL } from '@l45/shared';
 import { api } from '../lib/api.ts';
 import { useStore } from '../lib/store.tsx';
+import { BasedOn, LessonSource, PlanStatus, planLabel } from '../map/NodePanel.tsx';
 import { AiChat } from './AiChat.tsx';
 import { MarkEvidence, MockSite } from './Checkable.tsx';
+import { MissionCard } from './MissionCard.tsx';
 import { Video } from './Video.tsx';
 
 export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (showNext: boolean) => void }) {
@@ -17,15 +19,23 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
   const started = useRef(Date.now());
   const ref = useRef<HTMLDivElement>(null);
   const sessionId = view!.session.id;
+  // The first time a track is opened, the mission question comes before the lesson.
+  const trackId = view?.session.nodes.find((n) => n.id === nodeId)?.trackId;
+  const missionTrack = content?.skills.flatMap((s) => s.tracks).find((t) => t.id === trackId);
+  const needsMission = Boolean(missionTrack && !view?.workspace.missions.some((m) => m.trackId === trackId));
+  const [askMission] = useState(needsMission);
+  const [missionDone, setMissionDone] = useState(false);
+  const ready = !askMission || missionDone;
 
   useEffect(() => {
+    if (!ready) return;
     api.start(sessionId, nodeId).then((r) => {
       setLesson(r.lesson);
       setNotice(r.switched ?? null);
       setView(r.view);
       started.current = Date.now();
     }).catch((e) => setError(e.message));
-  }, [sessionId, nodeId, setView]);
+  }, [sessionId, nodeId, setView, ready]);
 
   useEffect(() => {
     ref.current?.focus();
@@ -64,13 +74,15 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
                 <span>{lesson.level}</span>
               </p>
             )}
-            <h2>{lesson?.title ?? 'Lektion wird geladen …'}</h2>
+            <h2>{lesson?.title ?? (ready ? 'Lektion wird geladen …' : missionTrack?.name)}</h2>
             {lesson && !result && <p>{lesson.intro}</p>}
+            {lesson && <LessonSource lesson={lesson} />}
           </div>
           <button className="btn quiet" onClick={() => onClose(Boolean(result))}>{result ? 'Zur Karte' : 'Schliessen'}</button>
         </header>
 
         {error && <p className="error" role="alert">{error}</p>}
+        {!ready && missionTrack && <MissionCard track={missionTrack} onDone={() => setMissionDone(true)} />}
         {notice && !result && <p className="note">{notice}</p>}
 
         {lesson && !result && (
@@ -103,13 +115,15 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
               <div className="note"><strong>Merksatz:</strong> {missed.map((m) => m!.ruleOfThumb).join(' ')}</div>
             )}
             {lesson.transfer && <div className="transfer"><strong>Für deine Arbeit:</strong> {lesson.transfer}</div>}
-            {rec && (
+            {rec && view && (
               <div className="next-card">
                 <p className="small muted">Der Agent passt deine Karte an</p>
+                <PlanStatus view={view} />
                 <h3>{recNode ? `Nächster Schritt: ${recNode.label}` : 'Für heute fertig'}</h3>
                 <p>{rec.reason}</p>
                 <p className="small">{rec.why}</p>
-                <p className="small muted">{rec.ruleId} {rec.ruleName}. {rec.tags.map((t) => SOURCE_LABEL[t]).join(', ')}</p>
+                {rec.basedOn?.length ? <div className="small"><strong>Gestützt auf:</strong><BasedOn rec={rec} view={view} /></div> : null}
+                <p className="small muted">{rec.ruleId} {rec.ruleName}. {rec.tags.map((t) => SOURCE_LABEL[t]).join(', ')}. {planLabel(rec, view)}</p>
                 <button className="btn primary" onClick={() => onClose(true)}>Auf der Karte ansehen</button>
               </div>
             )}

@@ -55,7 +55,7 @@ export function AiChat({ lesson, sessionId, nodeId, onComplete }: { lesson: AiCh
       <div className={c.material ? 'two-col chat-layout' : 'chat-layout'}>
         {c.material && (
           <div className="card source">
-            <h3>{c.material.title}</h3>
+            <h3>{c.material.title} {lesson.source === 'model' && <span className="tag model">Beispiel erfunden</span>}</h3>
             <ul>{c.material.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>
           </div>
         )}

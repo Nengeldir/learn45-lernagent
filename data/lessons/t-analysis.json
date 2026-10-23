@@ -22,7 +22,7 @@
         {
           "afterScene": 1,
           "prompt": "Was passiert mit der Sekante, wenn der zweite Punkt näher rückt?",
-          "options": ["Sie wird immer steiler, egal wo", "Sie verschwindet aus dem Bild", "Sie nähert sich der Tangente an"],
+          "options": ["Sie wird immer steiler, egal wo", "Sie verschwindet ganz aus dem Bild", "Sie nähert sich der Tangente an"],
           "correct": 2,
           "explanation": "Rückt der Punkt näher, nähert sich die Sekante der Tangente an.",
           "criterion": "grenzwert"
@@ -30,7 +30,7 @@
         {
           "afterScene": 3,
           "prompt": "Was gibt die Ableitung an einer Stelle an?",
-          "options": ["Die Fläche unter der Kurve dort", "Die Steigung der Tangente dort", "Den höchsten Punkt der Kurve"],
+          "options": ["Die Fläche unter der Kurve", "Die Steigung der Tangente dort", "Den höchsten Punkt der Kurve"],
           "correct": 1,
           "explanation": "Die Ableitung ist die Steigung der Tangente an dieser Stelle.",
           "criterion": "steigung"

@@ -33,6 +33,7 @@ export const RULE_NAME: Record<RuleId, string> = {
   R5: 'Alternative gewählt',
   R6: 'Hilfe in der Aufgabe',
   R7: 'Bereich abgeschlossen',
+  A1: 'Agent-Plan',
 };
 
 // --- Initial plan --------------------------------------------------------------------------
@@ -52,7 +53,8 @@ export function planTrack(track: Track, level: DccLevel | null | undefined, less
   return [...F, ...M].slice(0, 2);
 }
 
-export function buildMap(userName: string, skills: Skill[], dcc: DccProfile, lessons: Lesson[]): MapNode[] {
+/** starterOnly: with the planner agent, each track starts with one lesson; the agent grows the rest. */
+export function buildMap(userName: string, skills: Skill[], dcc: DccProfile, lessons: Lesson[], starterOnly = false): MapNode[] {
   const nodes: MapNode[] = [{ id: 'start', kind: 'start', parentId: null, label: userName }];
   for (const skill of skills) {
     const sid = `s-${skill.id}`;
@@ -61,7 +63,8 @@ export function buildMap(userName: string, skills: Skill[], dcc: DccProfile, les
       const tid = `t-${track.id}`;
       nodes.push({ id: tid, kind: 'track', parentId: sid, label: track.name, skillId: skill.id, trackId: track.id });
       let parent = tid;
-      for (const lesson of planTrack(track, skill.dccBased ? dcc.levels[track.id] ?? null : undefined, lessons)) {
+      const plan = planTrack(track, skill.dccBased ? dcc.levels[track.id] ?? null : undefined, lessons);
+      for (const lesson of starterOnly ? plan.slice(0, 1) : plan) {
         const id = `n-${lesson.id}`;
         nodes.push({ id, kind: 'lesson', parentId: parent, label: lesson.title, skillId: skill.id, trackId: track.id, lessonId: lesson.id, state: 'planned' });
         parent = id;
@@ -102,7 +105,7 @@ const trackOf = (input: AgentInput, id: string) => input.skills.flatMap((s) => s
 const label = (input: AgentInput, trackId: string, crit: string) => trackOf(input, trackId).criteria.find((c) => c.id === crit)?.label ?? crit;
 
 /** Planned nodes that can be done next: their parent is not itself still planned. */
-function frontier(input: AgentInput, trackId?: string): MapNode[] {
+export function frontier(input: Pick<AgentInput, 'nodes'>, trackId?: string): MapNode[] {
   const byId = new Map(input.nodes.map((n) => [n.id, n]));
   return input.nodes.filter((n) => {
     if (n.kind !== 'lesson' || n.state !== 'planned') return false;
@@ -141,7 +144,7 @@ function newNode(input: AgentInput, lesson: Lesson, parentId: string): MapNode {
   };
 }
 
-function keywordPatterns(text: string): string[] {
+export function keywordPatterns(text: string): string[] {
   const words = text.toLowerCase().replace(/[«».,:;!?()]/g, ' ').split(/\s+/).filter((w) => w.length >= 5);
   return [...new Set(words)].slice(0, 8).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
 }

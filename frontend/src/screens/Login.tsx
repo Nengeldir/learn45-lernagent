@@ -1,8 +1,8 @@
 import { useMemo, useState, type DragEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { DccLevel, DccResultFile } from '@l45/shared';
+import type { DccLevel, DccResultFile, LoginConflict } from '@l45/shared';
 import { DCC_LEVELS } from '@l45/shared';
-import { api } from '../lib/api.ts';
+import { api, ApiError } from '../lib/api.ts';
 import { useStore } from '../lib/store.tsx';
 
 const SAMPLES = [
@@ -23,6 +23,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
+  const [conflict, setConflict] = useState<LoginConflict | null>(null);
 
   const readFile = async (f: File) => {
     setError(null);
@@ -45,19 +46,22 @@ export function Login() {
 
   const ready = name.trim().length > 0 && (mode === 'manual' || file);
 
-  const submit = async () => {
+  const submit = async (resume?: 'continue' | 'new') => {
     setBusy(true);
     setError(null);
     try {
       const v = await api.login({
         name,
         timeBudgetMin: time,
+        resume,
         ...(mode === 'file' && file ? { dccFile: file.data, fileName: file.name } : { levels }),
       });
-      setView(v, []);
+      setConflict(null);
+      setView(v, resume === 'continue' ? await api.generated(v.session.id) : []);
       nav('/karte');
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (e instanceof ApiError && e.status === 409 && e.body.code === 'learner-exists') setConflict(e.body as unknown as LoginConflict);
+      else setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
@@ -78,7 +82,7 @@ export function Login() {
         <h2>Anmelden</h2>
         <label className="field">
           <span>Dein Name</span>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} autoComplete="given-name" maxLength={40} />
+          <input type="text" value={name} onChange={(e) => { setName(e.target.value); setConflict(null); }} autoComplete="given-name" maxLength={40} />
         </label>
         <label className="field">
           <span>Zeit für heute</span>
@@ -148,9 +152,23 @@ export function Login() {
         </fieldset>
 
         {error && <p className="error" role="alert">{error}</p>}
-        <button className="btn primary block" disabled={!ready || busy} onClick={submit}>
-          {busy ? 'Lernkarte wird erstellt …' : 'Lernkarte erstellen'}
-        </button>
+        {conflict ? (
+          <div className="choice-card" role="alert">
+            <p>
+              <strong>Es gibt schon einen Verlauf für «{conflict.name}».</strong>{' '}
+              Seit {new Date(conflict.createdAt).toLocaleDateString('de-CH')}, {conflict.lessonsDone} {conflict.lessonsDone === 1 ? 'Lektion' : 'Lektionen'} erledigt.
+            </p>
+            <div className="row">
+              <button className="btn primary" disabled={busy} onClick={() => submit('continue')}>Weitermachen</button>
+              <button className="btn secondary" disabled={busy} onClick={() => submit('new')}>Neu beginnen</button>
+            </div>
+            <p className="small muted">Weitermachen: Karte, Lerneinträge und Missionen bleiben. Ein neues DCC-Resultat wird als neuer Stand gespeichert. Neu beginnen: eine neue Karte, der alte Verlauf wird nicht gelöscht.</p>
+          </div>
+        ) : (
+          <button className="btn primary block" disabled={!ready || busy} onClick={() => submit()}>
+            {busy ? 'Lernkarte wird erstellt …' : 'Lernkarte erstellen'}
+          </button>
+        )}
       </section>
     </div>
   );

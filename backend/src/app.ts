@@ -7,7 +7,7 @@ import { content } from './content.ts';
 import { InputError, profileFromFile, profileFromManual } from './dcc.ts';
 import { modelStatus, providerName } from './provider.ts';
 import {
-  HttpError, chat, complete, createSession, generatedPublic, get, hint, partialCheck, patch, publicLesson, startNode, view,
+  HttpError, chat, clearCache, complete, generatedPublic, get, hint, login, partialCheck, patch, publicLesson, setMission, startNode, view,
 } from './sessions.ts';
 
 type Handler = (req: Request, res: Response) => unknown;
@@ -41,6 +41,8 @@ function parseTurns(turns: unknown): ChatTurn[] {
 }
 
 export function createApp() {
+  // A new app starts like a restarted server: nothing in memory, everything is read from disk.
+  clearCache();
   const app = express();
   app.use(express.json({ limit: '200kb' }));
 
@@ -52,11 +54,13 @@ export function createApp() {
   });
 
   // Login: name + DCC profile (from a result file or entered by hand). No password: prototype with synthetic data.
+  // A name that exists already answers 409; the learner then sends resume: 'continue' or 'new'.
   app.post('/api/login', h((req, res) => {
     const body = req.body ?? {};
     const dcc = body.dccFile ? profileFromFile(body.dccFile, body.fileName) : profileFromManual(body.levels);
     const time = Number(body.timeBudgetMin ?? 15);
-    const st = createSession({ name: String(body.name ?? ''), timeBudgetMin: Number.isFinite(time) && time > 0 ? Math.min(180, time) : 15, dcc });
+    const resume = body.resume === 'continue' || body.resume === 'new' ? body.resume : undefined;
+    const st = login({ name: String(body.name ?? ''), timeBudgetMin: Number.isFinite(time) && time > 0 ? Math.min(180, time) : 15, dcc, resume });
     res.status(201).json(view(st));
   }));
 
@@ -65,6 +69,12 @@ export function createApp() {
   app.patch('/api/sessions/:id', h((req, res) => {
     const st = get(p(req, 'id'));
     patch(st, req.body ?? {});
+    res.json(view(st));
+  }));
+
+  app.put('/api/sessions/:id/missions/:track', h((req, res) => {
+    const st = get(p(req, 'id'));
+    setMission(st, p(req, 'track'), req.body ?? {});
     res.json(view(st));
   }));
 
@@ -100,7 +110,7 @@ export function createApp() {
 
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Nicht gefunden' }));
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-    if (err instanceof HttpError) return res.status(err.status).json({ error: err.message });
+    if (err instanceof HttpError) return res.status(err.status).json({ error: err.message, ...err.body });
     if (err instanceof InputError) return res.status(400).json({ error: err.message });
     console.error(err);
     res.status(500).json({ error: 'Interner Fehler' });

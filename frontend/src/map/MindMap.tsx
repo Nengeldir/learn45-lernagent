@@ -315,7 +315,7 @@ function Node({
 
   // Lesson node
   const lines = wrap(n.label, 20);
-  const meta = lesson ? `${TYPE_LABEL[lesson.type]}, ${lesson.durationMin} Min.` : '';
+  const meta = lesson ? `${TYPE_LABEL[lesson.type]}, ${lesson.durationMin} Min.${lesson.source === 'model' ? ', von der KI' : ''}` : '';
   const result = n.state === 'done' && n.result ? (n.result.allMet ? 'gelöst' : 'mit Lücken') : '';
   const stateText =
     n.state === 'recommended' ? 'Nächster Schritt' : n.state === 'alternative' ? 'Alternative' : n.state === 'done' ? 'erledigt' : 'geplant';

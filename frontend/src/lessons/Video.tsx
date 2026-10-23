@@ -249,7 +249,13 @@ export function Video({ lesson, onComplete }: { lesson: VideoLesson; onComplete:
 
   return (
     <>
-      {!lesson.content.videoUrl && <p className="note">Platzhalter-Storyboard. Das fertige Video wird vorab mit der Aha-Engine erzeugt und hier eingebunden.</p>}
+      {!lesson.content.videoUrl && (
+        <p className="note">
+          {lesson.source === 'model'
+            ? <>Von der KI erstellt: ein kurzes Storyboard mit Fragen. <span className="tag model">Beispiel erfunden</span></>
+            : 'Platzhalter-Storyboard. Das fertige Video wird vorab mit der Aha-Engine erzeugt und hier eingebunden.'}
+        </p>
+      )}
       {lesson.content.videoUrl ? (
         <video
           src={lesson.content.videoUrl}

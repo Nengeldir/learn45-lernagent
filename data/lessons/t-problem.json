@@ -67,7 +67,7 @@
         {
           "afterScene": 2,
           "prompt": "Wie gibst du eine Fehlermeldung am besten weiter?",
-          "options": ["Mit eigenen Worten kurz erklärt", "Nur «es kam ein Fehler» schreiben", "Wörtlich kopiert, mit Fehlercode"],
+          "options": ["Mit eigenen Worten kurz erklärt", "Nur «es gab Fehler» schreiben", "Wörtlich kopiert, samt dem Fehlercode"],
           "correct": 2,
           "explanation": "Der genaue Text mit Code zeigt dem Support sofort, welcher Fehler es ist. Eigene Worte verlieren Details.",
           "criterion": "meldung"
@@ -75,7 +75,7 @@
         {
           "afterScene": 3,
           "prompt": "Was fehlt hier? «Ich wollte den Bericht als PDF speichern. Nach Export → PDF kam Fehler PW-412. Neu laden half nicht.»",
-          "options": ["Die genaue Fehlermeldung", "Das Gerät und der Browser", "Was du schon versucht hast"],
+          "options": ["Die Fehlermeldung in genauem Wortlaut", "Das Gerät und der Browser", "Was du schon versucht hast"],
           "correct": 1,
           "explanation": "Ziel, Schritte, Meldung und Versuch sind da. Ohne Gerät und Browser kann der Support den Fehler schlecht nachstellen.",
           "criterion": "umgebung"

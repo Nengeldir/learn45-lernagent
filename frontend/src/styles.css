@@ -276,3 +276,31 @@ dl.reason dd { margin: 0; }
 .log li.outdated { text-decoration: line-through; color: var(--ink-2); }
 .log .meta { display: flex; gap: 10px; font-size: 13px; color: var(--ink-2); flex-wrap: wrap; }
 .log p { margin: 2px 0; }
+
+/* --- Teaching workspace: plan status, mission, records, Lernstand --- */
+.tag.provisional { border-color: var(--trail-dark); color: var(--trail-dark); }
+.topbar .status.planning { border-color: var(--trail-dark); color: var(--trail-dark); }
+.planning { display: flex; align-items: center; gap: 8px; margin: 6px 0; padding: 6px 10px; border-radius: 8px; background: var(--surface-2); font-size: 14px; }
+.dot-pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--trail); animation: pulse 1.2s ease-in-out infinite; flex: none; }
+@keyframes pulse { 0%, 100% { opacity: 0.35; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+.based-on { margin: 4px 0 0; padding-left: 18px; }
+.based-on li { margin: 2px 0; }
+.source-line { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 4px 0; }
+.source-line .tag { margin-left: 0; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60; background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 10px; box-shadow: 0 6px 24px rgb(0 0 0 / 0.25); font-weight: 600; max-width: calc(100vw - 32px); }
+.choice-card { margin-top: 12px; padding: 14px 16px; border-radius: 12px; background: var(--paper); border-left: 6px solid var(--trail); }
+.choice-card p { margin: 0 0 10px; }
+.mission-card { display: grid; gap: 10px; padding: 16px; border-radius: 12px; background: var(--paper); border-left: 6px solid var(--trail); }
+.mission-card h3, .mission-card p { margin: 0; }
+.mission-card textarea, .mission-edit textarea { width: 100%; font: inherit; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: inherit; box-sizing: border-box; }
+.mission-card .choice[aria-pressed='true'] { outline: 3px solid var(--trail); }
+.mission-edit { display: grid; gap: 8px; }
+.small-head { font-size: 15px; margin: 12px 0 4px; }
+.lernstand { list-style: none; padding: 0; margin: 4px 0 8px; }
+.lernstand li { display: flex; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.lernstand .grow { flex: 1; }
+.ls { font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; }
+.ls.am-ueben { border-color: var(--trail-dark); color: var(--trail-dark); }
+.ls.sicher { border-color: var(--ok); color: var(--ok); }
+.lernstand-track summary { cursor: pointer; padding: 6px 0; }
+.merkblatt ul { padding-left: 18px; margin: 4px 0 10px; }
