@@ -1,0 +1,42 @@
+[
+  {
+    "id": "math-c1",
+    "trackId": "t-analysis",
+    "type": "ai-chat",
+    "level": "Mittelstufe",
+    "title": "Erklär mir die Ableitung",
+    "intro": "Erklär der KI in eigenen Worten, was die Ableitung an einer Stelle bedeutet.",
+    "durationMin": 5,
+    "mode": "ai",
+    "targets": ["steigung", "grenzwert"],
+    "transfer": "Wenn du das nächste Mal eine Ableitung ausrechnest, sag dir in einem Satz, welche Steigung du gerade bestimmst.",
+    "source": "prepared",
+    "content": {
+      "kind": "tutor",
+      "goal": "Du erklärst in eigenen Worten, warum die Ableitung die Steigung der Tangente ist und wie aus der Sekante die Tangente wird.",
+      "aiRole": "Du bist ein Lerncoach für Mathematik. Die Person soll in eigenen Worten erklären, was die Ableitung an einer Stelle ist, am Beispiel f(x) = x² bei x = 1 (siehe Material). Lass sie erklären, statt selbst zu erklären. Mögliche Fragen: Was misst die Steigung der Sekante? Was passiert mit der Sekante, wenn h immer kleiner wird? Gegen welche Zahl gehen die Steigungen? Was ist also die Ableitung bei x = 1? Gib keine fertige Erklärung und nenne die Zahl 2 nicht, bevor die Person sie selbst gefunden hat. Ist eine Antwort unklar oder falsch, frag gezielt nach oder gib einen kleinen Hinweis. Eine Frage aufs Mal, höchstens 2–3 kurze Sätze. Zum Schluss bittest du die Person, die Ableitung in einem Satz zu erklären, mit den Wörtern Sekante und Tangente.",
+      "opening": "Schau dir die Kurve f(x) = x² rechts an. Was sagt die Steigung der Sekante durch P und Q über die Kurve aus?",
+      "material": {
+        "title": "Beispiel",
+        "lines": [
+          "Kurve: f(x) = x²",
+          "Punkt P = (1 | 1), zweiter Punkt Q bei x = 1 + h",
+          "Steigung der Sekante PQ = (f(1 + h) − f(1)) / h",
+          "h = 1 → 3 · h = 0,1 → 2,1 · h = 0,01 → 2,01"
+        ]
+      },
+      "criteria": [
+        { "id": "steigung", "label": "Steigung der Tangente", "hint": "Was gibt die Ableitung bei x = 1 an – und welche Zahl ist es hier?", "patterns": ["steigung", "tangente", "steil", "(=|ist|gleich|genau|gegen) ?2(?![,.]?\\d)", "ableitung (ist|=)", "berühr"] },
+        { "id": "grenzwert", "label": "Sekante wird Tangente", "hint": "Was passiert mit der Sekante, wenn h immer kleiner wird?", "patterns": ["näher", "kleiner", "gegen (0|null)", "grenzwert|limes|\\blim\\b", "h ?(→|->|geht) ?(gegen )?(0|null)", "annäher|nähert", "sekante"] }
+      ],
+      "fallbackReplies": [
+        "Gut. Und was passiert mit der Sekante, wenn h immer kleiner wird? Schau dir die Zahlen unten im Material an.",
+        "Gegen welche Zahl gehen diese Steigungen? Und was ist dann aus der Sekante geworden?",
+        "Was sagt diese Zahl über die Kurve bei x = 1 aus?",
+        "Erklär jetzt in einem Satz, was die Ableitung an einer Stelle ist. Benutze die Wörter Sekante und Tangente.",
+        "Danke, das ist eine Erklärung in deinen eigenen Worten. Du kannst die Lektion jetzt abschliessen."
+      ],
+      "minTurns": 3
+    }
+  }
+]

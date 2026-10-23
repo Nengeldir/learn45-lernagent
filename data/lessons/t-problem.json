@@ -1,0 +1,127 @@
+[
+  {
+    "id": "prob-c1",
+    "trackId": "t-problem",
+    "type": "ai-chat",
+    "level": "Grundstufe",
+    "title": "Fehler an den Support melden",
+    "intro": "Melde dem Support einen Fehler so, dass er dir ohne langes Nachfragen helfen kann.",
+    "durationMin": 4,
+    "mode": "ai",
+    "targets": ["schritte", "meldung", "erwartet", "versucht", "umgebung"],
+    "transfer": "Schreib bei deiner nächsten Fehlermeldung an die IT fünf Dinge: Schritte, Meldung wörtlich, was du erwartet hast, was du schon versucht hast, Gerät und Browser.",
+    "source": "prepared",
+    "content": {
+      "kind": "roleplay",
+      "goal": "Der Support weiss am Schluss, was du getan hast, welche Meldung kam, was du erwartet hast, was du schon versucht hast und mit welchem Gerät und Browser du arbeitest.",
+      "aiRole": "Du spielst Marco vom internen IT-Support für das fiktive Programm «Planwerk». Die Person im Chat meldet dir einen Fehler. Helfen kannst du erst, wenn du weisst: welche Schritte zum Fehler geführt haben, wie die Fehlermeldung wörtlich lautet (mit Code), was eigentlich hätte passieren sollen, was schon versucht wurde und mit welchem Gerät und Browser gearbeitet wird. Du siehst das Material der Person nicht. Frag freundlich nach dem, was noch fehlt – immer nur eine Frage aufs Mal, höchstens 2–3 kurze Sätze. Du duzt die Person. Ist eine Angabe vage («es geht nicht», «irgendein Fehler»), frag gezielt nach. Rate nicht und biete keine Lösung an, solange Angaben fehlen. Ist alles da, bedankst du dich, fasst die Meldung in einem Satz zusammen und sagst, dass du den Fehler jetzt prüfst.",
+      "opening": "Hallo, hier ist Marco vom Planwerk-Support. Was ist passiert?",
+      "material": {
+        "title": "Was du erlebt hast (erfunden)",
+        "lines": [
+          "Du wolltest den Monatsbericht als PDF exportieren.",
+          "Du hast auf «Export» und dann auf «PDF» geklickt.",
+          "Meldung: «Fehler PW-412: Export fehlgeschlagen»",
+          "Gestern hat es noch funktioniert.",
+          "Du hast die Seite schon neu geladen.",
+          "Du arbeitest mit Firefox auf deinem Laptop."
+        ]
+      },
+      "criteria": [
+        { "id": "schritte", "label": "Was du getan hast", "hint": "Welche Schritte hast du gemacht, bevor der Fehler kam?", "patterns": ["export", "geklickt|klicke|angeklickt|gedrückt", "pdf", "monatsbericht", "bericht", "zuerst|danach|dann", "wollte"] },
+        { "id": "meldung", "label": "Fehlermeldung wörtlich", "hint": "Wie lautet die Meldung genau, mit Code?", "patterns": ["pw-?\\s?412", "412", "fehlgeschlagen", "fehlermeldung", "meldung", "fehlercode|\\bcode\\b"] },
+        { "id": "erwartet", "label": "Was du erwartet hast", "hint": "Was hätte eigentlich passieren sollen?", "patterns": ["erwartet", "sollte", "hätte", "eigentlich", "normalerweise", "herunterlad|download|speicher", "pdf (bekommen|erhalten|erstellen)"] },
+        { "id": "versucht", "label": "Was du schon versucht hast", "hint": "Was hast du schon probiert, um den Fehler zu beheben?", "patterns": ["neu geladen|neu laden|neuladen", "reload|aktualisiert|aktualisieren", "versucht", "probiert", "nochmals|nochmal|erneut", "\\bf5\\b"] },
+        { "id": "umgebung", "label": "Gerät und Browser", "hint": "Mit welchem Gerät und welchem Browser arbeitest du?", "patterns": ["firefox", "browser", "laptop", "notebook", "computer|\\bpc\\b", "windows|\\bmac\\b|linux", "chrome|edge|safari"] }
+      ],
+      "fallbackReplies": [
+        "Danke für die Meldung. Was hast du genau gemacht, Schritt für Schritt, bevor der Fehler kam?",
+        "Verstehe. Welche Meldung erscheint genau? Am besten wörtlich, mit Code.",
+        "Und was hätte eigentlich passieren sollen?",
+        "Was hast du schon versucht, und auf welchem Gerät und mit welchem Browser passiert es?",
+        "Danke, damit kann ich den Fehler nachstellen und prüfen. Du kannst die Lektion jetzt abschliessen."
+      ],
+      "minTurns": 3
+    }
+  },
+  {
+    "id": "prob-v1",
+    "trackId": "t-problem",
+    "type": "video",
+    "level": "Grundstufe",
+    "title": "Ein Problem so beschreiben, dass andere helfen können",
+    "intro": "Kurzes Erklärvideo mit zwei Fragen unterwegs.",
+    "durationMin": 2,
+    "mode": "alone",
+    "targets": ["schritte", "meldung", "erwartet", "versucht", "umgebung"],
+    "transfer": "Kopier bei der nächsten Fehlermeldung den Text wörtlich, bevor du das Fenster schliesst, und schick ihn mit Gerät und Browser an die IT.",
+    "source": "prepared",
+    "content": {
+      "scenes": [
+        { "caption": "«Es geht nicht» hilft dem Support kaum. Wer helfen soll, muss den Fehler nachstellen können.", "visual": "steps", "items": ["«Es geht nicht»", "Viele Rückfragen"], "seconds": 7 },
+        { "caption": "Beschreib die Schritte bis zum Fehler. Und sag, was eigentlich hätte passieren sollen.", "visual": "steps", "items": ["Was getan?", "Was erwartet?"], "seconds": 7 },
+        { "caption": "Kopier die Fehlermeldung wörtlich, mit Code. «PW-412» findet der Support sofort, «irgendein Fehler» nicht.", "visual": "steps", "items": ["Meldung kopieren", "Code mitschicken"], "seconds": 8 },
+        { "caption": "Zum Schluss: Was hast du schon versucht? Und mit welchem Gerät und Browser arbeitest du?", "visual": "steps", "items": ["Schon versucht?", "Gerät und Browser"], "seconds": 7 }
+      ],
+      "questions": [
+        {
+          "afterScene": 2,
+          "prompt": "Wie gibst du eine Fehlermeldung am besten weiter?",
+          "options": ["Mit eigenen Worten kurz erklärt", "Nur «es kam ein Fehler» schreiben", "Wörtlich kopiert, mit Fehlercode"],
+          "correct": 2,
+          "explanation": "Der genaue Text mit Code zeigt dem Support sofort, welcher Fehler es ist. Eigene Worte verlieren Details.",
+          "criterion": "meldung"
+        },
+        {
+          "afterScene": 3,
+          "prompt": "Was fehlt hier? «Ich wollte den Bericht als PDF speichern. Nach Export → PDF kam Fehler PW-412. Neu laden half nicht.»",
+          "options": ["Die genaue Fehlermeldung", "Das Gerät und der Browser", "Was du schon versucht hast"],
+          "correct": 1,
+          "explanation": "Ziel, Schritte, Meldung und Versuch sind da. Ohne Gerät und Browser kann der Support den Fehler schlecht nachstellen.",
+          "criterion": "umgebung"
+        }
+      ]
+    }
+  },
+  {
+    "id": "prob-c2",
+    "trackId": "t-problem",
+    "type": "ai-chat",
+    "level": "Mittelstufe",
+    "title": "Das passende Werkzeug finden",
+    "intro": "Kläre mit der KI, was ein Werkzeug für eure Teamaufgabe können muss, bevor du eines auswählst.",
+    "durationMin": 5,
+    "mode": "ai",
+    "targets": ["anforderung", "umgebung"],
+    "transfer": "Schreib vor der nächsten Werkzeugwahl drei Zeilen auf: was es können muss, wer es nutzt und mit welchen Daten.",
+    "source": "prepared",
+    "content": {
+      "kind": "tutor",
+      "goal": "Am Schluss hast du eine kurze Liste mit Anforderungen: was das Werkzeug können muss, wer es nutzt, mit welchen Daten und auf welchen Geräten.",
+      "aiRole": "Du bist ein Lerncoach. Die Person soll für ihr Team ein Werkzeug für eine gemeinsame Aufgabenliste wählen (siehe Material). Hilf ihr, zuerst die Anforderungen zu klären: Was muss das Werkzeug können? Wer nutzt es, auch von ausserhalb der Firma? Welche Daten kommen hinein, und dürfen die nach draussen? Auf welchen Geräten und mit welchen Programmen wird gearbeitet? Nenne nie einen Produkt- oder Markennamen und empfiehl kein bestimmtes Werkzeug, auch wenn die Person danach fragt – lenk dann freundlich zurück auf die Anforderungen. Stell Rückfragen, statt Lösungen zu liefern: immer nur eine Frage aufs Mal, höchstens 2–3 kurze Sätze. Nach drei bis vier Antworten bittest du die Person, ihre Anforderungen in einer kurzen Liste zusammenzufassen.",
+      "opening": "Bevor wir über Werkzeuge reden: Was genau soll die Aufgabenliste für dein Team leisten?",
+      "material": {
+        "title": "Die Aufgabe (erfunden)",
+        "lines": [
+          "Dein Team hat 6 Personen.",
+          "Ihr braucht eine gemeinsame Aufgabenliste für ein Projekt.",
+          "Zwei externe Partnerfirmen sollen mitarbeiten.",
+          "Einige arbeiten oft unterwegs am Handy.",
+          "In den Aufgaben stehen auch Kundennamen."
+        ]
+      },
+      "criteria": [
+        { "id": "anforderung", "label": "Anforderungen klären", "hint": "Was muss das Werkzeug können, für wen, und mit welchen Daten?", "patterns": ["muss (können|man)", "funktion", "zugriff|zugang", "extern|partner", "rechte|berechtig", "datenschutz|\\bdaten\\b", "kundennamen|kundendaten|vertraulich", "zuweisen|frist|erinner"] },
+        { "id": "umgebung", "label": "Geräte und Programme", "hint": "Auf welchen Geräten und mit welchen Programmen arbeitet das Team?", "patterns": ["handy|smartphone|mobil", "unterwegs", "\\bapp\\b", "browser", "laptop|computer|\\bpc\\b", "gerät", "offline", "windows|\\bmac\\b|android|\\bios\\b"] }
+      ],
+      "fallbackReplies": [
+        "Gut. Wer arbeitet alles mit dieser Liste, und braucht jemand von ausserhalb Zugriff?",
+        "Welche Daten kommen in die Aufgaben? Gibt es etwas, das nicht nach draussen darf?",
+        "Und wo arbeiten die Leute: am Laptop im Büro, am Handy unterwegs oder beides?",
+        "Fass jetzt deine Anforderungen in einer kurzen Liste zusammen: Was muss das Werkzeug unbedingt können?",
+        "Danke. Mit dieser Liste kannst du Werkzeuge vergleichen, bevor du dich entscheidest. Du kannst die Lektion jetzt abschliessen."
+      ],
+      "minTurns": 3
+    }
+  }
+]

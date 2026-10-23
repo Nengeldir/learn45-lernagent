@@ -1,0 +1,33 @@
+{
+  "type": "dcc-result",
+  "version": 1,
+  "synthetic": true,
+  "assessedOn": "2026-09-14",
+  "areas": [
+    {
+      "area": "1",
+      "name": "Informations- und Datenkompetenz",
+      "level": null
+    },
+    {
+      "area": "2",
+      "name": "Kommunikation und Zusammenarbeit",
+      "level": null
+    },
+    {
+      "area": "3",
+      "name": "Erstellung digitaler Inhalte",
+      "level": "Grundstufe"
+    },
+    {
+      "area": "4",
+      "name": "Sicherheit",
+      "level": null
+    },
+    {
+      "area": "5",
+      "name": "Problemlösen",
+      "level": null
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+[
+  {
+    "id": "phys-v1",
+    "trackId": "t-physik",
+    "type": "video",
+    "level": "Grundstufe",
+    "title": "Fallen schwere Dinge schneller?",
+    "intro": "Kurzes Erklärvideo mit zwei Fragen unterwegs.",
+    "durationMin": 2,
+    "mode": "alone",
+    "targets": ["masse", "luft"],
+    "transfer": "Lass ein flaches und ein zerknülltes Blatt Papier gleichzeitig fallen: Beide wiegen gleich viel – welches landet zuerst, und warum?",
+    "source": "prepared",
+    "content": {
+      "scenes": [
+        { "caption": "Ein Ball und eine Feder fallen gleichzeitig los. Der Ball landet zuerst, die Feder schwebt langsam nach unten.", "visual": "falling", "items": ["Ball", "Feder", "mit Luft"], "seconds": 7 },
+        { "caption": "Liegt das am Gewicht? Nein. Die Feder bietet der Luft viel Fläche, die Luft bremst sie stark. Den Ball bremst sie kaum.", "visual": "steps", "items": ["Gewicht?", "Nein: Luftwiderstand"], "seconds": 7 },
+        { "caption": "Jetzt pumpen wir die Luft aus einer Röhre. Im Vakuum fallen Ball und Feder genau gleich schnell.", "visual": "falling", "items": ["Ball", "Feder", "ohne Luft"], "seconds": 8 },
+        { "caption": "Ohne Luft fallen alle Körper gleich schnell, egal wie schwer. Unterschiede im Alltag kommen von der Luft.", "visual": "steps", "items": ["Ohne Luft: gleich schnell", "Mit Luft: Form zählt"], "seconds": 7 }
+      ],
+      "questions": [
+        {
+          "afterScene": 1,
+          "prompt": "Warum landet die Feder später als der Ball?",
+          "options": ["Die Luft bremst die Feder stark", "Die Feder ist viel leichter", "Bälle fallen von Natur aus schneller"],
+          "correct": 0,
+          "explanation": "Der Unterschied kommt vom Luftwiderstand. Ohne Luft wäre die Feder genauso schnell.",
+          "criterion": "luft"
+        },
+        {
+          "afterScene": 2,
+          "prompt": "Was passiert ohne Luft mit Ball und Feder?",
+          "options": ["Der Ball fällt etwas schneller", "Die Feder fällt jetzt schneller", "Beide fallen gleich schnell"],
+          "correct": 2,
+          "explanation": "Im Vakuum bremst nichts. Dann fallen alle Körper gleich schnell, egal wie schwer.",
+          "criterion": "masse"
+        }
+      ]
+    }
+  },
+  {
+    "id": "phys-c1",
+    "trackId": "t-physik",
+    "type": "ai-chat",
+    "level": "Mittelstufe",
+    "title": "Warum fallen alle gleich schnell?",
+    "intro": "Erklär der KI, warum ohne Luft ein schwerer und ein leichter Körper gleich schnell fallen.",
+    "durationMin": 4,
+    "mode": "ai",
+    "targets": ["masse", "luft"],
+    "transfer": "Wenn jemand sagt «Schweres fällt schneller», frag zurück: Liegt es am Gewicht oder an der Luft?",
+    "source": "prepared",
+    "content": {
+      "kind": "tutor",
+      "goal": "Du erklärst in eigenen Worten, warum die Masse ohne Luft keine Rolle spielt und woher Unterschiede im Alltag kommen.",
+      "aiRole": "Du bist ein Lerncoach für Physik. Die Person soll in eigenen Worten erklären, warum ohne Luft alle Körper gleich schnell fallen und warum es im Alltag trotzdem Unterschiede gibt. Nutze die drei Versuche im Material. Erkläre nicht selbst, sondern frag nach: Was ist bei Versuch 2 gleich, was ist anders? Woran kann es also nicht liegen? Was fehlt in Versuch 3? Wer weiter ist, darf überlegen, warum die grössere Anziehung auf die schwere Kugel durch ihre grössere Trägheit ausgeglichen wird – verlange das aber nicht. Gib keine fertige Erklärung. Ist eine Antwort falsch (zum Beispiel «Schweres fällt schneller»), frag mit einem der Versuche nach. Eine Frage aufs Mal, höchstens 2–3 kurze Sätze. Zum Schluss bittest du um eine Erklärung in zwei Sätzen: einer zur Masse, einer zur Luft.",
+      "opening": "Schau dir Versuch 2 an: Beide Blätter wiegen gleich viel. Warum landet das zerknüllte trotzdem zuerst?",
+      "material": {
+        "title": "Drei Versuche (erfunden)",
+        "lines": [
+          "Versuch 1: Zwei gleich grosse Kugeln, eine wiegt 1 kg, die andere 100 g. Aus 2 m Höhe landen beide fast gleichzeitig.",
+          "Versuch 2: Ein flaches und ein zerknülltes Blatt Papier fallen. Das zerknüllte landet zuerst.",
+          "Versuch 3: In einer luftleeren Röhre fallen eine Münze und eine Feder gleich schnell."
+        ]
+      },
+      "criteria": [
+        { "id": "masse", "label": "Masse spielt keine Rolle", "hint": "Hängt die Fallzeit ohne Luft vom Gewicht ab?", "patterns": ["gleich schnell", "gleichzeitig", "(masse|gewicht).{0,40}(egal|keine rolle|unabhängig|nicht)", "(egal|unabhängig).{0,30}(masse|gewicht|schwer)", "gleich (schwer|viel)", "trägheit", "beschleunig"] },
+        { "id": "luft", "label": "Luftwiderstand", "hint": "Was bremst das flache Blatt und die Feder?", "patterns": ["luftwiderstand", "\\bluft", "bremst|bremsen", "fläche|form|flach", "vakuum|luftleer|ohne luft", "widerstand"] }
+      ],
+      "fallbackReplies": [
+        "Interessant. Wenn beide Blätter gleich viel wiegen: Woran kann es dann liegen, dass eines schneller fällt?",
+        "Schau dir jetzt Versuch 3 an. Was fehlt in der Röhre, und was bedeutet das für Münze und Feder?",
+        "Und Versuch 1: Die Kugeln sind gleich gross, aber verschieden schwer. Was sagt dir das über die Masse?",
+        "Erklär es jetzt in zwei Sätzen: einer zur Masse, einer zur Luft.",
+        "Danke, das ist eine Erklärung in deinen eigenen Worten. Du kannst die Lektion jetzt abschliessen."
+      ],
+      "minTurns": 3
+    }
+  }
+]

@@ -1,0 +1,125 @@
+[
+  {
+    "id": "inh-c1",
+    "trackId": "t-inhalte",
+    "type": "ai-chat",
+    "level": "Grundstufe",
+    "title": "Ein klarer Auftrag an die KI",
+    "intro": "Schreib der KI einen Auftrag, damit sie aus deinen Notizen eine Zusammenfassung für deine Projektleiterin Sarah macht.",
+    "durationMin": 5,
+    "mode": "ai",
+    "targets": ["adressat", "umfang", "inhalt", "luecken"],
+    "transfer": "Schreib in deinen nächsten KI-Auftrag vier Dinge: für wen, wie lang, was hinein muss und «Fehlendes als offen markieren, nichts erfinden».",
+    "source": "prepared",
+    "content": {
+      "kind": "prompt-lab",
+      "goal": "Dein Auftrag sagt der KI, für wen sie schreibt, wie lang es sein soll, was hinein muss und was sie mit fehlenden Angaben tun soll.",
+      "aiRole": "Du bist ein KI-Assistent in einer Übung. Die Person schreibt dir einen Auftrag (Prompt), um die Notizen aus dem Material für ihre Projektleiterin Sarah zusammenzufassen. Führe jeden Auftrag wörtlich aus – nicht klüger, als er ist. Was der Auftrag offenlässt, füllst du sichtbar selbst: Sagt er nicht, für wen, schreibst du allgemein. Sagt er keine Länge oder Form, schreibst du einen langen Fliesstext. Sagt er nicht, was mit fehlenden Angaben passieren soll, erfindest du plausible Werte (zum Beispiel einen Termin für den Testlauf, ein Datum für die Logo-Freigabe oder ein Budget für die Übersetzung) und markierst jede erfundene Stelle mit [erfunden]. Erkläre nicht, was am Auftrag fehlt, und schreib keinen besseren Auftrag vor. Nach jeder Zusammenfassung fragst du in einem Satz, ob die Person den Auftrag verbessern will. Ausser der Zusammenfassung höchstens 2–3 kurze Sätze, eine Frage aufs Mal. Erfüllt der Auftrag alle vier Punkte (für wen, Umfang, was hinein muss, Umgang mit fehlenden Angaben), führst du ihn sauber aus, markierst Fehlendes als «offen» und sagst kurz, dass der Auftrag jetzt klar war.",
+      "opening": "Hallo! Ich habe deine Notizen rechts und mache genau, was du mir aufträgst. Wie lautet dein Auftrag?",
+      "material": {
+        "title": "Deine Projektnotizen (erfunden)",
+        "lines": [
+          "Projekt Kundenportal",
+          "Texte Startseite fertig (Lea)",
+          "Logo-Freigabe offen",
+          "Testlauf: Daniel organisiert, Termin noch offen",
+          "Budget Übersetzung nicht besprochen"
+        ]
+      },
+      "criteria": [
+        { "id": "adressat", "label": "Für wen", "hint": "Sag der KI, wer das Ergebnis liest – hier deine Projektleiterin Sarah.", "patterns": ["sarah", "projektleit", "chefin|\\bchef\\b", "vorgesetzt", "liest", "leserin|leser\\b", "empfänger", "adressat"] },
+        { "id": "umfang", "label": "Umfang und Format", "hint": "Gib Länge und Form vor, zum Beispiel «höchstens fünf Stichpunkte».", "patterns": ["stichpunkt", "aufzählung|\\bliste\\b", "höchstens|maximal|max\\.", "\\d+ (sätze|sätzen|zeilen|punkte|punkten|wörter|wörtern)", "(zwei|drei|vier|fünf|sechs) (sätze|sätzen|zeilen|punkte|punkten|stichpunkte|stichpunkten)", "\\bkurz", "tabelle", "absatz|absätze"] },
+        { "id": "inhalt", "label": "Was hinein muss", "hint": "Nenne die Angaben, die nicht fehlen dürfen – zum Beispiel alle offenen Punkte.", "patterns": ["offene punkte", "alle (punkte|angaben|offenen)", "logo", "testlauf", "budget", "übersetzung", "wer (was|zuständig|macht)", "(muss|soll) (rein|hinein|drin)"] },
+        { "id": "luecken", "label": "Umgang mit fehlenden Angaben", "hint": "Sag, was die KI tun soll, wenn etwas fehlt: als offen markieren, nicht erfinden.", "patterns": ["nicht erfind", "nichts erfind", "erfinde (nichts|keine)", "als offen", "markier", "(wenn|falls) .{0,20}fehl", "fehlende (angaben|infos|informationen|daten|termine)", "keine (annahmen|vermutungen)"] }
+      ],
+      "fallbackReplies": [
+        "Zusammenfassung Projekt Kundenportal:\nDas Projekt Kundenportal macht gute Fortschritte. Lea hat die Texte für die Startseite fertiggestellt, damit ist ein wichtiger Meilenstein erreicht. Das Marketing gibt das Logo bis Ende Woche frei [erfunden]. Daniel organisiert den Testlauf, er findet am 20. Juni statt [erfunden]. Für die Übersetzung sind CHF 3000 budgetiert [erfunden]. Insgesamt ist das Projekt auf Kurs, und das Team ist motiviert [erfunden].\n\nWillst du den Auftrag verbessern?",
+        "Gern, ich halte mich genau an deinen Auftrag. Für wen schreibe ich das? Ohne Angabe schreibe ich wieder allgemein.",
+        "Gut. Wie lang soll es sein, und was darf auf keinen Fall fehlen?",
+        "Noch etwas: In den Notizen fehlt zum Beispiel der Termin für den Testlauf. Soll ich wie vorhin etwas Passendes ergänzen, oder was soll ich tun?",
+        "Hier die neue Fassung für Sarah:\n• Texte Startseite: fertig (Lea)\n• Logo-Freigabe: offen\n• Testlauf: Daniel organisiert, Termin offen\n• Budget Übersetzung: offen, noch nicht besprochen\n\nIch habe nichts ergänzt, was nicht in den Notizen steht. Dein Auftrag ist jetzt klar – du kannst die Lektion abschliessen."
+      ],
+      "minTurns": 3
+    }
+  },
+  {
+    "id": "inh-v1",
+    "trackId": "t-inhalte",
+    "type": "video",
+    "level": "Grundstufe",
+    "title": "Was in einen guten Auftrag gehört",
+    "intro": "Kurzes Erklärvideo mit zwei Fragen unterwegs.",
+    "durationMin": 2,
+    "mode": "alone",
+    "targets": ["adressat", "umfang", "inhalt", "luecken"],
+    "transfer": "Prüf vor dem Absenden deines nächsten KI-Auftrags: Steht drin, für wen, wie lang, was hinein muss und was bei fehlenden Angaben passiert?",
+    "source": "prepared",
+    "content": {
+      "scenes": [
+        { "caption": "Eine KI kennt weder dich noch dein Projekt. Sie hat nur deinen Auftrag und füllt den Rest selbst.", "visual": "steps", "items": ["Dein Auftrag", "KI füllt Lücken", "Ergebnis"], "seconds": 7 },
+        { "caption": "Sag, für wen das Ergebnis ist und wie lang es sein soll. Zum Beispiel: «für meine Projektleiterin, höchstens fünf Stichpunkte».", "visual": "steps", "items": ["Für wen?", "Wie lang?", "Welche Form?"], "seconds": 8 },
+        { "caption": "Nenne, was auf keinen Fall fehlen darf. Zum Beispiel: alle offenen Punkte mit Namen.", "visual": "steps", "items": ["Was muss hinein?", "Offene Punkte", "Namen"], "seconds": 7 },
+        { "caption": "Und sag, was bei fehlenden Angaben passieren soll: «Markiere Fehlendes als offen, erfinde nichts.»", "visual": "steps", "items": ["Angabe fehlt", "Als offen markieren", "Nichts erfinden"], "seconds": 8 }
+      ],
+      "questions": [
+        {
+          "afterScene": 1,
+          "prompt": "Welcher Auftrag sagt der KI, für wen und wie lang?",
+          "options": ["Fass die Notizen gut verständlich zusammen.", "Für Sarah, in höchstens fünf Stichpunkten.", "Fass alles kurz und übersichtlich zusammen."],
+          "correct": 1,
+          "explanation": "Nur hier stehen Leserin und Umfang. «Kurz» und «verständlich» lassen der KI viel Spielraum.",
+          "criterion": "adressat"
+        },
+        {
+          "afterScene": 3,
+          "prompt": "In deinen Notizen fehlt ein Termin. Was schreibst du in den Auftrag?",
+          "options": ["Ergänze fehlende Termine passend.", "Lass alle Termine einfach ganz weg.", "Markiere fehlende Termine als offen."],
+          "correct": 2,
+          "explanation": "So bleibt sichtbar, was noch fehlt. «Ergänzen» lädt die KI zum Erfinden ein, und ohne Termine fehlt Wichtiges.",
+          "criterion": "luecken"
+        }
+      ]
+    }
+  },
+  {
+    "id": "inh-c2",
+    "trackId": "t-inhalte",
+    "type": "ai-chat",
+    "level": "Mittelstufe",
+    "title": "Das Ergebnis prüfen",
+    "intro": "Prüf die Zusammenfassung der KI gegen deine Vorgaben und sag ihr genau, was sie ändern soll.",
+    "durationMin": 4,
+    "mode": "ai",
+    "targets": ["pruefen", "luecken", "umfang"],
+    "transfer": "Leg beim nächsten KI-Text deine Vorgaben daneben und hak sie einzeln ab, bevor du ihn weitergibst.",
+    "source": "prepared",
+    "content": {
+      "kind": "prompt-lab",
+      "goal": "Du findest, wo die Zusammenfassung von deinen Vorgaben abweicht, und sagst der KI konkret, was sie korrigieren soll.",
+      "aiRole": "Du bist ein KI-Assistent in einer Übung. Du hast für die Person die Zusammenfassung in deiner ersten Nachricht geschrieben. Sie verletzt die Vorgaben im Material: Sie hat sechs statt höchstens vier Punkte, und sie enthält Angaben, die nicht in den Notizen stehen (Logo-Freigabe nächste Woche, Testlauf am 20. Juni, CHF 3000 Budget, «motiviert», «auf Kurs»). Die Person soll das selbst finden. Verrate die Fehler nicht und verteidige deine Fassung nicht. Führe nur aus, was die Person konkret verlangt: Sagt sie nur «mach es besser» oder «stimmt nicht ganz», fragst du, was genau du an welcher Stelle ändern sollst. Sagt sie es konkret, zeigst du die korrigierte Fassung und änderst nur das Genannte. Ausser der Zusammenfassung höchstens 2–3 kurze Sätze, eine Frage aufs Mal. Sind alle Abweichungen korrigiert, sagst du kurz, dass die Fassung jetzt den Vorgaben entspricht.",
+      "opening": "Hier ist meine Zusammenfassung für Sarah:\n• Die Texte für die Startseite sind fertig (Lea).\n• Das Logo wird nächste Woche freigegeben.\n• Daniel führt den Testlauf am 20. Juni durch.\n• Für die Übersetzung sind CHF 3000 eingeplant.\n• Das Team arbeitet motiviert und gut zusammen.\n• Das Projekt ist insgesamt auf Kurs.\n\nPasst das so?",
+      "material": {
+        "title": "Deine Vorgaben und Notizen (erfunden)",
+        "lines": [
+          "Vorgabe 1: Für die Projektleiterin Sarah",
+          "Vorgabe 2: Höchstens vier Stichpunkte",
+          "Vorgabe 3: Fehlende Angaben als «offen» markieren, nichts erfinden",
+          "Notizen: Texte Startseite fertig (Lea) · Logo-Freigabe offen · Testlauf: Daniel organisiert, Termin noch offen · Budget Übersetzung nicht besprochen"
+        ]
+      },
+      "criteria": [
+        { "id": "pruefen", "label": "Mit den Vorgaben vergleichen", "hint": "Geh deine Vorgaben einzeln durch: Was hält die Zusammenfassung nicht ein?", "patterns": ["vorgabe", "stimmt nicht", "falsch", "abweich", "passt nicht", "korrigier", "überprüf|geprüft|vergleich", "steht (so )?(nicht|nirgends)"] },
+        { "id": "luecken", "label": "Erfundenes als offen markieren", "hint": "Welche Angaben stehen nicht in den Notizen? Lass sie als «offen» markieren.", "patterns": ["erfunden", "offen", "20\\.? ?juni", "3000|3'000|3 000", "nächste woche", "motiviert|auf kurs", "nicht in den notizen|kommt nicht vor", "streich|weglass|entfern"] },
+        { "id": "umfang", "label": "Umfang einhalten", "hint": "Zähl die Punkte: Wie viele hast du vorgegeben?", "patterns": ["\\bvier\\b", "\\b4\\b", "\\bsechs\\b", "\\b6\\b", "zu viele", "zu lang", "höchstens|maximal", "anzahl"] }
+      ],
+      "fallbackReplies": [
+        "Danke. Sag mir bitte genau, welche Stelle ich wie ändern soll – ich ändere nur, was du nennst.",
+        "Gut, das passe ich an. Stimmt der Rest mit deinen Vorgaben überein? Geh sie ruhig einzeln durch.",
+        "Und die Angaben selbst: Steht jede so in den Notizen? Was soll ich mit denen machen, die dort nicht stehen?",
+        "Wie viele Punkte soll ich am Schluss haben, und welche fallen weg?",
+        "Hier die neue Fassung für Sarah:\n• Texte Startseite: fertig (Lea)\n• Logo-Freigabe: offen\n• Testlauf: Daniel organisiert, Termin offen\n• Budget Übersetzung: offen, noch nicht besprochen\n\nDamit sind alle Vorgaben erfüllt. Du kannst die Lektion jetzt abschliessen."
+      ],
+      "minTurns": 3
+    }
+  }
+]

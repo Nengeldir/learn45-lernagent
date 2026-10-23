@@ -1,0 +1,109 @@
+[
+  {
+    "id": "digital",
+    "name": "Digitale Kompetenz",
+    "dccBased": true,
+    "tracks": [
+      {
+        "id": "t-info",
+        "skillId": "digital",
+        "name": "Informations- und Datenkompetenz",
+        "dccArea": "1",
+        "criteria": [
+          { "id": "zeit", "label": "Termine und Fristen", "ruleOfThumb": "Jedes Datum und jede Frist braucht eine Stelle in der Quelle. Steht dort «offen», bleibt es offen." },
+          { "id": "zahl", "label": "Zahlen und Mengen", "ruleOfThumb": "Eine genaue Zahl ist nur richtig, wenn dieselbe Zahl in der Quelle steht." },
+          { "id": "status", "label": "Entscheide und Status", "ruleOfThumb": "Achte auf «freigegeben» oder «beschlossen». War es in der Quelle noch offen?" },
+          { "id": "person", "label": "Personen und Zuständigkeiten", "ruleOfThumb": "Prüfe bei jeder Aufgabe, ob in der Quelle dieselbe Person dabeisteht." },
+          { "id": "bedingung", "label": "Bedingungen", "ruleOfThumb": "Ein «falls» oder «sofern» darf nicht verschwinden." },
+          { "id": "quelle", "label": "Quelle prüfen", "ruleOfThumb": "Frag bei jeder Behauptung: Woher stammt sie, und kann ich die Quelle selbst öffnen?" }
+        ]
+      },
+      {
+        "id": "t-komm",
+        "skillId": "digital",
+        "name": "Kommunikation und Zusammenarbeit",
+        "dccArea": "2",
+        "criteria": [
+          { "id": "stand", "label": "Was erledigt ist", "ruleOfThumb": "Nenne zuerst, was fertig ist und wo es liegt." },
+          { "id": "offen", "label": "Was offen ist", "ruleOfThumb": "Offene Punkte gehören ausdrücklich in die Nachricht." },
+          { "id": "wer", "label": "Wer beteiligt ist", "ruleOfThumb": "Zu jeder offenen Sache gehört ein Name." },
+          { "id": "wann", "label": "Termine", "ruleOfThumb": "Feste Termine mit Datum nennen." },
+          { "id": "ton", "label": "Ton und Klarheit", "ruleOfThumb": "Sachlich bleiben, das Anliegen im ersten Satz nennen, einen nächsten Schritt anbieten." }
+        ]
+      },
+      {
+        "id": "t-inhalte",
+        "skillId": "digital",
+        "name": "Erstellung digitaler Inhalte",
+        "dccArea": "3",
+        "criteria": [
+          { "id": "adressat", "label": "Für wen", "ruleOfThumb": "Sag der KI, wer das Ergebnis liest." },
+          { "id": "umfang", "label": "Umfang und Format", "ruleOfThumb": "Gib Länge und Form vor, zum Beispiel «höchstens fünf Stichpunkte»." },
+          { "id": "inhalt", "label": "Was hinein muss", "ruleOfThumb": "Nenne die Angaben, die nicht fehlen dürfen." },
+          { "id": "luecken", "label": "Umgang mit fehlenden Angaben", "ruleOfThumb": "Sag, was die KI tun soll, wenn etwas fehlt: als offen markieren, nicht erfinden." },
+          { "id": "pruefen", "label": "Ergebnis prüfen", "ruleOfThumb": "Vergleiche das Ergebnis Punkt für Punkt mit deinen Vorgaben." }
+        ]
+      },
+      {
+        "id": "t-sicherheit",
+        "skillId": "digital",
+        "name": "Sicherheit",
+        "dccArea": "4",
+        "criteria": [
+          { "id": "absender", "label": "Absender-Adresse", "ruleOfThumb": "Schau auf die Domain nach dem @, nicht auf den Anzeigenamen." },
+          { "id": "druck", "label": "Zeitdruck und Drohung", "ruleOfThumb": "Druck wie «in 24 Stunden gesperrt» soll dich vom Prüfen abhalten." },
+          { "id": "anrede", "label": "Unpersönliche Anrede", "ruleOfThumb": "Echte Kundenmails nennen meist deinen Namen." },
+          { "id": "link", "label": "Linkziel", "ruleOfThumb": "Vor dem Klick prüfen, wohin der Link wirklich führt." },
+          { "id": "adresse", "label": "Adresse der Webseite", "ruleOfThumb": "Entscheidend ist der Teil direkt vor der Endung." },
+          { "id": "daten", "label": "Abfrage sensibler Daten", "ruleOfThumb": "Passwort und Kartendaten gibt man nie über einen Link aus einer Mail ein." }
+        ]
+      },
+      {
+        "id": "t-problem",
+        "skillId": "digital",
+        "name": "Problemlösen",
+        "dccArea": "5",
+        "criteria": [
+          { "id": "schritte", "label": "Was du getan hast", "ruleOfThumb": "Beschreibe die Schritte, die zum Fehler geführt haben." },
+          { "id": "meldung", "label": "Fehlermeldung wörtlich", "ruleOfThumb": "Kopiere die Fehlermeldung genau, mit Code." },
+          { "id": "erwartet", "label": "Was du erwartet hast", "ruleOfThumb": "Sag, was eigentlich hätte passieren sollen." },
+          { "id": "versucht", "label": "Was du schon versucht hast", "ruleOfThumb": "Nenne, was du schon probiert hast." },
+          { "id": "umgebung", "label": "Gerät und Programm", "ruleOfThumb": "Browser, Gerät und Programm gehören in jede Meldung." },
+          { "id": "anforderung", "label": "Anforderungen klären", "ruleOfThumb": "Bevor du ein Werkzeug wählst: Was muss es können, für wen, mit welchen Daten?" }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "math",
+    "name": "Mathematik",
+    "dccBased": false,
+    "tracks": [
+      {
+        "id": "t-analysis",
+        "skillId": "math",
+        "name": "Ableitung",
+        "criteria": [
+          { "id": "steigung", "label": "Steigung der Tangente", "ruleOfThumb": "Die Ableitung an einer Stelle ist die Steigung der Tangente dort." },
+          { "id": "grenzwert", "label": "Sekante wird Tangente", "ruleOfThumb": "Rückt der zweite Punkt immer näher, wird aus der Sekante die Tangente." }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "science",
+    "name": "Naturwissenschaften",
+    "dccBased": false,
+    "tracks": [
+      {
+        "id": "t-physik",
+        "skillId": "science",
+        "name": "Freier Fall",
+        "criteria": [
+          { "id": "masse", "label": "Masse und Fallzeit", "ruleOfThumb": "Ohne Luft fallen alle Körper gleich schnell, unabhängig von ihrer Masse." },
+          { "id": "luft", "label": "Luftwiderstand", "ruleOfThumb": "Unterschiede beim Fallen kommen vom Luftwiderstand, nicht vom Gewicht." }
+        ]
+      }
+    ]
+  }
+]

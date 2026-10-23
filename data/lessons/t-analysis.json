@@ -1,0 +1,41 @@
+[
+  {
+    "id": "math-v1",
+    "trackId": "t-analysis",
+    "type": "video",
+    "level": "Grundstufe",
+    "title": "Was ist eine Ableitung?",
+    "intro": "Kurzes Erklärvideo mit zwei Fragen unterwegs.",
+    "durationMin": 3,
+    "mode": "alone",
+    "targets": ["grenzwert", "steigung"],
+    "transfer": "Schau dir eine Kurve aus deinem Alltag an (z. B. Temperatur über den Tag) und schätze, wo sie am steilsten ist.",
+    "source": "prepared",
+    "content": {
+      "scenes": [
+        { "caption": "Eine Kurve und zwei Punkte darauf. Die Gerade durch beide heisst Sekante. Ihre Steigung: Höhenunterschied geteilt durch Abstand.", "visual": "secant-tangent", "seconds": 7 },
+        { "caption": "Jetzt rückt der zweite Punkt immer näher an den ersten. Die Sekante dreht sich mit.", "visual": "secant-tangent", "seconds": 7 },
+        { "caption": "Im Grenzfall berührt die Gerade die Kurve nur noch in einem Punkt: die Tangente. Ihre Steigung ist die Ableitung an dieser Stelle.", "visual": "slope-zoom", "seconds": 7 },
+        { "caption": "Zoomt man stark genug hinein, sieht die Kurve dort fast wie eine Gerade aus – mit genau dieser Steigung.", "visual": "slope-zoom", "seconds": 6 }
+      ],
+      "questions": [
+        {
+          "afterScene": 1,
+          "prompt": "Was passiert mit der Sekante, wenn der zweite Punkt näher rückt?",
+          "options": ["Sie wird immer steiler, egal wo", "Sie verschwindet aus dem Bild", "Sie nähert sich der Tangente an"],
+          "correct": 2,
+          "explanation": "Rückt der Punkt näher, nähert sich die Sekante der Tangente an.",
+          "criterion": "grenzwert"
+        },
+        {
+          "afterScene": 3,
+          "prompt": "Was gibt die Ableitung an einer Stelle an?",
+          "options": ["Die Fläche unter der Kurve dort", "Die Steigung der Tangente dort", "Den höchsten Punkt der Kurve"],
+          "correct": 1,
+          "explanation": "Die Ableitung ist die Steigung der Tangente an dieser Stelle.",
+          "criterion": "steigung"
+        }
+      ]
+    }
+  }
+]

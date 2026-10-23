@@ -1,0 +1,127 @@
+[
+  {
+    "id": "komm-c1",
+    "trackId": "t-komm",
+    "type": "ai-chat",
+    "level": "Grundstufe",
+    "title": "Übergabe an Petra",
+    "intro": "Übergib Petra dein Projekt so, dass sie ab Montag ohne dich weiterarbeiten kann.",
+    "durationMin": 4,
+    "mode": "ai",
+    "targets": ["stand", "offen", "wer", "wann"],
+    "transfer": "Schreib bei deiner nächsten Übergabe oder Ferienvertretung vier Zeilen: erledigt, offen, wer, wann.",
+    "source": "prepared",
+    "content": {
+      "kind": "roleplay",
+      "goal": "Petra weiss am Schluss, was erledigt ist, was offen ist, wer beteiligt ist und welche Termine feststehen.",
+      "aiRole": "Du spielst Petra, eine Arbeitskollegin. Ab Montag übernimmst du das Projekt «Kundenportal» von der Person im Chat. Du kennst das Projekt noch nicht und siehst ihre Notizen nicht. Du weisst nur, was sie dir schreibt. Frag nach, bis du weisst: was erledigt ist und wo es liegt, was noch offen ist, wer bei den offenen Sachen beteiligt ist und welche Termine mit Datum feststehen. Ist eine Antwort vage (zum Beispiel «Daniel macht den Test»), frag gezielt nach: Wann? Was genau? Erfinde keine Angaben und gib keine Tipps, wie eine gute Übergabe aussieht – du bist Kollegin, nicht Coach. Stell immer nur eine Frage aufs Mal und schreib höchstens 2–3 kurze Sätze. Du duzt und bist locker und freundlich. Sind alle vier Punkte geklärt, fasst du die Übergabe in drei kurzen Stichpunkten zusammen und bedankst dich.",
+      "opening": "Hoi! Ich übernehme ab Montag das Kundenportal und habe noch keinen Überblick. Wie steht es um das Projekt?",
+      "material": {
+        "title": "Deine Notizen zum Projekt (erfunden)",
+        "lines": [
+          "Projekt «Kundenportal»",
+          "Texte für die Startseite: fertig, im Ordner Portal/Texte",
+          "Logo: Freigabe vom Marketing fehlt noch",
+          "Testlauf mit fünf Kundinnen und Kunden am 12. Juni, organisiert von Daniel",
+          "Offene Frage: Braucht es eine englische Version?"
+        ]
+      },
+      "criteria": [
+        { "id": "stand", "label": "Was erledigt ist", "hint": "Was ist schon fertig, und wo findet Petra es?", "patterns": ["fertig", "erledigt", "abgeschlossen", "startseite", "texte", "ordner", "abgelegt", "liegt (im|in|unter)"] },
+        { "id": "offen", "label": "Was offen ist", "hint": "Was ist noch nicht erledigt oder nicht entschieden?", "patterns": ["offen", "fehlt", "noch nicht", "freigabe", "englisch", "unklar", "ausstehend", "zu klären"] },
+        { "id": "wer", "label": "Wer beteiligt ist", "hint": "Wer kümmert sich um die offenen Sachen, und wen kann Petra fragen?", "patterns": ["daniel", "marketing", "zuständig", "verantwortlich", "kümmert sich", "organisiert", "ansprechperson|ansprechpartner"] },
+        { "id": "wann", "label": "Termine", "hint": "Welche Termine stehen fest? Nenne sie mit Datum.", "patterns": ["12\\.? ?juni", "12\\.\\s?0?6\\.?", "\\bjuni\\b", "\\d{1,2}\\.\\s?(jan|feb|märz|apr|mai|jun|jul|aug|sep|okt|nov|dez)", "termin", "datum"] }
+      ],
+      "fallbackReplies": [
+        "Danke! Was davon ist schon fertig, und wo finde ich es genau?",
+        "Gut zu wissen. Was ist noch offen oder nicht entschieden?",
+        "Und wer kümmert sich um die offenen Sachen? Wen kann ich fragen?",
+        "Gibt es feste Termine, die ich kennen muss? Am liebsten mit Datum.",
+        "Super, jetzt habe ich einen guten Überblick. Danke! Du kannst die Übergabe jetzt abschliessen."
+      ],
+      "minTurns": 3
+    }
+  },
+  {
+    "id": "komm-v1",
+    "trackId": "t-komm",
+    "type": "video",
+    "level": "Grundstufe",
+    "title": "Was in eine gute Übergabe gehört",
+    "intro": "Kurzes Erklärvideo mit zwei Fragen unterwegs.",
+    "durationMin": 2,
+    "mode": "alone",
+    "targets": ["stand", "offen", "wer", "wann"],
+    "transfer": "Prüf deine nächste Übergabe-Mail an vier Punkten: erledigt, offen, wer, wann.",
+    "source": "prepared",
+    "content": {
+      "scenes": [
+        { "caption": "Deine Kollegin übernimmt dein Projekt. Sie kennt nur das, was du ihr aufschreibst.", "visual": "steps", "items": ["Dein Wissen", "Deine Nachricht", "Ihr Wissen"], "seconds": 7 },
+        { "caption": "Nenne zuerst, was erledigt ist und wo es liegt. Dann muss niemand suchen.", "visual": "steps", "items": ["Erledigt", "Wo es liegt"], "seconds": 6 },
+        { "caption": "Dann das Offene. Zu jeder offenen Sache gehört ein Name: Wer kümmert sich darum?", "visual": "steps", "items": ["Offen", "Wer kümmert sich?"], "seconds": 7 },
+        { "caption": "Zum Schluss feste Termine mit Datum. «Bald» hilft niemandem, «am 12. Juni» schon.", "visual": "steps", "items": ["Erledigt", "Offen", "Wer", "Wann"], "seconds": 8 }
+      ],
+      "questions": [
+        {
+          "afterScene": 1,
+          "prompt": "Was gehört bei «erledigt» unbedingt dazu?",
+          "options": ["Wo die fertige Arbeit liegt", "Wie lange sie gedauert hat", "Wer sie zuerst angeregt hat"],
+          "correct": 0,
+          "explanation": "So findet deine Kollegin die Arbeit, ohne zu suchen oder nachzufragen.",
+          "criterion": "stand"
+        },
+        {
+          "afterScene": 3,
+          "prompt": "Welcher Satz hilft bei einer Übergabe am meisten?",
+          "options": ["Daniel kümmert sich bald um den Test.", "Daniel organisiert den Test am 12. Juni.", "Der Test ist gut geplant, keine Sorge."],
+          "correct": 1,
+          "explanation": "Nur dieser Satz nennt Person und Datum. «Bald» lässt offen, wann es so weit ist.",
+          "criterion": "wann"
+        }
+      ]
+    }
+  },
+  {
+    "id": "komm-c2",
+    "trackId": "t-komm",
+    "type": "ai-chat",
+    "level": "Mittelstufe",
+    "title": "Heikle Mail an eine Kundin",
+    "intro": "Antworte einer verärgerten Kundin, deren Lieferung zu spät ist: sachlich, klar und mit einem nächsten Schritt.",
+    "durationMin": 5,
+    "mode": "ai",
+    "targets": ["ton", "wann", "offen"],
+    "transfer": "Nenn in deiner nächsten heiklen Mail das Problem im ersten Satz und biete einen nächsten Schritt mit Datum an.",
+    "source": "prepared",
+    "content": {
+      "kind": "roleplay",
+      "goal": "Die Kundin weiss nach deiner Antwort, was los ist, was noch offen ist und was bis wann als Nächstes passiert.",
+      "aiRole": "Du spielst Sandra, Einkäuferin bei einer kleinen Firma. Du hast bei der Firma der Person im Chat 12 Bürostühle bestellt (Bestellung B-2318). Die Lieferung war für den 5. Juni zugesagt. Es ist nichts gekommen, und niemand hat sich gemeldet. Du bist verärgert, aber fair: Du wirst nicht beleidigend, und eine klare, ehrliche Antwort beruhigt dich. Du schreibst per Sie, wie im Geschäftsalltag. Du siehst die internen Infos der Person nicht. Reagiere auf das, was sie schreibt: Bleibt sie vage («bald», «wir kümmern uns»), hakst du nach – wann genau, und kommen alle 12 Stühle? Weicht sie aus oder wird sie unsachlich, wirst du etwas kühler. Gib keine Tipps, wie die Antwort aussehen soll, und schreib sie nicht für die Person. Höchstens 2–3 Sätze pro Nachricht, eine Frage aufs Mal. Hat die Person das Problem klar benannt, das Offene ehrlich gesagt und einen nächsten Schritt mit Datum angeboten, nimmst du das Angebot an und bedankst dich kurz.",
+      "opening": "Guten Tag. Meine 12 Bürostühle waren für den 5. Juni zugesagt. Bis heute ist nichts gekommen, und niemand hat sich gemeldet. Was ist da los?",
+      "material": {
+        "title": "Interne Infos zur Bestellung (erfunden)",
+        "lines": [
+          "Bestellung B-2318: 12 Bürostühle für Sandra",
+          "Zugesagt war die Lieferung am 5. Juni.",
+          "Grund der Verspätung: Der Hersteller hat zu spät geliefert.",
+          "8 Stühle sind jetzt im Lager und können am 16. Juni ausgeliefert werden.",
+          "Wann die restlichen 4 kommen, ist noch offen.",
+          "Der Hersteller nennt den Termin für die restlichen 4 bis zum 12. Juni."
+        ]
+      },
+      "criteria": [
+        { "id": "ton", "label": "Ton und Klarheit", "hint": "Nenn das Problem gleich im ersten Satz und bleib sachlich – ohne Ausreden.", "patterns": ["^[^.!?]*(verspät|verzöger|zu spät|nicht geliefert|nicht angekommen)", "entschuldig", "tut (mir|uns) leid", "leider", "nächste[nr]? schritt", "(ich|wir) (schlage|schlagen|biete|bieten)", "wir (liefern|können|melden)"] },
+        { "id": "wann", "label": "Nächster Schritt mit Datum", "hint": "Biete einen nächsten Schritt mit konkretem Datum an.", "patterns": ["16\\.? ?juni", "12\\.? ?juni", "\\d{1,2}\\.\\s?0?\\d\\.", "\\d{1,2}\\.\\s?(juni|juli|jun|jul)", "\\bbis (zum|am|spätestens) ", "\\bam (montag|dienstag|mittwoch|donnerstag|freitag)", "spätestens"] },
+        { "id": "offen", "label": "Offenes ehrlich nennen", "hint": "Sag ehrlich, was noch nicht feststeht – zum Beispiel die restlichen Stühle.", "patterns": ["offen", "noch nicht (klar|bekannt|fest|sicher)", "restlichen", "\\b4 (stühle|weitere|restliche)|vier (stühle|weitere|restliche)", "fehlen", "sobald", "teillieferung|teilweise|zuerst 8|zuerst acht"] }
+      ],
+      "fallbackReplies": [
+        "Gut, dass Sie sich melden. Aber was heisst das konkret: Wann kommen meine Stühle?",
+        "Und kommen alle 12 Stühle auf einmal? Ich brauche sie für neue Mitarbeitende.",
+        "Ich möchte nicht noch einmal warten, ohne etwas zu hören. Wann melden Sie sich wieder bei mir?",
+        "Na gut. Fassen Sie mir das bitte nochmals kurz zusammen: Was kommt wann, und was ist noch offen?",
+        "Danke, das ist klar, so kann ich planen. – Ende des Rollenspiels: Du kannst die Lektion jetzt abschliessen."
+      ],
+      "minTurns": 3
+    }
+  }
+]

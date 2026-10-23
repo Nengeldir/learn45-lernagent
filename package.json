@@ -1,0 +1,25 @@
+{
+  "name": "learn45-lernagent",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Prototype: AI learning agent for Learn45 (Zentral Hack 2026)",
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,magenta \"npm run dev -w @l45/backend\" \"npm run dev -w @l45/frontend\"",
+    "build": "npm run build -w @l45/frontend",
+    "start": "npm run start -w @l45/backend",
+    "test": "npm test -w @l45/backend",
+    "typecheck": "npm run typecheck -w @l45/backend && npm run typecheck -w @l45/frontend"
+  },
+  "devDependencies": {
+    "concurrently": "10.0.6"
+  },
+  "engines": {
+    "node": ">=22.9"
+  }
+}
