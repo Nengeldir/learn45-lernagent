@@ -1,0 +1,41 @@
+{
+  "name": "@l45/animlib",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pinned OwlYouNeed animlib runtime for Learn45 explanation lessons",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "acorn": "^8.15.0",
+    "color-string": "^2.1.4",
+    "earcut": "^3.2.4",
+    "mathjax-full": "3.2.2",
+    "quickjs-emscripten": "0.32.0",
+    "svg-pathdata": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/color-string": "^1.5.5",
+    "@types/earcut": "^3.0.0",
+    "@webgpu/types": "^0.1.74",
+    "typescript": "^5.9.3"
+  }
+}

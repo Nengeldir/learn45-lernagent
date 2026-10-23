@@ -111,7 +111,25 @@ export interface VideoQuestion {
 }
 export interface VideoLesson extends LessonBase {
   type: 'video';
-  content: { videoUrl?: string; scenes: VideoScene[]; questions: VideoQuestion[] };
+  content: { videoUrl?: string; narrated?: { manifestUrl: string }; scenes: VideoScene[]; questions: VideoQuestion[] };
+}
+
+/** Published animation assets contain no checkpoint solutions. Times are scene-local seconds. */
+export interface NarratedVideoManifest {
+  schemaVersion: 1;
+  lessonId: string;
+  title: string;
+  locale: 'de-CH';
+  scriptHash: string;
+  narration: { provider: 'local' | 'elevenlabs'; voice: string };
+  scenes: {
+    id: string;
+    title: string;
+    source: string;
+    duration: number;
+    audioUrl: string;
+    captions: { start: number; end: number; text: string }[];
+  }[];
 }
 
 // --- Chat with the AI ---

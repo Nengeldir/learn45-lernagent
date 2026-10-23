@@ -5,6 +5,13 @@ import { VitePWA } from 'vite-plugin-pwa';
 const api = process.env.API_URL ?? 'http://localhost:8787';
 
 export default defineConfig({
+  worker: { format: 'es' },
+  optimizeDeps: { exclude: ['quickjs-emscripten', 'quickjs-emscripten-core', '@jitl/quickjs-wasmfile-debug-sync', '@jitl/quickjs-wasmfile-debug-asyncify', '@jitl/quickjs-wasmfile-release-sync', '@jitl/quickjs-wasmfile-release-asyncify'] },
+  build: {
+    rollupOptions: {
+      output: { chunkFileNames: (chunk) => chunk.facadeModuleId?.endsWith('/packages/animlib/dist/index.js') ? 'assets/animation-engine-[hash].js' : 'assets/[name]-[hash].js' },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
@@ -26,8 +33,11 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Load the large renderer on demand. Audio/manifest/WASM require a network;
+        // a failed load offers the already bundled storyboard instead.
+        globIgnores: ['**/animation-engine-*.js'],
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        navigateFallbackDenylist: [/^\/api/, /^\/ws/],
+        navigateFallbackDenylist: [/^\/api/, /^\/ws/, /^\/videos\//],
         runtimeCaching: [
           {
             // Content (lessons, personas) for offline use; sessions always go to the network.

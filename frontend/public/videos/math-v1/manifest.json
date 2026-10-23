@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "lessonId": "math-v1",
+  "title": "Was ist eine Ableitung?",
+  "locale": "de-CH",
+  "scriptHash": "8cd8949bd08d33635f9c2b71f033a6e04776bc3a2fa60ff267ae48a834692fee",
+  "narration": {
+    "provider": "local",
+    "voice": "Anna"
+  },
+  "scenes": [
+    {
+      "id": "sekante",
+      "title": "Die Steigung zwischen zwei Punkten",
+      "source": "export default scene({mode:'2d',end:'hold',audio:'narration-0',background:'BLACK'}, s => {\n    const duration = 19.02875;\n    const P = (x, y) => [1.65*x-3.1, 1.05*y-1.5];\n    const f = x => 0.5*x*x;\n    const A = P(1, f(1));\n    const curve = Array.from({length:101}, (_,i) => { const x=-0.4+i*0.031; return P(x,f(x)); });\n    const line = b => { const m=(f(b)-f(1))/(b-1); return [P(-0.1,f(1)+m*(-1.1)),P(2.7,f(1)+m*1.7)]; };\n    const text = (id, value, x, y, size=0.3, fill='WHITE') => s.text(id,{text:value,position:[x,y],fontSize:size,fill});\n    s.play(s.camera.to2D({height:7}),{duration:0});\n    text('title', \"Von zwei Punkten zur Steigung\", 0, 2.9, 0.34);\n  \n    s.line('axis-x',{points:[P(-0.5,0),P(2.9,0)],stroke:'GREY_C',strokeWidth:0.018});\n    s.line('axis-y',{points:[P(0,-0.5),P(0,3.9)],stroke:'GREY_C',strokeWidth:0.018});\n    text('axis-x-label','x',1.9,-1.5,0.23,'GREY_B');\n    text('axis-y-label','f(x)',-3.1,2.7,0.23,'GREY_B');\n    for(let x=1;x<=2;x++) {\n      s.line('tick-'+x,{points:[P(x,-0.06),P(x,0.06)],stroke:'GREY_B',strokeWidth:0.02});\n      text('number-'+x,String(x),P(x,0)[0],-1.8,0.23,'GREY_B');\n    }\n    s.path('curve',{points:curve,stroke:'BLUE',strokeWidth:0.045,fill:'none'});\n    s.circle('a',{position:A,radius:0.07,fill:'YELLOW'});\n    text('a-label','A',A[0]-0.2,A[1]+0.24,0.28,'YELLOW');\n    s.latex('function',{tex:'f(x) = '+String.fromCharCode(92)+'frac{1}{2} x^2',position:[-1.3,2.3],fontSize:0.29,fill:'BLUE'});\n  \n      const B=P(2.5,f(2.5));\n      const secant=s.line('secant',{points:line(2.5),stroke:'YELLOW',strokeWidth:0.035,opacity:0});\n      const b=s.circle('b',{position:B,radius:0.07,fill:'WHITE',opacity:0});\n      const bl=text('b-label','B',B[0]+0.2,B[1]+0.2,0.28);\n      s.play(bl.animate({opacity:0}),{duration:0});\n      text('kind','Sekante',3.4,1.3,0.47,'YELLOW');\n      text('meaning','Verbindet A und B',3.4,0.7,0.28);\n      text('formula','Steigung = Δy / Δx',3.4,-0.1,0.31);\n      text('value','hier: 1,75',3.4,-0.65,0.38,'YELLOW');\n      s.wait(7.934333333333333);\n      s.play([secant.fadeIn(),b.fadeIn(),bl.fadeIn()],{duration:0.5});\n      s.line('run',{points:[A,P(2.5,f(1))],stroke:'TEAL',strokeWidth:0.025});\n      s.line('rise',{points:[P(2.5,f(1)),B],stroke:'TEAL',strokeWidth:0.025});\n      text('run-label','Δx',(A[0]+B[0])/2,A[1]-0.3,0.25,'TEAL');\n      text('rise-label','Δy',B[0]+0.3,(A[1]+B[1])/2,0.25,'TEAL');\n      s.wait(duration-7.934333333333333-0.5);\n    });",
+      "duration": 19.02875,
+      "audioUrl": "/videos/math-v1/sekante-213452ac671d.wav",
+      "captions": [
+        {
+          "start": 0,
+          "end": 8.184333333333333,
+          "text": "Wie steil ist eine Kurve an einer bestimmten Stelle? Betrachten wir die Funktion: f von x gleich ein halb mal x Quadrat."
+        },
+        {
+          "start": 8.534333333333333,
+          "end": 18.67875,
+          "text": "Zuerst verbinden wir zwei Punkte auf der Kurve. Diese Gerade heisst Sekante. Ihre Steigung ist der Höhenunterschied geteilt durch den waagrechten Abstand."
+        }
+      ]
+    },
+    {
+      "id": "grenzwert",
+      "title": "Der zweite Punkt rückt näher",
+      "source": "export default scene({mode:'2d',end:'hold',audio:'narration-1',background:'BLACK'}, s => {\n    const duration = 18.167416666666668;\n    const P = (x, y) => [1.65*x-3.1, 1.05*y-1.5];\n    const f = x => 0.5*x*x;\n    const A = P(1, f(1));\n    const curve = Array.from({length:101}, (_,i) => { const x=-0.4+i*0.031; return P(x,f(x)); });\n    const line = b => { const m=(f(b)-f(1))/(b-1); return [P(-0.1,f(1)+m*(-1.1)),P(2.7,f(1)+m*1.7)]; };\n    const text = (id, value, x, y, size=0.3, fill='WHITE') => s.text(id,{text:value,position:[x,y],fontSize:size,fill});\n    s.play(s.camera.to2D({height:7}),{duration:0});\n    text('title', \"B nähert sich A\", 0, 2.9, 0.34);\n  \n    s.line('axis-x',{points:[P(-0.5,0),P(2.9,0)],stroke:'GREY_C',strokeWidth:0.018});\n    s.line('axis-y',{points:[P(0,-0.5),P(0,3.9)],stroke:'GREY_C',strokeWidth:0.018});\n    text('axis-x-label','x',1.9,-1.5,0.23,'GREY_B');\n    text('axis-y-label','f(x)',-3.1,2.7,0.23,'GREY_B');\n    for(let x=1;x<=2;x++) {\n      s.line('tick-'+x,{points:[P(x,-0.06),P(x,0.06)],stroke:'GREY_B',strokeWidth:0.02});\n      text('number-'+x,String(x),P(x,0)[0],-1.8,0.23,'GREY_B');\n    }\n    s.path('curve',{points:curve,stroke:'BLUE',strokeWidth:0.045,fill:'none'});\n    s.circle('a',{position:A,radius:0.07,fill:'YELLOW'});\n    text('a-label','A',A[0]-0.2,A[1]+0.24,0.28,'YELLOW');\n    s.latex('function',{tex:'f(x) = '+String.fromCharCode(92)+'frac{1}{2} x^2',position:[-1.3,2.3],fontSize:0.29,fill:'BLUE'});\n  \n      const b=s.circle('b',{position:P(2.5,f(2.5)),radius:0.07,fill:'WHITE'});\n      const secant=s.line('secant',{points:line(2.5),stroke:'YELLOW',strokeWidth:0.035});\n      text('kind','B rückt näher',3.4,1.3,0.43,'WHITE');\n      text('meaning','A bleibt fest',3.4,0.7,0.29,'YELLOW');\n      text('formula','Sekante → Tangente',3.4,-0.1,0.3,'YELLOW');\n      text('value','Steigung → 1',3.4,-0.65,0.36);\n      s.wait(2);\n      for(let i=1;i<=50;i++) {\n        const t=i/50; const x=1.04+(1.46)*(1-t)*(1-t);\n        s.play([b.moveTo(P(x,f(x))),secant.morphTo({kind:'line',points:line(x)})],{duration:0.14822833333333332,ease:'linear'});\n      }\n      s.wait(duration-2-7.411416666666666);\n    });",
+      "duration": 18.167416666666668,
+      "audioUrl": "/videos/math-v1/grenzwert-46d82322260c.wav",
+      "captions": [
+        {
+          "start": 0,
+          "end": 9.411416666666666,
+          "text": "Der Punkt A bleibt bei x gleich eins. Jetzt rückt der zweite Punkt B auf der Kurve immer näher an A heran. Dabei dreht sich die Sekante."
+        },
+        {
+          "start": 9.761416666666667,
+          "end": 17.817416666666666,
+          "text": "Ihre Steigung nähert sich hier dem Wert eins. Die Sekante nähert sich der Tangente an. Was passiert also mit der Sekante?"
+        }
+      ]
+    },
+    {
+      "id": "tangente",
+      "title": "Die Ableitung ist eine Steigung",
+      "source": "export default scene({mode:'2d',end:'hold',audio:'narration-2',background:'BLACK'}, s => {\n    const duration = 21.036333333333335;\n    const P = (x, y) => [1.65*x-3.1, 1.05*y-1.5];\n    const f = x => 0.5*x*x;\n    const A = P(1, f(1));\n    const curve = Array.from({length:101}, (_,i) => { const x=-0.4+i*0.031; return P(x,f(x)); });\n    const line = b => { const m=(f(b)-f(1))/(b-1); return [P(-0.1,f(1)+m*(-1.1)),P(2.7,f(1)+m*1.7)]; };\n    const text = (id, value, x, y, size=0.3, fill='WHITE') => s.text(id,{text:value,position:[x,y],fontSize:size,fill});\n    s.play(s.camera.to2D({height:7}),{duration:0});\n    text('title', \"Die Ableitung ist die Tangentensteigung\", 0, 2.9, 0.34);\n  \n    s.line('axis-x',{points:[P(-0.5,0),P(2.9,0)],stroke:'GREY_C',strokeWidth:0.018});\n    s.line('axis-y',{points:[P(0,-0.5),P(0,3.9)],stroke:'GREY_C',strokeWidth:0.018});\n    text('axis-x-label','x',1.9,-1.5,0.23,'GREY_B');\n    text('axis-y-label','f(x)',-3.1,2.7,0.23,'GREY_B');\n    for(let x=1;x<=2;x++) {\n      s.line('tick-'+x,{points:[P(x,-0.06),P(x,0.06)],stroke:'GREY_B',strokeWidth:0.02});\n      text('number-'+x,String(x),P(x,0)[0],-1.8,0.23,'GREY_B');\n    }\n    s.path('curve',{points:curve,stroke:'BLUE',strokeWidth:0.045,fill:'none'});\n    s.circle('a',{position:A,radius:0.07,fill:'YELLOW'});\n    text('a-label','A',A[0]-0.2,A[1]+0.24,0.28,'YELLOW');\n    s.latex('function',{tex:'f(x) = '+String.fromCharCode(92)+'frac{1}{2} x^2',position:[-1.3,2.3],fontSize:0.29,fill:'BLUE'});\n  \n      s.line('tangent',{points:[P(-0.1,-0.6),P(2.7,2.2)],stroke:'YELLOW',strokeWidth:0.04});\n      text('kind','Tangente',3.4,1.3,0.47,'YELLOW');\n      text('meaning','Steigung an A',3.4,0.7,0.29);\n      s.latex('formula',{tex:\"f'(1) = 1\",position:[3.4,-0.1],fontSize:0.48,fill:'YELLOW'});\n      text('value','1 nach rechts, 1 nach oben',3.3,-0.75,0.25);\n      s.wait(9.298833333333333);\n      const run=s.line('run',{points:[A,P(2,f(1))],stroke:'TEAL',strokeWidth:0.03,opacity:0});\n      const rise=s.line('rise',{points:[P(2,f(1)),P(2,1.5)],stroke:'TEAL',strokeWidth:0.03,opacity:0});\n      text('run-label','1',P(1.5,0.5)[0],A[1]-0.3,0.26,'TEAL');\n      text('rise-label','1',P(2,1)[0]+0.25,P(2,1)[1],0.26,'TEAL');\n      s.play([run.fadeIn(),rise.fadeIn()],{duration:0.6});\n      s.wait(duration-9.298833333333333-0.6);\n    });",
+      "duration": 21.036333333333335,
+      "audioUrl": "/videos/math-v1/tangente-a3fc9f419625.wav",
+      "captions": [
+        {
+          "start": 0,
+          "end": 9.298833333333333,
+          "text": "Wenn sich die Sekantensteigungen von beiden Seiten demselben Wert nähern, erhalten wir die Ableitung. Sie ist die Steigung der Tangente an dieser Stelle."
+        },
+        {
+          "start": 9.648833333333334,
+          "end": 20.686333333333334,
+          "text": "Bei unserer Funktion ist die Ableitung an der Stelle x gleich eins genau eins. Gehen wir auf der Tangente eine Einheit nach rechts, geht es eine Einheit nach oben."
+        }
+      ]
+    },
+    {
+      "id": "zoom",
+      "title": "Ganz nah sieht die Kurve fast gerade aus",
+      "source": "export default scene({mode:'2d',end:'hold',audio:'narration-3',background:'BLACK'}, s => {\n    const duration = 20.653875;\n    const P = (x, y) => [1.65*x-3.1, 1.05*y-1.5];\n    const f = x => 0.5*x*x;\n    const A = P(1, f(1));\n    const curve = Array.from({length:101}, (_,i) => { const x=-0.4+i*0.031; return P(x,f(x)); });\n    const line = b => { const m=(f(b)-f(1))/(b-1); return [P(-0.1,f(1)+m*(-1.1)),P(2.7,f(1)+m*1.7)]; };\n    const text = (id, value, x, y, size=0.3, fill='WHITE') => s.text(id,{text:value,position:[x,y],fontSize:size,fill});\n    s.play(s.camera.to2D({height:7}),{duration:0});\n    text('title', \"Ganz nah: fast eine Gerade\", 0, 2.9, 0.34);\n  \n      const points = z => Array.from({length:101},(_,i) => {\n        const t=-1.7+i*0.034; const x=1+t/z;\n        return [-1.8+t, z*(f(x)-f(1))];\n      });\n      const zoomCurve=s.path('curve',{points:points(1),stroke:'BLUE',strokeWidth:0.045,fill:'none'});\n      s.line('tangent',{points:[[-3.5,-1.7],[-0.1,1.7]],stroke:'YELLOW',strokeWidth:0.035});\n      s.circle('a',{position:[-1.8,0],radius:0.07,fill:'YELLOW'});\n      text('a-label','A',-2.05,0.3,0.27,'YELLOW');\n      text('kind','Lokale Steigung',3.1,1.3,0.4,'WHITE');\n      text('legend-curve','Blau: die Kurve',3.1,0.65,0.3,'BLUE');\n      text('legend-tangent','Gelb: die Tangente',3.1,0.15,0.3,'YELLOW');\n      s.latex('formula',{tex:\"f'(1) = 1\",position:[3.1,-0.65],fontSize:0.48,fill:'YELLOW'});\n      text('zoom-label','Ausschnitt um A',-1.8,-2.3,0.25,'GREY_B');\n      s.wait(1);\n      for(let i=1;i<=50;i++) {\n        const z=1+15*i/50;\n        s.play(zoomCurve.morphTo({kind:'path',points:points(z),fill:'none'}),{duration:0.18434833333333334,ease:'linear'});\n      }\n      s.wait(duration-1-9.217416666666667);\n    });",
+      "duration": 20.653875,
+      "audioUrl": "/videos/math-v1/zoom-dd5c17c717bb.wav",
+      "captions": [
+        {
+          "start": 0,
+          "end": 10.217416666666667,
+          "text": "Zoomen wir um den Punkt A hinein. Die Kurve und ihre Tangente liegen immer näher beieinander. In diesem kleinen Ausschnitt sieht die Kurve fast wie eine Gerade aus."
+        },
+        {
+          "start": 10.567416666666666,
+          "end": 20.303875,
+          "text": "Die Ableitung beschreibt diese lokale Steigung. Sie beschreibt keine Fläche und auch keinen höchsten Punkt. Was gibt die Ableitung an einer Stelle an?"
+        }
+      ]
+    }
+  ]
+}

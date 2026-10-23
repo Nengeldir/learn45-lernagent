@@ -1,0 +1,39 @@
+{
+  "lessonId": "math-v1",
+  "title": "Was ist eine Ableitung?",
+  "locale": "de-CH",
+  "scenes": [
+    {
+      "id": "sekante",
+      "title": "Die Steigung zwischen zwei Punkten",
+      "narration": [
+        "Wie steil ist eine Kurve an einer bestimmten Stelle? Betrachten wir die Funktion: f von x gleich ein halb mal x Quadrat.",
+        "Zuerst verbinden wir zwei Punkte auf der Kurve. Diese Gerade heisst Sekante. Ihre Steigung ist der Höhenunterschied geteilt durch den waagrechten Abstand."
+      ]
+    },
+    {
+      "id": "grenzwert",
+      "title": "Der zweite Punkt rückt näher",
+      "narration": [
+        "Der Punkt A bleibt bei x gleich eins. Jetzt rückt der zweite Punkt B auf der Kurve immer näher an A heran. Dabei dreht sich die Sekante.",
+        "Ihre Steigung nähert sich hier dem Wert eins. Die Sekante nähert sich der Tangente an. Was passiert also mit der Sekante?"
+      ]
+    },
+    {
+      "id": "tangente",
+      "title": "Die Ableitung ist eine Steigung",
+      "narration": [
+        "Wenn sich die Sekantensteigungen von beiden Seiten demselben Wert nähern, erhalten wir die Ableitung. Sie ist die Steigung der Tangente an dieser Stelle.",
+        "Bei unserer Funktion ist die Ableitung an der Stelle x gleich eins genau eins. Gehen wir auf der Tangente eine Einheit nach rechts, geht es eine Einheit nach oben."
+      ]
+    },
+    {
+      "id": "zoom",
+      "title": "Ganz nah sieht die Kurve fast gerade aus",
+      "narration": [
+        "Zoomen wir um den Punkt A hinein. Die Kurve und ihre Tangente liegen immer näher beieinander. In diesem kleinen Ausschnitt sieht die Kurve fast wie eine Gerade aus.",
+        "Die Ableitung beschreibt diese lokale Steigung. Sie beschreibt keine Fläche und auch keinen höchsten Punkt. Was gibt die Ableitung an einer Stelle an?"
+      ]
+    }
+  ]
+}
