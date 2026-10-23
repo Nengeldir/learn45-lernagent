@@ -129,6 +129,14 @@ Fällt eine Prüfung durch, gilt der Plan der Regeln. Das gilt auch, wenn das Mo
 
 Grenzen: 1 Lauf pro abgeschlossene Lektion, höchstens 10 erzeugte Lektionen pro Sitzung.
 
+### KI zuerst, vorbereitete Lektionen als Rückfall
+
+- **Mit KI** startet die Karte mit einem Einstieg pro Bereich (die erste Lektion nach DCC-Stufe). Die weiteren Lektionen erzeugt der Agent.
+- Der Agent darf eine vorbereitete Lektion erst anhängen, wenn die Erzeugung gescheitert ist oder die Grenze von 10 erreicht ist.
+- Nimmt der vorläufige Plan der Regeln eine vorbereitete Lektion auf die Karte, verschwindet dieser Knoten wieder, sobald der Plan des Agenten gilt. Ausnahme: Der Agent hat ihn selbst gewählt.
+- Scheitert der Agent, holen die Regeln die vorbereiteten Lektionen dieses Bereichs auf die Karte und planen damit.
+- **Ohne KI** zeigt die Karte den ganzen Plan aus vorbereiteten Lektionen, wie bisher.
+
 ### Erzeugte Lektionen
 
 Der Agent erfindet keine neuen Lektionsarten. Er füllt nur Inhalte in die vier bestehenden Arten. Jede erzeugte Lektion geht durch denselben Validator wie die Dateien in `data/lessons/` (`backend/src/validate.ts`):

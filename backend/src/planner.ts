@@ -10,9 +10,9 @@ import { LESSON_TYPES, generateLesson } from './generator.ts';
 import { allLessons, checkPlan, remaining, type Plan } from './guard.ts';
 import { callAgent, type AgentBlock, type AgentMessage, type AgentTool } from './provider.ts';
 import { RECORD_KINDS, RecordError, addRecord, addReference, dueReviews, lernstand, type RecordInput } from './records.ts';
-import { applyRecommendation, defaultMission, missionOf, openRecommendation, save, storeLesson } from './sessions.ts';
+import { applyRecommendation, defaultMission, fillFromPool, missionOf, openRecommendation, recommend, save, storeLesson } from './sessions.ts';
 import { newId, nowIso } from './util.ts';
-import { writeNotes, type Stored } from './workspace.ts';
+import { deleteLesson, writeNotes, type Stored } from './workspace.ts';
 
 export const LIMITS = {
   steps: 6,
@@ -41,7 +41,7 @@ So lehrst du:
 
 Ablauf:
 1. get_learner_state lesen.
-2. Bei Bedarf list_pool_lessons. Dann eine vorbereitete Lektion nehmen oder mit generate_lesson eine neue erzeugen. Bei Fehlern höchstens ein zweiter Versuch.
+2. Erzeuge mit generate_lesson eine Lektion, die zur Mission passt. Bei Fehlern höchstens ein zweiter Versuch. Vorbereitete Lektionen (list_pool_lessons) darfst du nur anhängen, wenn die Erzeugung scheitert oder die Grenze erreicht ist.
 3. Neue Knoten mit add_to_map anhängen (höchstens 2), an den zuletzt erledigten Knoten oder an den Bereichsknoten.
 4. Wenn die Belege es tragen: write_learning_record, update_reference, note_preference.
 5. Zum Schluss genau einmal recommend: Knoten, Alternative, eine kurze Begründung (1 bis 2 Sätze, duzen, Schweizer Schreibweise ohne ß) und basedOn mit IDs von Lerneinträgen (LR-…) oder Ereignissen (ev-…).
@@ -57,7 +57,7 @@ const TOOLS: AgentTool[] = [
   },
   {
     name: 'list_pool_lessons',
-    description: 'Vorbereitete und schon erzeugte Lektionen dieses Bereichs, optional nur zu einem Kriterium.',
+    description: 'Vorbereitete und schon erzeugte Lektionen dieses Bereichs, optional nur zu einem Kriterium. Vorbereitete sind der Rückfall, wenn generate_lesson scheitert.',
     input_schema: { type: 'object', properties: { trackId: str, criterion: str }, required: ['trackId'] },
   },
   {
@@ -143,6 +143,8 @@ interface Ctx {
   deadline: number;
   staged: MapNode[];
   count: Record<'mapAdds' | 'generateCalls' | 'records' | 'references' | 'notes', number>;
+  /** A generate_lesson call failed in this run: only then may the agent fall back to pool lessons */
+  generationFailed: boolean;
 }
 
 class ToolError extends Error {}
@@ -249,6 +251,7 @@ async function runTool(ctx: Ctx, name: string, input: Record<string, unknown>): 
         sessionNo: s.sessionNo,
         timeoutMs: Math.max(1, Math.min(LIMITS.callMs(), left(ctx))),
       }, (c) => s.modelCalls.push(c));
+      if (!r.ok) ctx.generationFailed = true;
       if (!r.ok) throw new ToolError(`Lektion ungültig und verworfen: ${r.errors.join('; ')}`);
       storeLesson(st, r.lesson);
       return { lessonId: r.lesson.id, title: r.lesson.title, type: r.lesson.type, minutes: r.lesson.durationMin, primarySource: r.lesson.primarySource?.title };
@@ -260,6 +263,10 @@ async function runTool(ctx: Ctx, name: string, input: Record<string, unknown>): 
       if (nodes(ctx).some((n) => n.lessonId === lesson.id && n.state !== 'done')) throw new ToolError('Diese Lektion ist schon offen auf der Karte');
       const parent = nodes(ctx).find((n) => n.id === input.parentNodeId);
       if (!parent || parent.trackId !== trackId || (parent.kind !== 'lesson' && parent.kind !== 'track')) throw new ToolError(`Elternknoten ${String(input.parentNodeId)} gibt es in diesem Bereich nicht`);
+      const generatedSoFar = s.generatedLessons.filter((l) => l.provenance?.by === 'model' && l.provenance.sessionNo === s.sessionNo).length;
+      if (lesson.source !== 'model' && !ctx.generationFailed && generatedSoFar < LIMITS.generatedPerSession) {
+        throw new ToolError('Erzeuge zuerst mit generate_lesson eine passende Lektion. Vorbereitete Lektionen nur, wenn die Erzeugung scheitert oder die Grenze erreicht ist.');
+      }
       bump('mapAdds');
       const node: MapNode = {
         id: `n-${lesson.id}-${s.nodes.length + ctx.staged.length}`,
@@ -415,6 +422,7 @@ export async function runPlanner(st: Stored, ev: LearningEvent): Promise<void> {
   const ctx: Ctx = {
     st, ev, run, trackId: ev.trackId, deadline: Date.now() + LIMITS.totalMs(), staged: [],
     count: { mapAdds: 0, generateCalls: 0, records: 0, references: 0, notes: 0 },
+    generationFailed: false,
   };
 
   let outcome: Outcome;
