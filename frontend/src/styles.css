@@ -242,6 +242,20 @@ dl.reason dd { margin: 0; }
 .progress span { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
 .progress span.on { background: var(--ink); }
 .choices { display: grid; gap: 8px; }
+.narrated-video { max-width: 900px; }
+.narrated-stage { aspect-ratio: 16 / 10; background: #000; border-radius: 12px; overflow: hidden; }
+.narrated-stage canvas { display: block; width: 100%; height: 100%; }
+.video-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.video-scene-label { font-size: 14px; color: var(--muted); }
+.video-timeline { display: flex; align-items: center; gap: 12px; margin: 16px 0; }
+.video-timeline input { flex: 1; min-width: 0; accent-color: var(--ink); cursor: pointer; }
+.video-timeline span { font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.video-caption { min-height: 84px; font-size: 18px; line-height: 1.5; }
+.video-checkpoint { margin: 16px 0; }
+.video-checkpoint h3:focus { outline: none; }
+.video-transcript { margin: 20px 0; }
+.video-transcript summary { cursor: pointer; text-decoration: underline; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .choice { text-align: left; border: 1px solid var(--line); background: var(--surface); padding: 12px; border-radius: 8px; cursor: pointer; }
 .panel { background: var(--paper); border-radius: 12px; padding: 16px; }
 

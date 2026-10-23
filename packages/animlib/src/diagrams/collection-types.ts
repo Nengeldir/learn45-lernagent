@@ -1,0 +1,5 @@
+import type {ElementHandle,ElementStyle,Vec2} from '../types.js';
+export interface CollectionItem {readonly id:string;readonly value:string|number;/** Optional existing unparented content, wrapped as one identity. Author it around the local origin. */readonly handle?:ElementHandle;}
+export interface CollectionOptions {origin?:Vec2;/** Custom content must fit these dimensions for lane clearance. */width?:number;height?:number;gap?:number;orientation?:'horizontal'|'vertical';style?:ElementStyle;fontSize?:number;}
+export interface SwapOptions {start:number;duration:number;/** Extra edge-to-edge separation at crossing. */clearance?:number;}
+export interface CollectionDiagram {readonly items:ReadonlyMap<string,ElementHandle>;readonly slots:ReadonlyMap<string,number>;readonly data:readonly CollectionItem[];swap(a:string,b:string,options:SwapOptions):void;/** Complete permutation. Lift to separate lanes, move, then settle; caller controls visibility for insertion/removal. */reorder(order:readonly string[],options:SwapOptions):void;}

@@ -81,7 +81,40 @@ Das DCC ist die einzige Quelle für Stufen. Lernen in der App ändert das DCC-Pr
 | Webseite prüfen | Phishing-Mail und gefälschte Login-Seite | Regel |
 | Mit der KI | Tutor, Rollenspiel, Auftrag an die KI formulieren | Modell, sonst Stichworte |
 
-Die Videos sind Platzhalter-Storyboards. Die fertigen Videos sollen vorab mit der Aha-Engine erzeugt werden.
+«Was ist eine Ableitung?» ist als gesprochenes Erklärvideo mit vier animierten Szenen umgesetzt. Es enthält deutsche Sprachausgabe, zeitlich passende Untertitel und die beiden bisherigen Fragen nach Szene 2 und 4. Die übrigen Videos bleiben Storyboards.
+
+Die Ableitungslektion liegt unter Mathematik → Ableitung auf der Lernkarte. Abspielen, Pause, Zurückspulen, Ton und Untertitel funktionieren im Lektionsfenster. Unbeantwortete Fragen lassen sich nicht überspringen. Die Antworten werden wie bisher im Backend bewertet. Kann das Video nicht geladen werden, lässt sich auf das Storyboard wechseln.
+
+### Ableitungsvideo neu erzeugen
+
+Das fertige Video ist eingecheckt und läuft ohne API-Schlüssel. Die erste Version nutzt ein geprüftes Drehbuch und feste Szenenvorlagen; freie Themengenerierung ist noch nicht umgesetzt. Die Darstellung verwendet eine eigenständige, versionierte Kopie der animlib aus OwlYouNeed in `packages/animlib`. Das andere Repository wird weder zur Laufzeit benötigt noch verändert.
+
+```bash
+npm run video:build
+```
+
+Nur die Darstellung nach einer Änderung an den Szenenvorlagen aktualisieren, ohne neue Sprache zu erzeugen oder einen Sprachdienst aufzurufen:
+
+```bash
+npm run video:build -- --visuals-only
+```
+
+Standardmässig erzeugen macOS `say` (deutsche Stimme Anna) und `ffmpeg` die Sprache lokal. Dafür muss `ffmpeg` im Suchpfad liegen; alternativ `FFMPEG_PATH` setzen. Die Länge jeder tatsächlich erzeugten Sprachpassage bestimmt Untertitel und Animation. Zum Abspielen der vorhandenen Lektion werden diese Werkzeuge nicht benötigt.
+
+Später kann die Sprache mit ElevenLabs neu erzeugt werden. Dazu in `backend/.env` konfigurieren:
+
+```dotenv
+VIDEO_SPEECH_PROVIDER=elevenlabs
+ELEVENLABS_API_KEY=...
+ELEVENLABS_VOICE_ID=...
+ELEVENLABS_MODEL_ID=eleven_multilingual_v2
+```
+
+Danach `npm run video:build` und `npm run build` ausführen. Schlüssel bleiben lokal; die App enthält nur fertige Audiodateien. Ein abgebrochener kostenpflichtiger Aufruf wird nicht automatisch wiederholt. Erst wenn alle vier Szenen erzeugt und geprüft sind, wird das neue Manifest veröffentlicht.
+
+Das Drehbuch steht in `data/videos/derivative.json`, die Vorlagen in `scripts/video/derivative-scenes.ts`. Die fertigen WAV-Dateien und das Manifest liegen in `frontend/public/videos/math-v1/`. Das Manifest enthält keine Lösungen. Dies sind browsergerenderte Animationen mit Ton, keine MP4-Dateien. Renderer und Sprachdateien werden bei Bedarf aus dem Netz geladen; bei einem Ladefehler bleibt der Storyboard-Wechsel verfügbar.
+
+`npm test` prüft zusätzlich die Szenen- und Audiodauer, Renderbarkeit, Fragenpausen, Spulen, Wiederabspielen und die Übergabe an den Lernverlauf. `npm run typecheck` prüft auch den Videogenerator.
 
 Lösungen bleiben im Backend. Der Browser bekommt die Lektionen ohne Lösungen.
 
@@ -234,7 +267,7 @@ Neue Lektionen kommen als JSON nach `data/lessons/`. Beim Start prüft das Backe
 
 - Keine Spielmechanik (kommt später).
 - Kein Lernen mit anderen Personen. Die Modi sind «Alleine» und «Mit KI». Der Teil «Wisdom/Community» aus «teach» kommt mit diesem Modus.
-- Videos sind Storyboards, keine fertigen Videos. Erzeugte Videos nutzen nur die einfachen Bilder «steps» und «url-parts».
+- Nur die Ableitungslektion hat ein fertiges Erklärvideo; die übrigen Videos sind Storyboards. Erzeugte Videos nutzen nur die einfachen Bilder «steps» und «url-parts».
 - Keine echte Anmeldung: Name und DCC-Resultat reichen. Wer den Namen kennt, kann weitermachen.
 - Der Speicher ist ein Ordner pro Person, ohne Datenbank und ohne Sperren für mehrere Server.
 - Der Planer-Agent läuft nur mit Anthropic. Mit OpenAI planen die Regeln.

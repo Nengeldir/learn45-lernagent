@@ -12,6 +12,7 @@
     "transfer": "Schau dir eine Kurve aus deinem Alltag an (z. B. Temperatur über den Tag) und schätze, wo sie am steilsten ist.",
     "source": "prepared",
     "content": {
+      "narrated": { "manifestUrl": "/videos/math-v1/manifest.json" },
       "scenes": [
         { "caption": "Eine Kurve und zwei Punkte darauf. Die Gerade durch beide heisst Sekante. Ihre Steigung: Höhenunterschied geteilt durch Abstand.", "visual": "secant-tangent", "seconds": 7 },
         { "caption": "Jetzt rückt der zweite Punkt immer näher an den ersten. Die Sekante dreht sich mit.", "visual": "secant-tangent", "seconds": 7 },

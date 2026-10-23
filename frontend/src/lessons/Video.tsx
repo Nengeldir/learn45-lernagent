@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { Answer, VideoLesson, VideoVisual } from '@l45/shared';
 
 const reduced = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -205,7 +205,17 @@ function Visual({ visual, p, scene, first, items }: { visual: VideoVisual; p: nu
   }
 }
 
-export function Video({ lesson, onComplete }: { lesson: VideoLesson; onComplete: (a: Answer) => Promise<void> }) {
+const NarratedVideo = lazy(() => import('./NarratedVideo.tsx'));
+
+export function Video(props: { lesson: VideoLesson; onComplete: (a: Answer) => Promise<void> }) {
+  const [fallback, setFallback] = useState(false);
+  if (props.lesson.content.narrated && !fallback) {
+    return <Suspense fallback={<p role="status">Erklärvideo wird geladen …</p>}><NarratedVideo {...props} onFallback={() => setFallback(true)} /></Suspense>;
+  }
+  return <StoryboardVideo {...props} />;
+}
+
+function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComplete: (a: Answer) => Promise<void> }) {
   const { scenes, questions } = lesson.content;
   const [scene, setScene] = useState(0);
   const [playing, setPlaying] = useState(false);
