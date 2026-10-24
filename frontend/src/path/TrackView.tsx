@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from 'react';
 import type { MapNode, SessionView } from '@l45/shared';
 import { TopicLevel } from '../rewards/Rewards.tsx';
+import { LearnMore } from '../lessons/LearnMore.tsx';
 import { NextTopics } from '../lessons/NextTopics.tsx';
 import { useI18n } from '../lib/i18n.tsx';
 import { Icon } from '../lib/icons.tsx';
@@ -55,6 +56,7 @@ export function TrackView({ view, trackId, onStart }: {
           </li>
         </ol>
       </section>
+      <LearnMore query={trackName(track.id, track.name)} />
 
       {topped.length > 0 && (
         <section className="range" aria-labelledby="range-title">

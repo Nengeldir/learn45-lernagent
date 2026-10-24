@@ -622,6 +622,14 @@ const EN: Record<string, string> = {
   'Qwen hat gerade nicht geantwortet.': 'Qwen did not answer just now.',
   'Eule hat nachgedacht, aber keine Antwort bekommen. Frag noch einmal.': 'Owl thought about it, but no answer came back. Ask again.',
   'Eule erreicht Qwen gerade nicht. Versuch es gleich noch einmal.': 'Owl cannot reach Qwen just now. Try again in a moment.',
+  'Mehr lernen': 'Learn more',
+  'Videos und Texte zu diesem Thema.': 'Videos and pages on this topic.',
+  'Wird gesucht …': 'Searching …',
+  'Die Suche ist gerade nicht erreichbar.': 'Search is not reachable just now.',
+  'Dazu gibt es gerade keine Treffer.': 'Nothing turned up for this just now.',
+  'Sag, worüber du mehr lernen willst.': 'Say what you want to learn more about.',
+  'Passende Videos': 'Related videos',
+  'Im Web': 'On the web',
 };
 
 function fill(s: string, vars?: Record<string, string | number>) {

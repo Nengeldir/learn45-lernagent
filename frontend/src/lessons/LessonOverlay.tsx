@@ -9,6 +9,7 @@ import { useStore } from '../lib/store.tsx';
 import { RewardCelebration } from '../rewards/Rewards.tsx';
 import { LessonSource } from '../map/NodePanel.tsx';
 import { AiChat } from './AiChat.tsx';
+import { LearnMore } from './LearnMore.tsx';
 import { MarkEvidence, MockSite } from './Checkable.tsx';
 import { LessonActivityProvider } from './LessonActivity.tsx';
 import { PodcastLesson } from './PodcastLesson.tsx';
@@ -94,6 +95,7 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
             {lesson.type === 'video' && <Video lesson={lesson} prepareUrl={`/api/sessions/${encodeURIComponent(sessionId)}/nodes/${encodeURIComponent(nodeId)}/video`} onComplete={onComplete} />}
             {lesson.type === 'ai-chat' && <AiChat lesson={lesson} sessionId={sessionId} nodeId={nodeId} onComplete={onComplete} />}
             {lesson.type === 'podcast' && <PodcastLesson lesson={lesson} sessionId={sessionId} nodeId={nodeId} onComplete={onComplete} />}
+            <LearnMore query={lessonTitle(lesson.id, lesson.title)} />
           </div></LessonActivityProvider>
         )}
 

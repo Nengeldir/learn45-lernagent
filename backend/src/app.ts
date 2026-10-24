@@ -15,6 +15,7 @@ import { PodcastService } from './podcast/service.ts';
 import { VideoService } from './video/service.ts';
 import { chooseTopic, getTopics, suggestTopic } from './nextTopics.ts';
 import { askOwl, owlMessages } from './owlChat.ts';
+import { learnMore } from './learnMore.ts';
 
 type Handler = (req: Request, res: Response) => unknown;
 const h = (fn: Handler) => (req: Request, res: Response, next: NextFunction) => {
@@ -66,6 +67,10 @@ export function createApp(options: { videoService?: VideoService; podcastService
 
   app.post('/api/owl', h(async (req, res) => {
     res.json({ text: await askOwl(owlMessages(req.body)) });
+  }));
+
+  app.get('/api/learn-more', h(async (req, res) => {
+    res.json(await learnMore(String(req.query.q ?? ''), String(req.query.lang ?? 'de')));
   }));
 
   app.get('/api/content', (_req, res) => {
