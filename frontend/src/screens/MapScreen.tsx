@@ -1,3 +1,4 @@
+import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 import type { MapNode } from '@l45/shared';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
@@ -173,7 +174,7 @@ export function MapScreen() {
           <aside className={`side${wide ? '' : ' sheet'}${!wide && !sheetOpen ? ' collapsed' : ''}`} aria-label={t('Details')}>
             {!wide && (
               <button className="sheet-handle" onClick={() => setSheetOpen(!sheetOpen)} aria-expanded={sheetOpen}>
-                {sheetOpen ? t('Nach unten klappen') : t('Als Nächstes')}
+                <ButtonLabel variants={['Nach unten klappen', 'Als Nächstes']}>{sheetOpen ? t('Nach unten klappen') : t('Als Nächstes')}</ButtonLabel>
               </button>
             )}
             {(wide || sheetOpen) && !lessonNode && (

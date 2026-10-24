@@ -1,3 +1,4 @@
+import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 // Settings, in tabs that keep the areas apart: general settings and account, the profile (DCC read-only,
 // Lernstand, missions), what was learned (records, Merkblatt, history, transfer) and the agent's decisions.
 import { useEffect, useRef, useState } from 'react';
@@ -48,7 +49,7 @@ function MissionRow({ track, mission, onSave }: { track: Track; mission?: Missio
       {!editing ? (
         <p>
           {mission?.text ? t(mission.text) : <span className="muted">{t('Ein persönliches Ziel ist freiwillig. Du kannst direkt mit den Lektionen loslegen.')}</span>}{' '}
-          <button className="linkbtn small" onClick={() => setEditing(true)}>{mission ? t('Ändern') : t('Festlegen')}</button>
+          <button className="linkbtn small" onClick={() => setEditing(true)}><ButtonLabel variants={['Ändern', 'Festlegen']}>{mission ? t('Ändern') : t('Festlegen')}</ButtonLabel></button>
         </p>
       ) : (
         <div className="mission-edit">

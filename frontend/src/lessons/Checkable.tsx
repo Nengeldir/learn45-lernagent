@@ -1,3 +1,4 @@
+import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 // Lessons with a first check: after a first mistake the learner chooses a hint or looks again (rule R6).
 import { useRef, useState, type ReactNode } from 'react';
 import type { Answer, MarkEvidenceLesson, MockPart, MockSiteLesson, PartialCheck, Source } from '@l45/shared';
@@ -130,7 +131,7 @@ export function MockSite({ lesson, ...ctx }: { lesson: MockSiteLesson } & Ctx) {
       {of(mail, 'from').map((p) => hot(p, '', <>Von: {p.text}</>))}
       {of(mail, 'subject').map((p) => hot(p, 'subject', <>Betreff: {p.text}</>))}<hr />
       {of(mail, 'greeting').map((p) => hot(p))}{of(mail, 'paragraph').map((p) => hot(p))}
-      {of(mail, 'link').map((p) => <div key={p.id}>{hot(p, 'linkpart')}<button type="button" className="linkbtn small" onClick={() => setShowTarget(!showTarget)}>{showTarget ? 'Linkziel ausblenden' : 'Linkziel ansehen'}</button>{showTarget && <div className="small target">Der Link führt zu: {p.linkTarget}</div>}</div>)}
+      {of(mail, 'link').map((p) => <div key={p.id}>{hot(p, 'linkpart')}<button type="button" className="linkbtn small" onClick={() => setShowTarget(!showTarget)}><ButtonLabel variants={['Linkziel ausblenden', 'Linkziel ansehen']}>{showTarget ? 'Linkziel ausblenden' : 'Linkziel ansehen'}</ButtonLabel></button>{showTarget && <div className="small target">Der Link führt zu: {p.linkTarget}</div>}</div>)}
       {of(mail, 'signature').map((p) => hot(p))}
     </div></div> : step === 'site' ? <div className="mock"><div className="mock-bar"><span aria-hidden="true">🔒</span>{of(site, 'url').map((p) => hot(p, 'url'))}</div><div className="mock-body">
       {of(site, 'logo').map((p) => hot(p, 'logo'))}{of(site, 'heading').map((p) => hot(p, '', <strong>{p.text}</strong>))}
@@ -140,8 +141,8 @@ export function MockSite({ lesson, ...ctx }: { lesson: MockSiteLesson } & Ctx) {
     {flow.error && <p className="error" role="alert">{flow.error}</p>}
     {flow.check && step === 'verdict' && <HelpBox check={flow.check} hint={flow.hint} busy={flow.busy} onHint={() => void flow.askHint(answer)} onRetry={() => { flow.dismiss(); go(mail.length ? 'mail' : 'site'); }} />}
     <div className="activity-actions"><span className="small muted">{step !== 'verdict' && 'Verdächtige Stellen markieren.'}</span>
-      {step === 'verdict' ? (flow.check || flow.error) && <button className="btn primary" disabled={!verdict || flow.busy} onClick={() => void flow.run(answer)}>{flow.busy ? 'Wird geprüft …' : flow.error ? 'Erneut versuchen' : 'Abschliessen'}<Icon name="check" size={17} /></button>
-        : <button className="btn primary" onClick={() => go(step === 'mail' ? 'site' : 'verdict')}>{step === 'mail' ? 'Weiter zur Webseite' : 'Zum Urteil'}<Icon name="chevron" size={17} /></button>}
+      {step === 'verdict' ? (flow.check || flow.error) && <button className="btn primary" disabled={!verdict || flow.busy} onClick={() => void flow.run(answer)}><ButtonLabel variants={['Weiter zur Webseite', 'Zum Urteil', 'Wird geprüft …', 'Erneut versuchen', 'Abschliessen']}>{flow.busy ? 'Wird geprüft …' : flow.error ? 'Erneut versuchen' : 'Abschliessen'}</ButtonLabel><Icon name="check" size={17} /></button>
+        : <button className="btn primary" onClick={() => go(step === 'mail' ? 'site' : 'verdict')}><ButtonLabel variants={['Weiter zur Webseite', 'Zum Urteil', 'Wird geprüft …', 'Erneut versuchen', 'Abschliessen']}>{step === 'mail' ? 'Weiter zur Webseite' : 'Zum Urteil'}</ButtonLabel><Icon name="chevron" size={17} /></button>}
     </div>
     <details className="exercise-disclaimer"><summary>Über dieses Übungsbeispiel</summary><p>{lesson.content.disclaimer}</p></details>
   </div>;
