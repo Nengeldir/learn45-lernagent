@@ -11,11 +11,11 @@ export type Lang = 'de' | 'fr' | 'it' | 'rm' | 'en';
 
 /** The four national languages first, then English. */
 export const LANGS: { code: Lang; short: string; name: string; locale: string; title: string }[] = [
-  { code: 'de', short: 'DE', name: 'Deutsch', locale: 'de-CH', title: 'Owl for Learn45' },
-  { code: 'fr', short: 'FR', name: 'Français', locale: 'fr-CH', title: 'Owl for Learn45' },
-  { code: 'it', short: 'IT', name: 'Italiano', locale: 'it-CH', title: 'Owl for Learn45' },
-  { code: 'rm', short: 'RM', name: 'Rumantsch', locale: 'rm-CH', title: 'Owl for Learn45' },
-  { code: 'en', short: 'EN', name: 'English', locale: 'en-GB', title: 'Owl for Learn45' },
+  { code: 'de', short: 'DE', name: 'Deutsch', locale: 'de-CH', title: 'AIthena' },
+  { code: 'fr', short: 'FR', name: 'Français', locale: 'fr-CH', title: 'AIthena' },
+  { code: 'it', short: 'IT', name: 'Italiano', locale: 'it-CH', title: 'AIthena' },
+  { code: 'rm', short: 'RM', name: 'Rumantsch', locale: 'rm-CH', title: 'AIthena' },
+  { code: 'en', short: 'EN', name: 'English', locale: 'en-GB', title: 'AIthena' },
 ];
 
 const KEY = 'lernagent.lang';
@@ -39,7 +39,7 @@ const EN: Record<string, string> = {
   Automatisch: 'Automatic (follows the system)',
   'Wird geladen …': 'Loading …',
   'Neu laden': 'Reload',
-  Lernagent: 'Owl for Learn45',
+  für: 'for',
   'Dein DCC-Profil wird zu einer Lernkarte. Der Agent plant Lektionen in allen fünf Bereichen, schlägt den nächsten Schritt vor und sagt, warum.':
     'Your DCC profile becomes a learning map. The agent plans lessons across all five areas, suggests the next step, and says why.',
   'Prototyp für Learn45. Anmeldung ohne Passwort, nur erfundene Daten.':
@@ -677,7 +677,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = lang;
-    document.title = LANGS.find((l) => l.code === lang)?.title ?? 'Owl for Learn45';
+    document.title = LANGS.find((l) => l.code === lang)?.title ?? 'AIthena';
   }, [lang]);
 
   const value = useMemo<I18n>(() => {

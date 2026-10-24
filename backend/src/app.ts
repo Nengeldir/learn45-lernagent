@@ -185,7 +185,7 @@ export function createApp(options: { videoService?: VideoService; podcastService
   } else {
     app.get('/', (_req, res) => {
       res.type('html').send(
-        '<!doctype html><meta charset="utf-8"><title>Owl for Learn45</title><body style="font-family:system-ui;max-width:40rem;margin:3rem auto;padding:0 1rem;line-height:1.5">' +
+        '<!doctype html><meta charset="utf-8"><title>AIthena</title><body style="font-family:system-ui;max-width:40rem;margin:3rem auto;padding:0 1rem;line-height:1.5">' +
           '<h1>Die App ist noch nicht gebaut</h1><p>Die API läuft, aber <code>frontend/dist</code> fehlt.</p>' +
           '<p><code>npm run build</code> und danach <code>npm start</code>, dann neu laden. Oder <code>npm run dev</code> und <a href="http://localhost:5173">http://localhost:5173</a> öffnen.</p>',
       );
