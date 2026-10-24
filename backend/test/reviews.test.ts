@@ -1,10 +1,11 @@
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ReviewQuestion } from '@l45/shared';
+import type { Lesson, MockSiteLesson, PodcastLesson, ReviewQuestion, VideoLesson } from '@l45/shared';
 import { createApp } from '../src/app.ts';
-import { _reset, get, save } from '../src/sessions.ts';
+import { _reset, get, save, storeLesson } from '../src/sessions.ts';
+import { content } from '../src/content.ts';
 import { scheduleReview } from '../src/reviewSchedule.ts';
-import { finish, login, node, s1Right, v1Right } from './helpers.ts';
+import { finish, levels, login, node, s1Right, v1Right } from './helpers.ts';
 
 beforeEach(() => {
   _reset();
@@ -45,6 +46,7 @@ describe('spaced recall', () => {
     const opened = await request(app).post(`${base}/reviews/${id}/start`).send({}).expect(200);
     expect(opened.body.question).not.toHaveProperty('correctOption');
     expect(opened.body.question).not.toHaveProperty('explanation');
+    expect(opened.body.question).not.toHaveProperty('sourceQuestionId');
     expect(opened.body.view.session).not.toHaveProperty('reviewChallenges');
     expect(opened.body.view.reviews.due).toHaveLength(2);
     expect(opened.body.question).not.toHaveProperty('scenes');
@@ -127,7 +129,7 @@ describe('spaced recall', () => {
     const migrated = await request(restarted).get(base).expect(200);
     expect(migrated.body.reviews.due.some((q: { id: string }) => q.id === legacy.id)).toBe(true);
     const { question } = await grade(restarted, base, legacy.id, true);
-    expect(question.prompt).toContain('Zeitdruck');
+    expect(question.context?.join(' ')).toContain('24 Stunden');
     expect(question.options.length).toBeGreaterThan(1);
   });
 
@@ -140,5 +142,161 @@ describe('spaced recall', () => {
     await finish(app, v, node(v, 'sich-v1'), v1Right);
     expect(q.dueAt).toBe(dueAt);
     expect(q.lapses).toBe(1);
+  });
+});
+
+async function learnedInfo() {
+  const app = createApp();
+  let v = await login(app, { levels: { ...levels, 't-info': 'Grundstufe' } });
+  const lesson = content.lessons.find((l): l is VideoLesson => l.id === 'info-v1' && l.type === 'video')!;
+  const answers = Object.fromEntries(lesson.content.questions.map((q, i) => [i, q.correct]));
+  v = await finish(app, v, node(v, lesson.id), { type: 'video', answers });
+  const id = v.session.reviewQueue.find((q) => q.trackId === lesson.trackId && q.criterion === 'quelle')!.id;
+  return { app, v, lesson, id, base: `/api/sessions/${v.session.id}` };
+}
+
+function podcastFrom(lesson: VideoLesson, id: string): PodcastLesson {
+  return { ...lesson, id, type: 'podcast', source: 'model', content: {
+    lines: [{ speaker: 'a', text: 'Wir prüfen Angaben an der Quelle.' }, { speaker: 'b', text: 'Das gilt auch bei Studien.' }],
+    questions: lesson.content.questions.map(({ afterScene: _a, ...question }, i) => ({ ...question, prompt: `${id}: Quellenfrage ${i + 1}` })),
+  } };
+}
+
+function addLesson(sessionId: string, lesson: Lesson) {
+  const st = get(sessionId);
+  storeLesson(st, lesson);
+  const n = { id: `n-${lesson.id}`, kind: 'lesson' as const, parentId: `t-${lesson.trackId}`, trackId: lesson.trackId, lessonId: lesson.id, label: lesson.title, state: 'planned' as const };
+  st.session.nodes.push(n);
+  save(st);
+  return n;
+}
+
+describe('question rotation', () => {
+  it('repeats every correctly answered question, including after the success interval reaches its cap', async () => {
+    const { app, v, base, id, lesson } = await learnedInfo();
+    const expected = lesson.content.questions.map((q) => q.prompt);
+    const seen: string[] = [];
+    for (let i = 0; i < 12; i++) {
+      advance(get(v.session.id).session.reviewQueue.find((q) => q.id === id)!.dueAt!);
+      const { question } = await grade(app, base, id, true);
+      seen.push(question.prompt);
+    }
+    expect(seen).toEqual(Array.from({ length: 6 }, () => expected).flat());
+    expect(get(v.session.id).session.reviewQueue.find((q) => q.id === id)!.questionHistory).toHaveLength(2);
+  });
+
+  it('rotates independently of errors and streak resets so a difficult question cannot starve the others', async () => {
+    const { app, v, base, id, lesson } = await learnedInfo();
+    for (let i = 0; i < 8; i++) {
+      advance(get(v.session.id).session.reviewQueue.find((q) => q.id === id)!.dueAt!);
+      const { question, response } = await grade(app, base, id, i % 3 === 0);
+      expect(question.prompt).toBe(lesson.content.questions[i % 2].prompt);
+      if (i % 3 !== 0) expect(Date.parse(response.body.feedback.dueAt) - Date.now()).toBe(600_000);
+    }
+  });
+
+  it('includes all questions from older and newer completed lessons while excluding uncompleted lessons', async () => {
+    const { app, v, base, id, lesson } = await learnedInfo();
+    const podcast = podcastFrom(lesson, 'review-podcast');
+    const n = addLesson(v.session.id, podcast);
+    addLesson(v.session.id, podcastFrom(lesson, 'not-completed'));
+    // One originally missed question and one originally correct question must both be included.
+    const answers = { 0: (podcast.content.questions[0].correct + 1) % 3, 1: podcast.content.questions[1].correct };
+    await finish(app, v, n, { type: 'podcast', answers });
+    // Repeating a normal lesson does not duplicate its questions in the bank.
+    await finish(app, v, n, { type: 'podcast', answers });
+    const expected = [...lesson.content.questions, ...podcast.content.questions].map((q) => q.prompt);
+    const seen: string[] = [];
+    for (let i = 0; i < 8; i++) {
+      advance(get(v.session.id).session.reviewQueue.find((q) => q.id === id)!.dueAt!);
+      seen.push((await grade(app, base, id, true)).question.prompt);
+    }
+    expect(seen).toEqual([...expected, ...expected]);
+  });
+
+  it('adds newly learned questions to the rotation before repeating previously reviewed questions', async () => {
+    const { app, v, base, id, lesson } = await learnedInfo();
+    for (let i = 0; i < 2; i++) {
+      advance(get(v.session.id).session.reviewQueue.find((q) => q.id === id)!.dueAt!);
+      await grade(app, base, id, true);
+    }
+    const podcast = podcastFrom(lesson, 'new-review-podcast');
+    const n = addLesson(v.session.id, podcast);
+    await finish(app, v, n, { type: 'podcast', answers: Object.fromEntries(podcast.content.questions.map((q, i) => [i, q.correct])) });
+    const expected = [...podcast.content.questions, ...lesson.content.questions].map((q) => q.prompt);
+    for (const prompt of expected) {
+      advance(get(v.session.id).session.reviewQueue.find((q) => q.id === id)!.dueAt!);
+      expect((await grade(app, base, id, true)).question.prompt).toBe(prompt);
+    }
+  });
+
+  it('keeps pending cards and rotation across restarts and logins, and advances only once per valid submission', async () => {
+    const { app, v, base, id, lesson } = await learnedInfo();
+    advance(get(v.session.id).session.reviewQueue.find((q) => q.id === id)!.dueAt!);
+    const opened = await request(app).post(`${base}/reviews/${id}/start`).send({}).expect(200);
+    await request(app).post(`${base}/reviews/${id}/answer`).send({ challengeId: opened.body.question.id, option: 1000 }).expect(400);
+    expect(get(v.session.id).session.reviewQueue.find((q) => q.id === id)!.questionHistory).toBeUndefined();
+    const restarted = createApp();
+    const reopened = await request(restarted).post(`${base}/reviews/${id}/start`).send({}).expect(200);
+    expect(reopened.body.question).toEqual(opened.body.question);
+    const { body } = await grade(restarted, base, id, true);
+    const history = [...get(v.session.id).session.reviewQueue.find((q) => q.id === id)!.questionHistory!];
+    await request(restarted).post(`${base}/reviews/${id}/answer`).send(body).expect(200);
+    expect(get(v.session.id).session.reviewQueue.find((q) => q.id === id)!.questionHistory).toEqual(history);
+    const again = createApp();
+    const resumed = await login(again, { resume: 'continue' });
+    expect(resumed.session.reviewQueue.find((q) => q.id === id)!.questionHistory).toEqual(history);
+    advance(resumed.session.reviewQueue.find((q) => q.id === id)!.dueAt!);
+    expect((await grade(again, `/api/sessions/${resumed.session.id}`, id, true)).question.prompt).toBe(lesson.content.questions[1].prompt);
+  });
+
+  it('includes supported and invented statements in text checks, including originally correct answers', async () => {
+    const app = createApp();
+    let v = await login(app, { levels: { ...levels, 't-info': 'Grundstufe' } });
+    v = await finish(app, v, node(v, 'info-m1'), { type: 'mark-evidence', marks: { s1: 'erfunden', s2: 'belegt' } });
+    const q = get(v.session.id).session.reviewQueue.find((q) => q.trackId === 't-info' && q.criterion === 'zeit')!;
+    const prompts: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      advance(q.dueAt!);
+      const { question } = await grade(app, `/api/sessions/${v.session.id}`, q.id, true);
+      prompts.push(question.prompt);
+      expect(question.context?.length).toBe(3);
+    }
+    expect(prompts[0]).toContain('Montag');
+    expect(prompts[1]).toContain('Lukas');
+    expect(prompts.slice(2)).toEqual(prompts.slice(0, 2));
+  });
+
+  it('accepts an outstanding card created before rotation and records its source on submission', async () => {
+    const { app, v, base, id, lesson } = await learnedInfo();
+    advance(get(v.session.id).session.reviewQueue.find((q) => q.id === id)!.dueAt!);
+    await request(app).post(`${base}/reviews/${id}/start`).send({}).expect(200);
+    delete get(v.session.id).session.reviewChallenges![id].sourceQuestionId;
+    save(get(v.session.id));
+    const restarted = createApp();
+    await grade(restarted, base, id, true);
+    const q = get(v.session.id).session.reviewQueue.find((q) => q.id === id)!;
+    expect(q.questionHistory).toHaveLength(1);
+    advance(q.dueAt!);
+    expect((await grade(restarted, base, id, true)).question.prompt).toBe(lesson.content.questions[1].prompt);
+  });
+
+  it('rotates warning signs from different completed website exercises for the same concept', async () => {
+    const { app, v, base } = await learned();
+    await finish(app, v, node(v, 'sich-s1'), s1Right);
+    const site = content.lessons.find((l): l is MockSiteLesson => l.id === 'sich-s2' && l.type === 'mock-site')!;
+    const n = addLesson(v.session.id, { ...site, id: 'review-website', source: 'model' });
+    const parts = [...(site.content.mail ?? []), ...site.content.site];
+    await finish(app, v, n, { type: 'mock-site', marked: parts.filter((p) => p.signal).map((p) => p.id), verdict: site.content.correctVerdict });
+    const q = get(v.session.id).session.reviewQueue.find((q) => q.criterion === 'absender')!;
+    const contexts: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      advance(q.dueAt!);
+      const { question } = await grade(app, base, q.id, true);
+      contexts.push(question.context!.join(' '));
+    }
+    expect(contexts[0]).toContain('musterbank-support.example');
+    expect(contexts[1]).toContain('paketpost-muster-zustellung.example');
+    expect(contexts.slice(2)).toEqual(contexts.slice(0, 2));
   });
 });

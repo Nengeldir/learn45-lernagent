@@ -482,6 +482,8 @@ export interface ReviewItem {
   lastReviewedAt?: string;
   lastCorrect?: boolean;
   lastReviewSource?: 'lesson' | 'recall';
+  /** Stable question identities, oldest to most recently answered; independent of success streaks. */
+  questionHistory?: string[];
 }
 
 export interface ReviewSummary {
@@ -517,6 +519,8 @@ export interface ReviewFeedback {
 
 /** Server-only challenge and receipt: never included in SessionView. */
 export interface ReviewChallenge extends ReviewQuestion {
+  /** Identity in the learned question bank; omitted from the browser response. */
+  sourceQuestionId?: string;
   correctOption: number;
   explanation: string;
   answeredOption?: number;

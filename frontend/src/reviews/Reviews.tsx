@@ -107,7 +107,7 @@ export function ReviewOverlay({ trackId, onClose }: { trackId?: string; onClose:
         {feedback && <div className={`review-feedback ${feedback.correct ? 'ok' : 'gap'}`} role="status">
           <strong>{feedback.correct ? t('Richtig erinnert!') : t('Das üben wir bald wieder.')}</strong>
           {!feedback.correct && <p>{feedback.explanation}</p>}
-          <p>{feedback.correct ? t('Nächste Wiederholung: {at}', { at: time(feedback.dueAt) }) : t('In 10 Minuten kommt diese Frage wieder.')}</p>
+          <p>{feedback.correct ? t('Nächste Wiederholung: {at}', { at: time(feedback.dueAt) }) : t('Dieses Thema wiederholen wir in 10 Minuten.')}</p>
           <button className="btn primary" onClick={() => setIndex((n) => n + 1)}>{index + 1 === ids.length ? t('Runde abschliessen') : t('Nächste Frage')}</button>
         </div>}
       </div>}

@@ -12,7 +12,7 @@ export const RM: Record<string, string> = {
   'Antwort wird geprüft …': 'Examinar la resposta …',
   'Richtig erinnert!': 'Ti has memorisà bain!',
   'Das üben wir bald wieder.': 'Nus repetin quai prest puspè.',
-  'In 10 Minuten kommt diese Frage wieder.': 'Questa dumonda turna en 10 minutas.',
+  'Dieses Thema wiederholen wir in 10 Minuten.': 'Nus repetin quest tema en 10 minutas.',
   'Runde abschliessen': 'Terminar questa runda',
   'Nächste Frage': 'Proxima dumonda',
   '{n} von {total} richtig erinnert.': 'Ti has memorisà correctamain {n} da {total} respostas.',

@@ -11,7 +11,7 @@ export const IT: Record<string, string> = {
   'Antwort wird geprüft …': 'Verifica della risposta …',
   'Richtig erinnert!': 'Hai ricordato bene!',
   'Das üben wir bald wieder.': 'Lo ripasseremo presto.',
-  'In 10 Minuten kommt diese Frage wieder.': 'Questa domanda torna tra 10 minuti.',
+  'Dieses Thema wiederholen wir in 10 Minuten.': 'Ripasseremo questo concetto tra 10 minuti.',
   'Runde abschliessen': 'Termina questo giro',
   'Nächste Frage': 'Prossima domanda',
   '{n} von {total} richtig erinnert.': 'Hai ricordato correttamente {n} risposte su {total}.',
