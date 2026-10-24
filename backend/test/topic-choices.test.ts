@@ -176,6 +176,27 @@ describe('Topic previews followed by an explicit format choice', () => {
     await choose(v, c).expect(201);
   });
 
+  it('tries a rejected lesson once more with the validator errors', async () => {
+    const v = await learner();
+    const c = await topics(v);
+    const drafts: ModelRequest[] = [];
+    setMockHandler(req => { drafts.push(req); return drafts.length === 1 ? mockSiteJson({ domain: 'postfinance.ch' }) : mockSiteJson(); });
+    const r = await choose(v, c).expect(201);
+    expect(r.body.generated).toHaveLength(1);
+    expect(drafts).toHaveLength(2);
+    expect(drafts[0].messages[0].content).not.toContain('Dein letzter Entwurf wurde abgelehnt');
+    expect(drafts[1].messages[0].content).toContain('Dein letzter Entwurf wurde abgelehnt');
+  });
+
+  it('does not try again when the model call itself fails', async () => {
+    const v = await learner();
+    const c = await topics(v);
+    let tries = 0;
+    setMockHandler(() => { tries++; throw new Error('model down'); });
+    await choose(v, c).expect(502);
+    expect(tries).toBe(1);
+  });
+
   it('validates a custom topic without creating a lesson, then generates it in the chosen format', async () => {
     const v = await learner();
     const c = await topics(v);

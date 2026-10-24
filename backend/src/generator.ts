@@ -32,15 +32,18 @@ export interface GenerateInput {
   basedOn: string[];
   sessionNo: number;
   timeoutMs: number;
+  /** Validator errors of a rejected earlier draft, so a second attempt can fix them */
+  previousErrors?: string[];
 }
 
-export type GenerateResult = { ok: true; lesson: Lesson } | { ok: false; errors: string[] };
+/** `rejected`: the model answered, but its lesson was not valid. Worth one more attempt with the errors. */
+export type GenerateResult = { ok: true; lesson: Lesson } | { ok: false; errors: string[]; rejected?: true };
 
 const SCHEMAS: Record<LessonType, string> = {
   video: `{"scenes":[{"caption":"Ein Satz, der erklärt","visual":"steps","items":["Stichwort","Stichwort","Stichwort"],"seconds":7}],
  "questions":[{"afterScene":0,"prompt":"Frage","options":["Antwort A","Antwort B","Antwort C"],"correct":0,"explanation":"Warum","criterion":"<kriterium-id>"}]}
 Regeln: 2 bis 3 Szenen. visual ist immer "steps" (2 bis 4 Stichworte) oder "url-parts" (items genau: Schema, Vorsatz, Domain, Endung, Pfad, z. B. ["https://","login.","beispiel-shop",".example","/konto"]).
-1 Frage pro Kriterium. Alle Antworten einer Frage haben genau gleich viele Wörter und ähnliche Länge. Die erste Antwort ist die richtige (correct: 0); der Server mischt die Reihenfolge.`,
+1 Frage pro Kriterium. Alle Antworten einer Frage sind gleich lang: gleich viele Wörter, höchstens 2 Wörter Unterschied. Die erste Antwort ist die richtige (correct: 0); der Server mischt die Reihenfolge.`,
   'mark-evidence': `{"noteTitle":"Titel der Notiz","note":["Zeile der Quelle","..."],
  "summary":[{"id":"s1","text":"Satz der KI-Zusammenfassung","verdict":"belegt","explanation":"Steht so in der Notiz."},
             {"id":"s2","text":"Satz mit erfundener Angabe","verdict":"erfunden","criterion":"<kriterium-id>","explanation":"Warum nicht belegt","hint":"Rückfrage ohne Lösung","correction":"Was korrekt wäre"}]}
@@ -63,7 +66,7 @@ kind ist tutor (stellt Fragen), roleplay (spielt eine Rolle) oder prompt-lab (f�
 Regeln: Ein Gespräch zwischen Mira (speaker "a", stellt die Fragen, die sich Lernende stellen) und Jonas (speaker "b", erklärt mit einem konkreten Beispiel).
 Gesprochene Sprache: kurze Sätze, keine Aufzählungen, keine Klammern, keine Abkürzungen, keine Adressen. Beide sprechen die zuhörende Person mit du an.
 8 bis 14 Beiträge, zusammen höchstens 2500 Zeichen (etwa zwei Minuten), jeder Beitrag höchstens drei Sätze. Schluss: die Faustregel in einem Satz.
-Danach 2 bis 3 Fragen zum Gehörten. Alle Antworten einer Frage haben genau gleich viele Wörter und ähnliche Länge. Die erste Antwort ist die richtige (correct: 0); der Server mischt die Reihenfolge.`,
+Danach 2 bis 3 Fragen zum Gehörten. Alle Antworten einer Frage sind gleich lang: gleich viele Wörter, höchstens 2 Wörter Unterschied. Die erste Antwort ist die richtige (correct: 0); der Server mischt die Reihenfolge.`,
 };
 
 const swiss = <T,>(x: T): T => JSON.parse(JSON.stringify(x).replace(/ß/g, 'ss')) as T;
@@ -130,13 +133,17 @@ export async function generateLesson(input: GenerateInput, onCall: (c: ModelCall
     '{"title":"höchstens 60 Zeichen","intro":"Ein Satz: was die Person tut","durationMin":3,"transfer":"Ein Satz für die Arbeit","primarySourceUrl":"<url aus der Liste>","content":<siehe unten>}',
     'content für diese Lektionsart:',
     SCHEMAS[input.type],
+    input.previousErrors?.length ? `\nDein letzter Entwurf wurde abgelehnt. Behebe genau diese Punkte:\n${input.previousErrors.map((e) => `- ${e}`).join('\n')}` : '',
   ].filter(Boolean).join('\n');
 
   const reply = await callModel({ purpose: 'generate', system, messages: [{ role: 'user', content: user }], maxTokens: 3000, timeoutMs: input.timeoutMs, planner: true });
   onCall(reply.call);
   if (!reply.ok) return { ok: false, errors: [`Modell: ${reply.error}`] };
   const raw = extractJson<{ title?: string; intro?: string; durationMin?: number; transfer?: string; primarySourceUrl?: string; content?: Record<string, unknown> }>(reply.text);
-  if (!raw?.content) return { ok: false, errors: ['Antwort ist kein JSON mit content'] };
+  if (!raw?.content) {
+    console.warn(`Erzeugte Lektion verworfen (${track.id}, ${input.type}): Antwort ist kein JSON mit content`);
+    return { ok: false, errors: ['Antwort ist kein JSON mit content'], rejected: true };
+  }
 
   const source = sources.find((s) => s.url === raw.primarySourceUrl);
   const title = String(raw.title ?? '').trim();
@@ -184,7 +191,7 @@ export async function generateLesson(input: GenerateInput, onCall: (c: ModelCall
   const errors = validateLesson(lesson, { track, sourceUrls: sources.map((s) => s.url) });
   if (errors.length) {
     console.warn(`Erzeugte Lektion verworfen (${track.id}, ${input.type}): ${errors.join('; ')}`);
-    return { ok: false, errors };
+    return { ok: false, errors, rejected: true };
   }
   return { ok: true, lesson };
 }

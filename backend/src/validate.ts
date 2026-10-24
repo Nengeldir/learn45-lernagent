@@ -38,7 +38,10 @@ function strings(v: unknown, out: string[] = []): string[] {
   return out;
 }
 
-/** Quiz questions of videos and podcasts: 2 to 4 answers of equal length, the right one not always in the same place. */
+/** Answers of one question may differ by this many words. More, and the right answer often gives itself away by its length. */
+const MAX_WORD_GAP = 2;
+
+/** Quiz questions of videos and podcasts: 2 to 4 answers of about equal length, the right one not always in the same place. */
 function quizErrors(questions: PodcastQuestion[], knownCrit: (id: unknown) => boolean, extra?: (q: PodcastQuestion, n: string) => string[]): string[] {
   const e: string[] = [];
   questions.forEach((q, i) => {
@@ -50,7 +53,7 @@ function quizErrors(questions: PodcastQuestion[], knownCrit: (id: unknown) => bo
     }
     if (new Set(q.options.map((o) => o.trim().toLowerCase())).size !== q.options.length) e.push(`${n}: Antworten doppelt`);
     const counts = q.options.map(words);
-    if (new Set(counts).size > 1) e.push(`${n}: alle Antworten brauchen gleich viele Wörter (jetzt ${counts.join('/')})`);
+    if (Math.max(...counts) - Math.min(...counts) > MAX_WORD_GAP) e.push(`${n}: die Antworten dürfen sich um höchstens ${MAX_WORD_GAP} Wörter unterscheiden (jetzt ${counts.join('/')})`);
     if (!Number.isInteger(q.correct) || q.correct < 0 || q.correct >= q.options.length) e.push(`${n}: richtige Antwort fehlt`);
     e.push(...(extra?.(q, n) ?? []));
     if (!isStr(q.explanation, 400)) e.push(`${n}: Erklärung fehlt`);
