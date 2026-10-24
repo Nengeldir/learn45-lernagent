@@ -42,7 +42,7 @@ export function TrackView({ view, trackId, onStart }: {
         <div className="climb-visual">
           <div className="climb-head">
             <h2 id="climb-title">{t('Berg {n}', { n: current.number })}</h2>
-            <span className="muted">{left === 1 ? t('Noch 1 Lektion bis zum Gipfel') : t('Noch {n} Lektionen bis zum Gipfel', { n: left })}</span>
+            <span className="muted">{left === 1 ? (view.canCreateTracks ? t('Als Letztes: die Gipfelprüfung') : t('Noch 1 Lektion bis zum Gipfel')) : t('Noch {n} Lektionen bis zum Gipfel', { n: left })}</span>
           </div>
           <MountainArt steps={current.lessons.length} highlight={hover} label={t('{done} von {total} Lektionen', { done: current.lessons.length, total: STEPS_PER_MOUNTAIN })} />
         </div>
@@ -149,7 +149,9 @@ function MountainArt({ steps, small = false, highlight = null, label }: { steps:
             {state === 'next' && <circle r={17} className="mountain-stop-ring" />}
             <circle r={state === 'next' ? 12 : 10} />
             {!small && state === 'done' && <path className="glyph" d="M-4.5 0 l3 3.2 l6 -6.4" />}
-            {!small && state === 'next' && <path className="glyph-fill" d="M-3.5 -5.5 L5.5 0 L-3.5 5.5 Z" />}
+            {!small && state === 'next' && (i === STOPS.length - 1
+              ? <path className="glyph glyph-flag" d="M-3 5 V-5.5 M-3 -5.5 L4.5 -3 L-3 -0.5" />
+              : <path className="glyph-fill" d="M-3.5 -5.5 L5.5 0 L-3.5 5.5 Z" />)}
             {!small && state === 'open' && (i === STOPS.length - 1
               ? <path className="glyph" d="M-3 5 V-5.5 M-3 -5.5 L4.5 -3 L-3 -0.5" />
               : <text y={4}>{i + 1}</text>)}

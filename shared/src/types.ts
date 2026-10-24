@@ -119,6 +119,8 @@ export interface LessonProvenance {
   sessionNo: number;
   /** Criteria a mixed review lesson brings back */
   reviewOf?: string[];
+  /** The exam on the peak of a mountain: a mixed review of what the mountain's lessons trained */
+  exam?: true;
 }
 
 // --- Video (Aha video or placeholder storyboard) ---
@@ -509,6 +511,8 @@ export interface NextTopic {
   recommended: boolean;
   /** An existing lesson can be reused if the learner chooses its format. */
   lessonId?: string;
+  /** The exam on the peak of a mountain. It is then the only topic offered. */
+  exam?: true;
 }
 
 export interface TopicChoices {

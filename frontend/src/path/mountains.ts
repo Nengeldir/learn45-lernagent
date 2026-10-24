@@ -2,8 +2,9 @@
 // next lesson starts the next mountain. A finished mountain is named after what its lessons trained most, so the
 // name says what the learner covered there. The mountain still being climbed has no name yet.
 import type { Criterion, Lesson, MapNode } from '@l45/shared';
+import { STEPS_PER_MOUNTAIN } from '@l45/shared';
 
-export const STEPS_PER_MOUNTAIN = 6;
+export { STEPS_PER_MOUNTAIN };
 
 export interface Mountain {
   /** 1 for the first mountain of the topic */

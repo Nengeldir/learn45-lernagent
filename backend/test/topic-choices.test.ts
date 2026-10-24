@@ -137,6 +137,57 @@ describe('Topic previews followed by an explicit format choice', () => {
     expect(calls.filter(c => c.purpose === 'generate')).toHaveLength(1);
   });
 
+  it('offers only the peak exam after five lessons, built from what that mountain trained', async () => {
+    const v = await learner();
+    for (let i = 0; i < 5; i++) {
+      const c = await topics(v);
+      expect(c.topics.some(t => t.exam)).toBe(false);
+      const id = (await choose(v, c).expect(201)).body.nodeId;
+      await request(app).post(`/api/sessions/${v.session.id}/nodes/${id}/start`).expect(200);
+      await request(app).post(`/api/sessions/${v.session.id}/nodes/${id}/complete`).send({ answer: { type: 'mock-site', marked: ['m-link', 'w-url'], verdict: 'phishing' } }).expect(200);
+      await _idle();
+    }
+    const plans = calls.filter(c => c.purpose === 'plan').length;
+    const peak = await topics(v);
+    expect(peak.topics).toHaveLength(1);
+    expect(peak.topics[0]).toMatchObject({ title: 'Gipfelprüfung', exam: true, recommended: true });
+    expect(peak.canSuggestOwn).toBe(false);
+    expect(calls.filter(c => c.purpose === 'plan')).toHaveLength(plans);
+
+    const id = (await choose(v, peak, 0).expect(201)).body.nodeId;
+    const prompt = calls.filter(c => c.purpose === 'generate').at(-1)!.messages[0].content;
+    expect(prompt).toContain('Gipfelprüfung');
+    // The five lessons trained link and adresse, so the exam brings back both.
+    expect(prompt).toMatch(/- link: /);
+    expect(prompt).toMatch(/- adresse: /);
+    const after = await session(app, v.session.id);
+    const lessonId = after.session.nodes.find(n => n.id === id)!.lessonId;
+    const lessons = (await request(app).get(`/api/sessions/${v.session.id}/lessons`)).body as { id: string; provenance?: { exam?: true } }[];
+    expect(lessons.find(l => l.id === lessonId)?.provenance?.exam).toBe(true);
+
+    // After the peak the next mountain starts with ordinary topics.
+    await request(app).post(`/api/sessions/${v.session.id}/nodes/${id}/start`).expect(200);
+    await request(app).post(`/api/sessions/${v.session.id}/nodes/${id}/complete`).send({ answer: { type: 'mock-site', marked: ['m-link', 'w-url'], verdict: 'phishing' } }).expect(200);
+    await _idle();
+    const next = await topics(v);
+    expect(next.topics).toHaveLength(3);
+    expect(next.topics.some(t => t.exam)).toBe(false);
+  });
+
+  it('keeps the peak an ordinary lesson without a model', async () => {
+    const v = await learner();
+    for (let i = 0; i < 5; i++) {
+      const c = await topics(v);
+      const id = (await choose(v, c).expect(201)).body.nodeId;
+      await request(app).post(`/api/sessions/${v.session.id}/nodes/${id}/start`).expect(200);
+      await request(app).post(`/api/sessions/${v.session.id}/nodes/${id}/complete`).send({ answer: { type: 'mock-site', marked: ['m-link', 'w-url'], verdict: 'phishing' } }).expect(200);
+      await _idle();
+    }
+    process.env.MODEL_PROVIDER = 'none';
+    const peak = await topics(v);
+    expect(peak.topics.some(t => t.exam)).toBe(false);
+  });
+
   it('remembers the format and previews across a server restart, and the format across a new session', async () => {
     const v = await learner();
     const c = await topics(v);

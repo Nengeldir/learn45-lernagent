@@ -146,8 +146,11 @@ export function NextTopics({ trackId, initialTopicId, onStart, onFocus }: {
                 const lesson = lessonOf(t.lessonId);
                 return <button key={t.id} className={`topic-option${t.recommended ? ' recommended' : ''}`} title={t.reason} disabled={stale} onClick={() => pick(t)}>
                   <span className="topic-choice-text">
-                    {t.recommended && <span className="topic-recommended"><Icon name="sparkle" size={15} />{ui("Empfohlen")}</span>}
-                    <strong>{ui(t.title)}</strong>
+                    {t.exam
+                      ? <span className="topic-recommended"><Icon name="trophy" size={15} />{ui("Gipfelprüfung")}</span>
+                      : t.recommended && <span className="topic-recommended"><Icon name="sparkle" size={15} />{ui("Empfohlen")}</span>}
+                    <strong>{t.exam ? ui("Alles von diesem Berg in einer Lektion") : ui(t.title)}</strong>
+                    {t.exam && <span className="small muted">{ui(t.reason)}</span>}
                     <span className="topic-choice-meta">{t.formats.length === 1 && <Icon name={FORMAT_ICON[t.formats[0]]} size={15} />}{t.formats.length === 1 ? ui(TYPE_LABEL[t.formats[0]]) : ui('Format wählen')}{lesson && t.formats.length === 1 && lesson.type === t.formats[0] && ` · ${lesson.durationMin} Min.`}</span>
                   </span>
                   <span className="topic-start" aria-hidden="true"><Icon name={t.formats.length === 1 ? 'play' : 'chevron'} size={17} /></span>
