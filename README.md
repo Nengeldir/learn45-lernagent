@@ -87,7 +87,7 @@ Die Ableitungslektion liegt unter Mathematik → Ableitung auf der Lernkarte. Ab
 
 ### Ableitungsvideo neu erzeugen
 
-Das fertige Video ist eingecheckt und läuft ohne API-Schlüssel. Die erste Version nutzt ein geprüftes Drehbuch und feste Szenenvorlagen; freie Themengenerierung ist noch nicht umgesetzt. Die Darstellung verwendet eine eigenständige, versionierte Kopie der animlib aus OwlYouNeed in `packages/animlib`. Das andere Repository wird weder zur Laufzeit benötigt noch verändert.
+Die mitgelieferte Lektion enthält deutsche ElevenLabs-Sprachausgabe (Lily, `eleven_multilingual_v2`) und läuft ohne API-Schlüssel. Sie nutzt ein geprüftes Drehbuch und feste Szenenvorlagen; freie Themengenerierung ist noch nicht umgesetzt. Die Darstellung verwendet eine eigenständige, versionierte Kopie der animlib aus OwlYouNeed in `packages/animlib`. Das andere Repository wird weder zur Laufzeit benötigt noch verändert.
 
 ```bash
 npm run video:build
@@ -99,9 +99,9 @@ Nur die Darstellung nach einer Änderung an den Szenenvorlagen aktualisieren, oh
 npm run video:build -- --visuals-only
 ```
 
-Standardmässig erzeugen macOS `say` (deutsche Stimme Anna) und `ffmpeg` die Sprache lokal. Dafür muss `ffmpeg` im Suchpfad liegen; alternativ `FFMPEG_PATH` setzen. Die Länge jeder tatsächlich erzeugten Sprachpassage bestimmt Untertitel und Animation. Zum Abspielen der vorhandenen Lektion werden diese Werkzeuge nicht benötigt.
+Ohne Sprachdienst-Konfiguration erzeugen macOS `say` (deutsche Stimme Anna) und `ffmpeg` die Sprache lokal. Dafür muss `ffmpeg` im Suchpfad liegen; alternativ `FFMPEG_PATH` setzen. Die Länge jeder tatsächlich erzeugten Sprachpassage bestimmt Untertitel und Animation. Zum Abspielen der vorhandenen Lektion werden diese Werkzeuge nicht benötigt.
 
-Später kann die Sprache mit ElevenLabs neu erzeugt werden. Dazu in `backend/.env` konfigurieren:
+Zum erneuten Erzeugen mit ElevenLabs in `backend/.env` konfigurieren:
 
 ```dotenv
 VIDEO_SPEECH_PROVIDER=elevenlabs
