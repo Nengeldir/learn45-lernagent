@@ -3,8 +3,9 @@
 // or fails. The rules pick the target (last missed criterion, else one without evidence); the model only writes.
 import type { DccLevel, LearningEvent, Lesson, LessonType, MapNode, Session, Track } from '@l45/shared';
 import { DCC_LEVELS } from '@l45/shared';
-import { GENERATED_PER_SESSION, generateLesson, type GenerateResult } from './generator.ts';
+import { GENERATED_PER_SESSION, generateLesson, typesFor, type GenerateResult } from './generator.ts';
 import { allLessons } from './guard.ts';
+import { speechUnavailable } from './video/speech.ts';
 import { dueReviews, lernstand } from './records.ts';
 import { defaultMission, missionOf, trackIn } from './tracks.ts';
 import { storeLesson, type Stored } from './workspace.ts';
@@ -27,7 +28,7 @@ interface Want {
 async function generate(st: Stored, track: Track, types: LessonType[], want: Want): Promise<GenerateResult> {
   const s = st.session;
   let last: GenerateResult = { ok: false, errors: ['keine passende Lektionsart'] };
-  for (const type of types.slice(0, 2)) {
+  for (const type of types.filter(t => !speechUnavailable(t)).slice(0, 2)) {
     last = await generateLesson({ ...want, type, track, preferences: st.notes, sessionNo: s.sessionNo, timeoutMs: CALL_MS() }, (c) => s.modelCalls.push(c));
     if (last.ok) return last;
   }
@@ -36,7 +37,7 @@ async function generate(st: Stored, track: Track, types: LessonType[], want: Wan
 
 /** The first lesson of a new own track: a short starter on the first criterion, at the level the learner stated. */
 export function firstLesson(st: Stored, track: Track, goal?: string, requestedType?: 'video'): Promise<GenerateResult> {
-  const types = track.custom!.lessonTypes;
+  const types = typesFor(track).filter(t => t !== 'podcast');
   return generate(st, track, requestedType ? [requestedType] : [...types.filter((t) => t === 'video'), ...types.filter((t) => t !== 'video')], {
     criterion: track.criteria[0].id,
     level: track.custom!.selfLevel,
@@ -87,7 +88,7 @@ export async function ruleLesson(st: Stored, trackId: string, ready: Lesson[] = 
   const fluent = events.length >= 2 && events.slice(-2).every((e) => e.result.allMet && !e.helpUsed && e.attempts <= 1);
   const level = fluent ? DCC_LEVELS[Math.min(DCC_LEVELS.length - 1, DCC_LEVELS.indexOf(lastLevel) + 1)] : lastLevel;
 
-  const types = track.custom.lessonTypes;
+  const types = typesFor(track).filter(t => t !== 'podcast');
   const start = events.length % types.length;
   const targets = [criterion, ...reviewOf];
   const r = await generate(st, track, [...types.slice(start), ...types.slice(0, start)], {

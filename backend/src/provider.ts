@@ -4,6 +4,7 @@ import type { ModelCall, ModelStatus } from '@l45/shared';
 
 type ModelPurpose = ModelCall['purpose'];
 import { nowIso } from './util.ts';
+import { callFreeAi, FREE_AI_MODEL } from './freeAi.ts';
 
 export interface ModelMessage {
   role: 'user' | 'assistant';
@@ -21,16 +22,17 @@ export interface ModelRequest {
   planner?: boolean;
 }
 
-export type ModelReply = { ok: true; text: string; call: ModelCall } | { ok: false; error: string; call: ModelCall };
+export type ModelReply = { ok: true; text: string; model: string; call: ModelCall } | { ok: false; error: string; call: ModelCall };
 
-type Provider = 'anthropic' | 'openai' | 'mock' | 'none';
+type Provider = 'anthropic' | 'openai' | 'free' | 'mock' | 'none';
 
 export function providerName(): Provider {
-  const p = (process.env.MODEL_PROVIDER ?? 'none').toLowerCase();
+  const p = (process.env.MODEL_PROVIDER ?? 'free').trim().toLowerCase();
+  if (p === 'none') return 'none'; // Explicit offline mode; simulation also disables model calls.
   if (p === 'anthropic' && process.env.ANTHROPIC_API_KEY) return 'anthropic';
   if (p === 'openai' && process.env.OPENAI_API_KEY && process.env.OPENAI_MODEL) return 'openai';
   if (p === 'mock') return 'mock';
-  return 'none';
+  return 'free';
 }
 
 export function modelStatus(simulation: boolean): ModelStatus {
@@ -60,7 +62,7 @@ const openAIReasoning = (planner = false) => {
 /** Name of the model the planner and generator use, for the provenance of generated lessons. */
 export function plannerModelName(): string {
   const provider = providerName();
-  return provider === 'anthropic' ? plannerModel() : provider === 'openai' ? openAIModel(true) : provider;
+  return provider === 'anthropic' ? plannerModel() : provider === 'openai' ? openAIModel(true) : provider === 'free' ? FREE_AI_MODEL : provider;
 }
 
 /** The mock provider honours timeouts too, so tests can simulate a slow model. */
@@ -85,22 +87,35 @@ export async function callModel(req: ModelRequest): Promise<ModelReply> {
   const started = Date.now();
   const timeoutMs = req.timeoutMs ?? Number(process.env.MODEL_TIMEOUT_MS ?? 8000);
   const finish = (ok: boolean, error?: string) => logCall(req.purpose, started, ok, error);
-
+  const free = () => callFreeAi({ ...req, maxTokens: req.maxTokens ?? 700, timeoutMs });
+  let primaryError: string | undefined;
   try {
     let text: string;
+    let model = req.planner ? plannerModelName() : provider === 'anthropic' ? chatModel() : provider === 'openai' ? openAIModel() : provider === 'free' ? FREE_AI_MODEL : provider;
     if (provider === 'none') throw new Error('no model configured');
     if (provider === 'mock') {
       if (!mockHandler) throw new Error('mock provider without handler');
       text = await withTimeout(Promise.resolve(mockHandler(req)), timeoutMs);
-    } else if (provider === 'anthropic') {
-      text = await callAnthropic(req, timeoutMs);
+    } else if (provider === 'free') {
+      text = await free();
     } else {
-      text = await callOpenAI(req, timeoutMs);
+      try {
+        text = provider === 'anthropic' ? await callAnthropic(req, timeoutMs) : await callOpenAI(req, timeoutMs);
+        if (!text.trim()) throw new Error('empty reply');
+      } catch (err) {
+        primaryError = err instanceof Error ? err.message : String(err);
+        if (primaryError === 'refusal') throw err;
+        // Retry the same request once on the keyless service, never another paid call.
+        console.warn(`model unavailable (${provider}, ${req.purpose}); using free AI`);
+        text = await free();
+        model = FREE_AI_MODEL;
+      }
     }
     if (!text.trim()) throw new Error('empty reply');
-    return { ok: true, text, call: finish(true) };
+    return { ok: true, text, model, call: finish(true) };
   } catch (err) {
-    const error = err instanceof Error ? err.message : String(err);
+    const failure = err instanceof Error ? err.message : String(err);
+    const error = primaryError && primaryError !== failure ? `${primaryError}; ${failure}` : failure;
     return { ok: false, error, call: finish(false, error) };
   }
 }

@@ -1,10 +1,7 @@
 // Eule, the learning companion. Talks through OVHcloud's anonymous Qwen tier: no API key.
 import { HttpError } from './sessions.ts';
 
-const ENDPOINT = 'https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions';
-// Qwen2.5 answers in message.content. Qwen3.5 thinks first, and this endpoint
-// rejects the switch that would turn thinking off, so the reply comes back empty.
-const MODEL = 'Qwen2.5-VL-72B-Instruct';
+import { callFreeAi, freeReply, FreeAiError } from './freeAi.ts';
 
 export type OwlLang = 'de' | 'en' | 'fr' | 'it' | 'rm';
 
@@ -83,9 +80,7 @@ export function owlMessages(body: unknown): OwlAsk {
 }
 
 export function owlReply(payload: unknown): string {
-  const message = (payload as { choices?: { message?: { content?: string } }[] })?.choices?.[0]?.message;
-  const text = String(message?.content ?? '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-  return text;
+  return freeReply(payload);
 }
 
 export async function askOwl({ turns, lang, where }: OwlAsk): Promise<string> {
@@ -99,31 +94,16 @@ export async function askOwl({ turns, lang, where }: OwlAsk): Promise<string> {
     where ? `Die Person ist gerade hier: ${where}.` : '',
     'Wenn du etwas nicht weisst, sagst du das in derselben Sprache.',
   ].filter(Boolean).join(' ');
-  const messages = [
-    { role: 'system', content: system },
-    ...turns.map((t) => ({ role: t.role, content: t.text })),
-  ];
-  let res: Response;
   try {
-    res = await fetch(ENDPOINT, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: MODEL,
-        messages,
-        max_tokens: 220,
-        temperature: 0.7,
-      }),
-      signal: AbortSignal.timeout(40_000),
+    return await callFreeAi({
+      system, messages: turns.map(t => ({ role: t.role, content: t.text })),
+      maxTokens: 220, temperature: 0.7, timeoutMs: 40_000,
     });
   } catch (err) {
-    console.error('owl', err);
+    if (err instanceof FreeAiError) {
+      if (err.status === 429) throw new HttpError(429, 'Eule braucht einen kurzen Moment. Frag gleich noch einmal.');
+      throw new HttpError(502, 'Qwen hat gerade nicht geantwortet.');
+    }
     throw new HttpError(503, 'Eule erreicht Qwen gerade nicht. Versuch es gleich noch einmal.');
   }
-  const data = await res.json().catch(() => ({}));
-  if (res.status === 429) throw new HttpError(429, 'Eule braucht einen kurzen Moment. Frag gleich noch einmal.');
-  if (!res.ok) throw new HttpError(502, 'Qwen hat gerade nicht geantwortet.');
-  const text = owlReply(data);
-  if (!text) throw new HttpError(502, 'Eule hat nachgedacht, aber keine Antwort bekommen. Frag noch einmal.');
-  return text;
 }

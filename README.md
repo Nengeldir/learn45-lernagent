@@ -37,9 +37,9 @@ npm run typecheck
 
 ### KI-Anbindung (optional)
 
-Ohne Schlüssel läuft alles mit vorbereiteten Inhalten. Vorbereitete Antworten und Hinweise sind in der App als «Vorbereitet» gekennzeichnet.
+Ohne Schlüssel nutzt die App automatisch denselben kostenlosen Qwen-Dienst wie Eule (`Qwen2.5-VL-72B-Instruct` bei OVHcloud), auch für neue Bereiche und Lektionen. Die Qualität ist deutlich geringer. Alle erzeugten Lektionen durchlaufen weiterhin den Validator. `MODEL_PROVIDER=free` wählt den Dienst ausdrücklich; `MODEL_PROVIDER=none` und die Simulation erzwingen vorbereitete Inhalte.
 
-Für echte KI-Antworten `backend/.env.example` nach `backend/.env` kopieren und ausfüllen. Mit Anthropic (Messages API):
+Für bessere KI-Antworten `backend/.env.example` nach `backend/.env` kopieren und ausfüllen. Mit Anthropic (Messages API):
 
 ```dotenv
 MODEL_PROVIDER=anthropic
@@ -61,7 +61,7 @@ OPENAI_PLANNER_REASONING_EFFORT=low
 
 Ohne `OPENAI_PLANNER_MODEL` nimmt die App `OPENAI_MODEL`. Beide Denkstufen sind standardmässig `low`.
 
-Der Schlüssel bleibt im Backend. Der Browser spricht nie direkt mit einem Modell. Antwortet das Modell nicht innerhalb von 8 Sekunden, nimmt die App die vorbereitete Antwort und kennzeichnet sie. Scheitert ein Plan, übernehmen die Regeln. Was an das Modell geht, steht unter [Datenschutz](#datenschutz).
+Der Schlüssel bleibt im Backend. Der Browser spricht nie direkt mit einem Modell. Fehlt die Konfiguration eines bezahlten Anbieters oder scheitert sein Aufruf (etwa wegen eines ungültigen Schlüssels, fehlenden Guthabens oder Zeitüberschreitung), versucht die App dieselbe Anfrage einmal beim kostenlosen Dienst. Jeder Versuch hat das jeweilige Zeitlimit. Scheitert auch Qwen, gelten die bestehenden Rückfälle: vorbereitete Antworten, Regeln oder eine Fehlermeldung mit erneuter Auswahl. Erzeugte Inhalte nennen das tatsächlich verwendete Modell. Der kostenlose Dienst übernimmt keine Planer-Werkzeuge; dort wählen die Regeln das Ziel. Was an das Modell geht, steht unter [Datenschutz](#datenschutz).
 
 ### Weitere Einstellungen
 
@@ -74,7 +74,7 @@ Alle in `backend/.env`, alle optional:
 | `MODEL_TIMEOUT_MS` | `8000` | Wartezeit pro Modellaufruf, danach vorbereitete Inhalte |
 | `PLANNER_TOTAL_MS`, `PLANNER_CALL_MS` | `45000`, `20000` | Zeitgrenzen des Planer-Agenten: ganzer Lauf und pro Aufruf |
 | `LEARNER_DIR` | `backend/var/learners` | Ordner der Lernumgebungen |
-| `VIDEO_SPEECH_PROVIDER` | `local` | `local` (macOS `say` und `ffmpeg`) oder `elevenlabs` |
+| `VIDEO_SPEECH_PROVIDER` | ohne Konfiguration keine neuen Audiolektionen | `local` ausdrücklich aktivieren (macOS `say` und `ffmpeg`) oder `elevenlabs` (mit Schlüssel und Stimmen) |
 | `VIDEO_LOCAL_VOICE`, `VIDEO_LOCAL_SECOND_VOICE` | `Anna`, `Markus` | lokale Stimmen; die zweite für Podcasts |
 | `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_SECOND_VOICE_ID`, `ELEVENLABS_MODEL_ID` | Modell `eleven_multilingual_v2` | Sprache mit ElevenLabs, auf jeder Plattform |
 | `FFMPEG_PATH` | `ffmpeg` im Suchpfad | für die lokale Sprache |
@@ -217,18 +217,18 @@ Kopfzeile und Abschlussaktion bleiben sichtbar. Ausführliche Aufgabenhinweise, 
 
 ## Videos und Podcasts erzeugen
 
-Neue Inhalte brauchen ein Textmodell (siehe [KI-Anbindung](#ki-anbindung-optional)). Der Sprachdienst liefert nur die Stimme und ersetzt das Textmodell nicht. Ohne Textmodell bleiben neue Themen gesperrt; die mitgelieferten Lektionen lassen sich trotzdem abspielen.
+Neue Inhalte nutzen das konfigurierte Textmodell oder kostenloses Qwen (siehe [KI-Anbindung](#ki-anbindung-optional)). Die Stimme braucht einen eigenen Sprachdienst. Fehlt er, sind neue Videos und Podcasts in der Formatauswahl ausgegraut und werden auch vom Server abgelehnt. Für Videos und Podcasts braucht ElevenLabs einen Schlüssel und eine Stimme. Eine zweite Podcast-Stimme ist optional; ohne sie sprechen beide Rollen mit der eingerichteten Stimme. Erkannte Schlüssel- und Guthabenfehler sperren den betroffenen Sprachdienst bis zur Änderung der Konfiguration oder einem Serverneustart. Vorbereitete Videos bleiben nutzbar.
 
 Für die Sprache gibt es zwei Wege:
 
-- **Lokal** (Standard, nur macOS): `say` mit den Stimmen Anna und Markus, dazu `ffmpeg` im Suchpfad oder unter `FFMPEG_PATH`.
+- **Lokal** (ausdrücklich mit `VIDEO_SPEECH_PROVIDER=local` aktivieren, nur macOS): `say` mit den Stimmen Anna und Markus, dazu `ffmpeg` im Suchpfad oder unter `FFMPEG_PATH`.
 - **ElevenLabs** (jede Plattform):
 
   ```dotenv
   VIDEO_SPEECH_PROVIDER=elevenlabs
   ELEVENLABS_API_KEY=...
   ELEVENLABS_VOICE_ID=...
-  ELEVENLABS_SECOND_VOICE_ID=...       # zweite Stimme für Podcasts
+  # ELEVENLABS_SECOND_VOICE_ID=...     # optional: andere Stimme für die zweite Podcast-Rolle
   ELEVENLABS_MODEL_ID=eleven_multilingual_v2
   ```
 
@@ -434,7 +434,7 @@ backend/           Express-API, Agent, Bewertung, Modell-Anbindung
   src/dcc.ts         DCC-Datei und Eingabe prüfen
   src/judge.ts       Bewertung nach Regeln
   src/services.ts    Chat, Hinweise, Bewertung mit Modell oder Rückfall
-  src/provider.ts    Anthropic, OpenAI, Mock oder keine; Werkzeuge für den Agenten
+  src/provider.ts    Anthropic, OpenAI, kostenloses Qwen, Mock oder keine; Werkzeuge für den Agenten
   src/video/         Videos vertonen, kompilieren und speichern
   src/podcast/       Podcasts vertonen und speichern
   test/              Tests mit Mock-Modell

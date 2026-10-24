@@ -55,8 +55,8 @@ export function get(id: string): Stored {
 const offline = (s: Session) => s.simulation || providerName() === 'none';
 const opts = (s: Session): Opts => ({ offline: offline(s), onCall: (c) => s.modelCalls.push(c) });
 
-/** Both configured model providers support the planner's tools; rules remain the fallback. */
-const plannerProvider = () => providerName() !== 'none';
+/** Paid providers and the test mock support tools; free Qwen uses rules to choose lesson targets. */
+const plannerProvider = () => ['anthropic', 'openai', 'mock'].includes(providerName());
 export const agentAvailable = (s: Session) => !s.simulation && plannerProvider();
 
 export function save(st: Stored) {

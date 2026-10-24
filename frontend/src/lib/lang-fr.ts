@@ -1,5 +1,10 @@
 // French display layer. Keys are the German source strings.
 export const FR: Record<string, string> = {
+  "Spracherzeugung ist nicht eingerichtet.": "La synthèse vocale n’est pas configurée.",
+  "Lokale Spracherzeugung ist auf diesem Server nicht verfügbar.": "La synthèse vocale locale n’est pas disponible sur ce serveur.",
+  "Podcast ist ohne Spracherzeugung nicht verfügbar.": "Les podcasts sont indisponibles sans synthèse vocale.",
+  "Video ist ohne Spracherzeugung nicht verfügbar.": "Les vidéos sont indisponibles sans synthèse vocale.",
+  "Der Sprachdienst ist gerade nicht verfügbar. Wähle ein anderes Format.": "Le service vocal est indisponible. Choisis un autre format.",
   'Kurz wiederholen': 'Révision rapide',
   'Nächste Wiederholung: {at}': 'Prochaine révision : {at}',
   '{n} kurze Fragen zu dem, was du gelernt hast.': '{n} questions courtes sur ce que tu as appris.',
