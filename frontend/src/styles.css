@@ -855,21 +855,40 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .line-text strong { font-size: 18px; font-weight: 600; }
 .line-card { flex: 1; min-width: 0; padding: 18px 20px; border: 2px solid var(--trail); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-md); }
 .line-card .next-topics h2 { margin: 0; }
-/* The climb: six lessons to a peak, then the next mountain. Topped mountains fold out below. */
-.climb { display: grid; gap: 14px; }
+/* The climb: six lessons to a peak, then the next mountain. Topped mountains fold out below.
+   Wide screens put the mountain beside the steps, so the next-step card is in view without scrolling. */
+.climb { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.climb-visual { display: grid; gap: 8px; padding: 18px 18px 0; border: 1px solid var(--line); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--tc) 7%, var(--surface)); overflow: hidden; }
 .climb-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
 .climb-head h2 { margin: 0; font-size: 24px; }
-.mountain { display: block; width: 100%; max-width: 420px; height: auto; justify-self: center; }
-.mountain.small { width: 72px; flex: none; }
-.mountain-back { fill: color-mix(in srgb, var(--tc) 12%, var(--surface)); }
-.mountain-body { fill: color-mix(in srgb, var(--tc) 26%, var(--surface)); }
-.mountain-trail { fill: none; stroke: var(--line-strong); stroke-width: 3; stroke-dasharray: 1 8; stroke-linecap: round; stroke-linejoin: round; }
+.mountain { display: block; width: calc(100% + 36px); height: auto; margin: 0 -18px; overflow: visible; }
+.mountain.small { width: 72px; height: auto; margin: 0; flex: none; border-radius: 8px; overflow: hidden; }
+.mountain-range { fill: color-mix(in srgb, var(--tc) 18%, var(--surface)); }
+.mountain-body { fill: color-mix(in srgb, var(--tc) 45%, var(--surface)); }
+.mountain-shade { fill: #000; opacity: 0.13; }
+.mountain-snow { fill: var(--mountain-snow); }
+.mountain-ground { fill: color-mix(in srgb, var(--tc) 28%, var(--surface)); }
+.mountain-trail { fill: none; stroke: var(--ink); stroke-opacity: 0.45; stroke-width: 3; stroke-dasharray: 0.5 7; stroke-linecap: round; stroke-linejoin: round; }
+.mountain-climbed-halo { fill: none; stroke: var(--surface); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
 .mountain-climbed { fill: none; stroke: var(--tc); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 .mountain-stop circle { stroke-width: 3; }
+.mountain-stop .glyph { fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.mountain-stop .glyph-fill { fill: #fff; }
+.mountain-stop text { font-size: 11px; font-weight: 700; fill: var(--ink-2); text-anchor: middle; }
 .mountain-stop.done circle { fill: var(--tc); stroke: var(--surface); }
-.mountain-stop.done path { fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
-.mountain-stop.next circle { fill: var(--surface); stroke: var(--trail); stroke-width: 4; }
-.mountain-stop.open circle { fill: var(--surface); stroke: var(--line-strong); }
+.mountain-stop.next circle { fill: var(--trail); stroke: var(--surface); }
+.mountain-stop.next .mountain-stop-ring { fill: var(--trail); fill-opacity: 0.25; stroke: none; }
+.mountain-stop.open circle { fill: var(--surface); stroke: var(--ink-3); stroke-width: 2.5; }
+.mountain-stop.open .glyph { stroke: var(--ink-2); stroke-width: 2; }
+.mountain-stop.hl > circle { stroke: var(--ink); stroke-width: 3.5; }
+@media (max-width: 899px) {
+  .mountain { height: 220px; }
+}
+@media (min-width: 900px) {
+  .track-view { max-width: 1040px; }
+  .climb { grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); align-items: start; gap: 28px; }
+  .climb-visual { position: sticky; top: 16px; }
+}
 .range { display: grid; gap: 10px; }
 .range h2 { margin: 0; font-size: 22px; }
 .range-item { border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); }
