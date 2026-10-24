@@ -1,5 +1,6 @@
-// Settings, in tabs that keep the areas apart: general settings and account, the profile (DCC read-only,
-// Lernstand, missions), what was learned (records, Merkblatt, history, transfer) and the agent's decisions.
+// "Mein Konto", in three tabs. Learners see their account and goals, and what they learned.
+// Everything technical (AI status, DCC, Lernstand, records, the agent's decisions) sits in "Für Fachleute",
+// so it stays available for teachers and demos without getting in the way of learners new to computers.
 import { useEffect, useRef, useState } from 'react';
 import type { Mission, SessionView, Track } from '@l45/shared';
 import { LERNSTAND_LABEL, RECORD_KIND_LABEL, SOURCE_LABEL } from '@l45/shared';
@@ -13,12 +14,11 @@ const date = (iso: string) => new Date(iso).toLocaleDateString('de-CH');
 
 export const STATUS: Record<string, string> = { online: 'KI an', offline: 'Ohne KI', simulation: 'KI simuliert aus' };
 
-type Tab = 'general' | 'profile' | 'learning' | 'agent';
+type Tab = 'account' | 'learning' | 'expert';
 const TABS: { id: Tab; label: string; icon: IconName; intro: string }[] = [
-  { id: 'general', label: 'Allgemein', icon: 'settings', intro: 'KI-Verbindung und Konto.' },
-  { id: 'profile', label: 'Profil', icon: 'user', intro: 'DCC-Profil, Lernstand und deine Missionen.' },
-  { id: 'learning', label: 'Lernen', icon: 'book', intro: 'Was du gezeigt und erledigt hast.' },
-  { id: 'agent', label: 'Agent', icon: 'agent', intro: 'Wie der Agent entschieden hat und warum.' },
+  { id: 'account', label: 'Mein Konto', icon: 'user', intro: 'Dein Name und deine Ziele.' },
+  { id: 'learning', label: 'Mein Lernen', icon: 'book', intro: 'Was du schon gelernt hast.' },
+  { id: 'expert', label: 'Für Fachleute', icon: 'agent', intro: 'Technische Angaben für Lehrpersonen und Fachleute. Zum Lernen brauchst du das nicht.' },
 ];
 
 /** Changing a mission takes two steps: write, then confirm. Only then the agent uses it. */
@@ -39,26 +39,24 @@ function MissionRow({ track, mission, onSave }: { track: Track; mission?: Missio
     <li>
       <div className="meta">
         <strong>{track.name}</strong>
-        {mission?.status === 'default' && <span>Standard (übersprungen)</span>}
-        {!mission && <span>noch offen</span>}
       </div>
       {!editing ? (
         <p>
-          {mission?.text ?? <span className="muted">Wird beim ersten Start einer Lektion gefragt.</span>}{' '}
-          <button className="linkbtn small" onClick={() => setEditing(true)}>{mission ? 'Ändern' : 'Festlegen'}</button>
+          {mission?.text ?? <span className="muted">Noch kein Ziel. Du wirst bei der ersten Lektion gefragt.</span>}{' '}
+          <button className="linkbtn" onClick={() => setEditing(true)}>{mission ? 'Ändern' : 'Jetzt festlegen'}</button>
         </p>
       ) : (
         <div className="mission-edit">
-          <textarea rows={2} maxLength={300} value={text} disabled={confirming} onChange={(e) => setText(e.target.value)} aria-label={`Mission für ${track.name}`} />
+          <textarea rows={2} maxLength={300} value={text} disabled={confirming} onChange={(e) => setText(e.target.value)} aria-label={`Ziel für ${track.name}`} />
           {confirming ? (
             <div className="row">
-              <span className="small">Neue Mission übernehmen? Der Agent plant ab jetzt danach.</span>
+              <span className="small">Neues Ziel übernehmen? Die nächsten Lektionen richten sich danach.</span>
               <button className="btn primary small" onClick={async () => { if (await onSave(text, true)) reset(); }}>Ja, ändern</button>
               <button className="btn quiet small" onClick={() => setConfirming(false)}>Zurück</button>
             </div>
           ) : (
             <div className="row">
-              <button className="btn secondary small" disabled={text.trim().length < 3 || text.trim() === mission?.text} onClick={next}>Weiter</button>
+              <button className="btn secondary small" disabled={text.trim().length < 3 || text.trim() === mission?.text} onClick={next}>Speichern</button>
               <button className="btn quiet small" onClick={reset}>Abbrechen</button>
             </div>
           )}
@@ -100,7 +98,7 @@ function Records({ view, tname }: { view: SessionView; tname: (id: string) => st
 
 export function Settings({ onClose, onLogout }: { onClose: () => void; onLogout: () => void }) {
   const { view, setView, content } = useStore();
-  const [tab, setTab] = useState<Tab>('general');
+  const [tab, setTab] = useState<Tab>('account');
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -154,8 +152,8 @@ export function Settings({ onClose, onLogout }: { onClose: () => void; onLogout:
   return (
     <div className="overlay" onClick={onClose}>
       <div className="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" tabIndex={-1} ref={ref} onClick={(e) => e.stopPropagation()}>
-        <nav className="settings-nav" role="tablist" aria-orientation="vertical" aria-label="Bereiche der Einstellungen" onKeyDown={onTabKey}>
-          <h2 id="settings-title">Einstellungen</h2>
+        <nav className="settings-nav" role="tablist" aria-orientation="vertical" aria-label="Bereiche" onKeyDown={onTabKey}>
+          <h2 id="settings-title">{session.userName}</h2>
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -177,11 +175,80 @@ export function Settings({ onClose, onLogout }: { onClose: () => void; onLogout:
               <h3>{current.label}</h3>
               <p className="small muted">{current.intro}</p>
             </div>
-            <button className="icon-btn" onClick={onClose} aria-label="Schliessen"><Icon name="close" size={20} /></button>
+            <button className="btn quiet small" onClick={onClose}><Icon name="close" size={18} />Schliessen</button>
           </header>
           {error && <p className="error" role="alert">{error}</p>}
 
-          {tab === 'general' && (
+          {tab === 'account' && (
+            <>
+              <section>
+                <div className="stats">
+                  <div><strong>{session.events.length}</strong><span>Lektionen geschafft</span></div>
+                  <div><strong>{tracks.length}</strong><span>Themen</span></div>
+                </div>
+              </section>
+              <section>
+                <h4>Deine Ziele</h4>
+                <p className="small muted">Wofür du ein Thema lernst. Die Beispiele in den Lektionen richten sich danach. {MISSION_PRIVACY}</p>
+                {tracks.length === 0 && <p className="small muted">Wähle zuerst ein Thema.</p>}
+                <ul className="log">
+                  {tracks.map((t) => {
+                    const m = ws.missions.find((x) => x.trackId === t.id);
+                    return <MissionRow key={`${t.id}-${m?.updatedAt ?? ''}`} track={t} mission={m} onSave={(text, confirm) => saveMission(t.id, text, confirm)} />;
+                  })}
+                </ul>
+              </section>
+              <section>
+                <button className="btn secondary" onClick={onLogout}><Icon name="logout" size={18} />Abmelden</button>
+                <p className="small muted">Dein Stand bleibt gespeichert. Melde dich einfach wieder mit deinem Namen an.</p>
+              </section>
+            </>
+          )}
+
+          {tab === 'learning' && (
+            <>
+              <section>
+                <h4>Merkblatt</h4>
+                {tracks.every((t) => !ws.reference[t.id]?.length) ? <p className="muted small">Hier sammelt sich, was du ohne Hilfe gezeigt hast.</p> : (
+                  tracks.filter((t) => ws.reference[t.id]?.length).map((t) => (
+                    <div key={t.id} className="merkblatt">
+                      <h5>{t.name}</h5>
+                      <ul>
+                        {ws.reference[t.id].map((e) => (
+                          <li key={`${e.section}-${e.title}`}><strong>{e.title}{e.section === 'term' ? ' (Begriff)' : ''}:</strong> {e.text}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))
+                )}
+              </section>
+
+              <section>
+                <h4>Für den Alltag</h4>
+                {session.transfer.length === 0 ? <p className="muted small">Nach jeder Lektion erscheint hier ein Tipp für deinen Alltag.</p> : (
+                  <ul className="log">
+                    {[...session.transfer].reverse().map((t, i) => <li key={i}><strong>{t.lessonTitle}:</strong> {t.text}</li>)}
+                  </ul>
+                )}
+              </section>
+
+              <section>
+                <h4>Bisherige Lektionen</h4>
+                {session.events.length === 0 ? <p className="muted small">Noch keine Lektion geschafft.</p> : (
+                  <ul className="log">
+                    {[...session.events].reverse().map((e) => (
+                      <li key={e.id}>
+                        <div className="meta"><span>{date(e.at)}</span><span>{tname(e.trackId)}</span></div>
+                        <p><strong>{node(e.nodeId)?.label}</strong>: {e.result.summary}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            </>
+          )}
+
+          {tab === 'expert' && (
             <>
               <section>
                 <h4>KI</h4>
@@ -201,33 +268,12 @@ export function Settings({ onClose, onLogout }: { onClose: () => void; onLogout:
                     <input type="checkbox" role="switch" checked={session.simulation} onChange={(e) => patch({ simulation: e.target.checked })} />
                   </label>
                 </div>
+                <p className="small muted">
+                  Sitzung {session.sessionNo} · seit {date(session.createdAt)} · {ws.records.filter((r) => r.status === 'active').length} Lerneinträge ·{' '}
+                  {session.modelCalls.length} KI-Aufrufe, davon {session.modelCalls.filter((c) => c.fallback).length} mit Rückfall auf vorbereitete Inhalte oder Regeln.
+                </p>
               </section>
-              <section>
-                <h4>Konto</h4>
-                <div className="setting-group">
-                  <div className="setting-row">
-                    <div className="row">
-                      <span className="avatar" aria-hidden="true">{session.userName.slice(0, 1).toUpperCase()}</span>
-                      <div className="text">
-                        <strong>{session.userName}</strong>
-                        <span>Sitzung {session.sessionNo} · seit {date(session.createdAt)}</span>
-                      </div>
-                    </div>
-                    <button className="btn secondary small" onClick={onLogout}><Icon name="logout" size={16} />Abmelden</button>
-                  </div>
-                </div>
-                <div className="stats">
-                  <div><strong>{session.events.length}</strong><span>Lektionen erledigt</span></div>
-                  <div><strong>{tracks.length}</strong><span>Bereiche</span></div>
-                  <div><strong>{ws.records.filter((r) => r.status === 'active').length}</strong><span>Lerneinträge</span></div>
-                </div>
-                <p className="small muted">Prototyp für Learn45. Anmeldung ohne Passwort, nur erfundene Daten.</p>
-              </section>
-            </>
-          )}
 
-          {tab === 'profile' && (
-            <>
               <section>
                 <h4>DCC-Profil</h4>
                 <p className="small muted">Nur aus dem DCC. Lernen in dieser App verändert diese Werte nicht.</p>
@@ -249,8 +295,8 @@ export function Settings({ onClose, onLogout }: { onClose: () => void; onLogout:
 
               <section>
                 <h4>Lernstand (aus dem Lernen, kein DCC)</h4>
-                <p className="small muted">Aus deinen Lerneinträgen. «unbekannt» heisst: noch keine Belege, nicht: schwach. Die DCC-Stufen oben bleiben davon unberührt.</p>
-                {tracks.length === 0 && <p className="small muted">Noch keine Bereiche auf deiner Karte.</p>}
+                <p className="small muted">Aus den Lerneinträgen. «noch offen» heisst: noch keine Belege, nicht: schwach. Die DCC-Stufen bleiben davon unberührt.</p>
+                {tracks.length === 0 && <p className="small muted">Noch keine Themen auf der Karte.</p>}
                 <div>
                   {tracks.map((t) => {
                     const stand = ws.lernstand.filter((l) => l.trackId === t.id);
@@ -273,59 +319,13 @@ export function Settings({ onClose, onLogout }: { onClose: () => void; onLogout:
               </section>
 
               <section>
-                <h4>Mission pro Bereich</h4>
-                <p className="small muted">{MISSION_PRIVACY}</p>
-                {tracks.length === 0 && <p className="small muted">Eine Mission gehört zu einem Bereich. Füge zuerst einen hinzu.</p>}
-                <ul className="log">
-                  {tracks.map((t) => {
-                    const m = ws.missions.find((x) => x.trackId === t.id);
-                    return <MissionRow key={`${t.id}-${m?.updatedAt ?? ''}`} track={t} mission={m} onSave={(text, confirm) => saveMission(t.id, text, confirm)} />;
-                  })}
-                </ul>
-              </section>
-            </>
-          )}
-
-          {tab === 'learning' && (
-            <>
-              <section>
                 <h4>Lerneinträge</h4>
                 <Records view={view} tname={tname} />
-              </section>
-
-              <section>
-                <h4>Merkblatt</h4>
-                {tracks.every((t) => !ws.reference[t.id]?.length) ? <p className="muted small">Wächst mit dem, was du ohne Hilfe zeigst.</p> : (
-                  tracks.filter((t) => ws.reference[t.id]?.length).map((t) => (
-                    <div key={t.id} className="merkblatt">
-                      <h5>{t.name}</h5>
-                      <ul>
-                        {ws.reference[t.id].map((e) => (
-                          <li key={`${e.section}-${e.title}`}><strong>{e.title}{e.section === 'term' ? ' (Begriff)' : ''}:</strong> {e.text}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))
-                )}
                 {ws.notes.length > 0 && (
                   <>
-                    <h5>Notizen des Agenten zu deinen Vorlieben</h5>
+                    <h5>Notizen des Agenten zu den Vorlieben</h5>
                     <ul className="log">{ws.notes.map((n) => <li key={n}>{n}</li>)}</ul>
                   </>
-                )}
-              </section>
-
-              <section>
-                <h4>Lernverlauf</h4>
-                {session.events.length === 0 ? <p className="muted small">Noch keine Lektion abgeschlossen.</p> : (
-                  <ul className="log">
-                    {[...session.events].reverse().map((e) => (
-                      <li key={e.id}>
-                        <div className="meta"><span>{date(e.at)} {time(e.at)}</span><span>{tname(e.trackId)}</span>{e.helpUsed && <span>mit Hinweis</span>}<span>{e.id}</span></div>
-                        <p><strong>{node(e.nodeId)?.label}</strong>: {e.result.summary}</p>
-                      </li>
-                    ))}
-                  </ul>
                 )}
                 {session.observations.length > 0 && (
                   <>
@@ -340,21 +340,8 @@ export function Settings({ onClose, onLogout }: { onClose: () => void; onLogout:
               </section>
 
               <section>
-                <h4>Transfer in den Arbeitsalltag</h4>
-                {session.transfer.length === 0 ? <p className="muted small">Nach jeder Lektion erscheint hier ein Hinweis für die Arbeit.</p> : (
-                  <ul className="log">
-                    {[...session.transfer].reverse().map((t, i) => <li key={i}><strong>{t.lessonTitle}:</strong> {t.text}</li>)}
-                  </ul>
-                )}
-              </section>
-            </>
-          )}
-
-          {tab === 'agent' && (
-            <>
-              <section>
                 <h4>Entscheidungen des Agenten</h4>
-                {session.recommendations.length === 0 && <p className="muted small">Noch keine. Füge einen Bereich hinzu.</p>}
+                {session.recommendations.length === 0 && <p className="muted small">Noch keine.</p>}
                 <ul className="log">
                   {[...session.recommendations].reverse().map((r) => (
                     <li key={r.id}>
@@ -366,6 +353,7 @@ export function Settings({ onClose, onLogout }: { onClose: () => void; onLogout:
                   ))}
                 </ul>
               </section>
+
               {session.plannerRuns.length > 0 && (
                 <section>
                   <h4>Läufe des Planer-Agenten</h4>
@@ -385,7 +373,7 @@ export function Settings({ onClose, onLogout }: { onClose: () => void; onLogout:
                   </ul>
                 </section>
               )}
-              <p className="small muted">KI-Aufrufe in dieser Sitzung: {session.modelCalls.length}, davon {session.modelCalls.filter((c) => c.fallback).length} mit Rückfall auf vorbereitete Inhalte oder Regeln.</p>
+              <p className="small muted">Prototyp für Learn45. Anmeldung ohne Passwort, nur erfundene Daten.</p>
             </>
           )}
         </div>

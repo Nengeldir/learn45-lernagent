@@ -1,7 +1,7 @@
-// A lesson opens over the map. After finishing, feedback and the agent's next step are shown here.
+// A lesson opens over the topic. After finishing, feedback is shown here; the learner then chooses what comes next.
 import { useEffect, useRef, useState } from 'react';
 import type { Answer, Lesson, LessonResult } from '@l45/shared';
-import { MODE_LABEL, TYPE_LABEL } from '@l45/shared';
+import { TYPE_LABEL } from '@l45/shared';
 import { api } from '../lib/api.ts';
 import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
@@ -67,19 +67,14 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
             {lesson && (
               <p className="meta">
                 <span className="pill">{TYPE_LABEL[lesson.type]}</span>
-                <span>{MODE_LABEL[lesson.mode]}</span>
-                <span>{lesson.durationMin} Min.</span>
-                <span>{track?.name}</span>
-                <span>{lesson.level}</span>
+                <span>etwa {lesson.durationMin} {lesson.durationMin === 1 ? 'Minute' : 'Minuten'}</span>
               </p>
             )}
             <h2>{lesson?.title ?? (ready ? 'Lektion wird geladen …' : missionTrack?.name)}</h2>
             {lesson && !result && <p>{lesson.intro}</p>}
-            {lesson && <LessonSource lesson={lesson} />}
+            {lesson && !result && <LessonSource lesson={lesson} />}
           </div>
-          {result
-            ? <button className="btn secondary" onClick={() => onClose(true)}><Icon name="map" size={16} />Zur Karte</button>
-            : <button className="icon-btn" onClick={() => onClose(false)} aria-label="Schliessen" title="Schliessen"><Icon name="close" size={20} /></button>}
+          <button className="btn quiet small" onClick={() => onClose(Boolean(result))}><Icon name="close" size={18} />Schliessen</button>
         </header>
 
         {error && <p className="error" role="alert">{error}</p>}
@@ -98,11 +93,8 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
         {result && lesson && (
           <div className="feedback" aria-live="polite">
             <div className={`result ${result.allMet ? 'ok' : 'gap'}`}>
-              <h3>{result.allMet ? 'Gelöst' : 'Noch nicht ganz'}</h3>
+              <h3>{result.allMet ? 'Geschafft!' : 'Noch nicht ganz. Das ist normal beim Lernen.'}</h3>
               <p>{result.summary}</p>
-              <span className={`tag ${result.judgedBy === 'model' ? 'model' : result.judgedBy === 'keywords' ? 'prepared' : 'rule'}`}>
-                Geprüft durch: {result.judgedBy === 'model' ? 'KI' : result.judgedBy === 'keywords' ? 'Stichwörter (ohne KI)' : 'Regel'}
-              </span>
             </div>
             <ul className="items">
               {result.items.map((it, i) => (
@@ -113,14 +105,13 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
               ))}
             </ul>
             {missed.length > 0 && (
-              <div className="note"><strong>Merksatz:</strong> {missed.map((m) => m!.ruleOfThumb).join(' ')}</div>
+              <div className="note"><strong>Merke dir:</strong> {missed.map((m) => m!.ruleOfThumb).join(' ')}</div>
             )}
-            {lesson.transfer && <div className="transfer"><strong>Für deine Arbeit:</strong> {lesson.transfer}</div>}
+            {lesson.transfer && <div className="transfer"><strong>Im Alltag:</strong> {lesson.transfer}</div>}
             <div className="next-card">
-              <p className="eyebrow next">Dein nächster Schritt</p>
-              <h3>Du wählst, wie es weitergeht</h3>
-              <p>Drei passende Themen oder dein eigener Vorschlag. Danach wählst du das Format.</p>
-              <button className="btn primary" onClick={() => onClose(true)}><Icon name="map" size={16} />Nächstes Thema wählen</button>
+              <p className="eyebrow next">Wie geht es weiter?</p>
+              <h3>Du wählst, was du als Nächstes lernst.</h3>
+              <button className="btn primary big" onClick={() => onClose(true)}><Icon name="play" size={20} />Weiter</button>
             </div>
           </div>
         )}

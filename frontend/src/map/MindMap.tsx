@@ -181,7 +181,7 @@ export function MindMap({
         ref={svgRef}
         className="mindmap-svg"
         role="application"
-        aria-label="Lernkarte als Mindmap. Ziehen zum Verschieben, Mausrad zum Zoomen."
+        aria-label="Deine Lernkarte. Ziehen zum Verschieben, Mausrad zum Vergrössern."
         onWheel={onWheel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -217,8 +217,8 @@ export function MindMap({
         </g>
       </svg>
       <div className="map-controls" style={{ right: rightInset + 16, bottom: size.h * bottomCoverage + 16 }}>
-        <button className="icon-btn" onClick={() => zoomAt((size.w - rightInset) / 2, visibleHeight / 2, 0.8)} aria-label="Herauszoomen" title="Herauszoomen"><Icon name="minus" /></button>
-        <button className="icon-btn" onClick={() => zoomAt((size.w - rightInset) / 2, visibleHeight / 2, 1.25)} aria-label="Hineinzoomen" title="Hineinzoomen"><Icon name="plus" /></button>
+        <button className="icon-btn" onClick={() => zoomAt((size.w - rightInset) / 2, visibleHeight / 2, 0.8)} aria-label="Kleiner" title="Kleiner"><Icon name="minus" /></button>
+        <button className="icon-btn" onClick={() => zoomAt((size.w - rightInset) / 2, visibleHeight / 2, 1.25)} aria-label="Grösser" title="Grösser"><Icon name="plus" /></button>
         <span className="sep" aria-hidden="true" />
         <button className="icon-btn fit" onClick={fit}><Icon name="fit" size={16} />Ganze Karte</button>
       </div>
@@ -307,17 +307,16 @@ function Node({
         {lines.map((line, i) => (
           <text key={i} y={38 + i * 18} textAnchor="middle" className="track-label">{line}</text>
         ))}
-        <text y={38 + lines.length * 18} textAnchor="middle" className="track-dcc">{dccText}</text>
       </g>
     );
   }
 
   // Lesson node
   const lines = wrap(n.label, 20);
-  const meta = n.topicId ? 'Thema · Format wählen' : lesson ? `${TYPE_LABEL[lesson.type]}, ${lesson.durationMin} Min.${lesson.source === 'model' ? ', KI' : ''}` : '';
-  const result = n.state === 'done' && n.result ? (n.result.allMet ? 'gelöst' : 'mit Lücken') : '';
+  const meta = n.topicId ? 'Thema · Format wählen' : lesson ? `${TYPE_LABEL[lesson.type]} · ${lesson.durationMin} Min.` : '';
+  const result = n.state === 'done' && n.result ? (n.result.allMet ? 'geschafft' : 'teilweise geschafft') : '';
   const stateText =
-    n.state === 'recommended' ? 'Nächster Schritt' : n.state === 'alternative' ? 'Alternative' : n.state === 'done' ? 'erledigt' : 'geplant';
+    n.state === 'recommended' ? 'Als Nächstes' : n.state === 'alternative' ? 'zur Wahl' : n.state === 'done' ? 'erledigt' : 'später';
   return (
     // --tc sits on the group: the type glyphs are siblings of the disc and need the track colour too.
     <g {...common} style={{ ['--tc' as string]: color }} aria-label={`${n.label}. ${meta}. ${stateText}${result ? `, ${result}` : ''}`}>
@@ -329,8 +328,8 @@ function Node({
       {lesson?.type === 'ai-chat' && n.state !== 'done' && <path d="M-6 -4 h12 v7 h-7 l-3 3 v-3 h-2 z" className="glyph" />}
       {lesson?.type === 'mock-site' && n.state !== 'done' && <rect x={-6} y={-5} width={12} height={10} rx={1.5} className="glyph" />}
       {lesson?.type === 'mark-evidence' && n.state !== 'done' && <path d="M-5 -3 h10 M-5 0 h10 M-5 3 h6" className="glyph-line" />}
-      {n.state === 'recommended' && <Flag y={-33} kind="next" text={n.topicId ? 'Empfohlen' : 'Nächster Schritt'} />}
-      {n.state === 'alternative' && <Flag y={-31} kind="alt" text="Alternative" />}
+      {n.state === 'recommended' && <Flag y={-33} kind="next" text={n.topicId ? 'Empfohlen' : 'Als Nächstes'} />}
+      {n.state === 'alternative' && <Flag y={-31} kind="alt" text="zur Wahl" />}
       {n.addedByAgent && n.state !== 'done' && n.state !== 'recommended' && n.state !== 'alternative' && <Flag y={-30} kind="new" text="neu" />}
       {lines.map((line, i) => (
         <text key={i} y={30 + i * 15} textAnchor="middle" className="lesson-label">{line}</text>

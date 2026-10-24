@@ -574,7 +574,7 @@ export const RECORD_KIND_LABEL: Record<RecordKind, string> = {
   misconception: 'Fehlvorstellung korrigiert',
   'mission-shift': 'Mission geändert',
 };
-export const LERNSTAND_LABEL: Record<LernstandState, string> = { unbekannt: 'unbekannt', 'am-ueben': 'am Üben', sicher: 'sicher' };
+export const LERNSTAND_LABEL: Record<LernstandState, string> = { unbekannt: 'noch offen', 'am-ueben': 'am Üben', sicher: 'kann ich' };
 export const TYPE_LABEL: Record<LessonType, string> = {
   video: 'Video',
   'ai-chat': 'Mit der KI',
