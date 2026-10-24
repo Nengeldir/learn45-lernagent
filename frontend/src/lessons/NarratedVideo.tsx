@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { Player } from '@l45/animlib';
 import type { Answer, NarratedVideoManifest, VideoLesson } from '@l45/shared';
+import { useI18n } from '../lib/i18n.tsx';
 import { VideoPlayback, type PlaybackState } from './videoPlayback.ts';
 import { parseVideoManifest } from './videoManifest.ts';
 
@@ -15,6 +16,7 @@ const scrollTo = (element: Element | null) => element?.scrollIntoView({
 export default function NarratedVideo({ lesson, onComplete, onFallback }: {
   lesson: VideoLesson; onComplete: (answer: Answer) => Promise<void>; onFallback: () => void;
 }) {
+  const { t } = useI18n();
   const host = useRef<HTMLDivElement>(null);
   const screen = useRef<HTMLDivElement>(null);
   const checkpoint = useRef<HTMLElement>(null);
@@ -96,39 +98,39 @@ export default function NarratedVideo({ lesson, onComplete, onFallback }: {
       <div className="narrated-stage" hidden={Boolean(error) && !ready}>
         <div className="narrated-canvas" ref={host} />
         {state.asking !== null && <div className="video-pause-notice" role="status">
-          <strong>Video pausiert</strong>
-          <span>Frage {state.asking + 1} von {questions.length} wartet auf dich.</span>
-          <span>Beantworte die Frage unten.</span>
+          <strong>{t('Video pausiert')}</strong>
+          <span>{t('Frage {n} von {total} wartet auf dich.', { n: state.asking + 1, total: questions.length })}</span>
+          <span>{t('Beantworte die Frage unten.')}</span>
         </div>}
       </div>
-      {!ready && !problem && <p role="status">Erklärvideo wird geladen …</p>}
-      {problem && <div className="note" role="alert"><p>{problem}</p><button className="btn secondary" onClick={onFallback}>Storyboard ansehen</button></div>}
+      {!ready && !problem && <p role="status">{t('Erklärvideo wird geladen …')}</p>}
+      {problem && <div className="note" role="alert"><p>{t(problem)}</p><button className="btn secondary" onClick={onFallback}>{t('Storyboard ansehen')}</button></div>}
       {ready && (
         <>
           <p className="video-scene-label">{state.scene + 1} / {manifest!.scenes.length} · {scene?.title}</p>
-          <div className="video-controls" role="group" aria-label="Videosteuerung">
+          <div className="video-controls" role="group" aria-label={t('Videosteuerung')}>
             <button ref={playButton} className="btn primary" aria-controls={state.asking !== null ? questionId : undefined}
               onClick={() => state.asking !== null ? showQuestion() : state.playing ? controller!.pause() : void controller!.play()}>
-              {state.asking !== null ? 'Zur Frage' : state.playing ? 'Pause' : state.ended ? 'Nochmals abspielen' : 'Abspielen'}
+              {t(state.asking !== null ? 'Zur Frage' : state.playing ? 'Pause' : state.ended ? 'Nochmals abspielen' : 'Abspielen')}
             </button>
-            <button className="btn quiet" aria-pressed={muted} onClick={() => { engine.current?.setMuted(!muted); setMuted(!muted); }}>{muted ? 'Ton einschalten' : 'Ton ausschalten'}</button>
-            <button className="btn quiet" aria-pressed={captions} onClick={() => setCaptions(!captions)}>Untertitel</button>
+            <button className="btn quiet" aria-pressed={muted} onClick={() => { engine.current?.setMuted(!muted); setMuted(!muted); }}>{t(muted ? 'Ton einschalten' : 'Ton ausschalten')}</button>
+            <button className="btn quiet" aria-pressed={captions} onClick={() => setCaptions(!captions)}>{t('Untertitel')}</button>
           </div>
           <div className="video-timeline">
-            <label className="sr-only" htmlFor={`seek-${lesson.id}`}>Videoposition</label>
+            <label className="sr-only" htmlFor={`seek-${lesson.id}`}>{t('Videoposition')}</label>
             <input id={`seek-${lesson.id}`} type="range" min={0} max={controller!.duration} step="any" value={controller!.position}
-              disabled={state.asking !== null} aria-valuetext={`${clock(controller!.position)} von ${clock(controller!.duration)}`}
+              disabled={state.asking !== null} aria-valuetext={t('{a} von {b}', { a: clock(controller!.position), b: clock(controller!.duration) })}
               onChange={event => void controller!.seek(Number(event.target.value))} />
             <span>{clock(controller!.position)} / {clock(controller!.duration)}</span>
           </div>
           {captions && <p className="video-caption" lang="de">{caption || '\u00a0'}</p>}
           {state.asking !== null && (
-            <section ref={checkpoint} id={questionId} className="panel video-checkpoint" aria-label={`Frage ${state.asking + 1}`}>
-              <p className="video-checkpoint-label">Video pausiert · Frage {state.asking + 1} von {questions.length}</p>
+            <section ref={checkpoint} id={questionId} className="panel video-checkpoint" aria-label={t('Frage {n}', { n: state.asking + 1 })}>
+              <p className="video-checkpoint-label">{t('Video pausiert · Frage {n} von {total}', { n: state.asking + 1, total: questions.length })}</p>
               <h3 ref={questionHeading} tabIndex={-1}>{questions[state.asking].prompt}</h3>
               <p>{state.scene === manifest!.scenes.length - 1
-                ? 'Wähle eine Antwort. Danach kannst du die Lektion abschliessen.'
-                : 'Wähle eine Antwort. Danach läuft das Video automatisch weiter.'}</p>
+                ? t('Wähle eine Antwort. Danach kannst du die Lektion abschliessen.')
+                : t('Wähle eine Antwort. Danach läuft das Video automatisch weiter.')}</p>
               <div className="choices">
                 {questions[state.asking].options.map((option, i) => <button className="choice" key={i} onClick={() => void answerQuestion(i)}>{option}</button>)}
               </div>
@@ -139,9 +141,9 @@ export default function NarratedVideo({ lesson, onComplete, onFallback }: {
               setBusy(true);
               try { await onComplete({ type: 'video', answers: state.answers }); }
               finally { setBusy(false); }
-            }}>{busy ? 'Wird geprüft …' : 'Abschliessen'}</button>
+            }}>{busy ? t('Wird geprüft …') : t('Abschliessen')}</button>
           )}
-          <details className="video-transcript"><summary>Text zum Mitlesen</summary>
+          <details className="video-transcript"><summary>{t('Text zum Mitlesen')}</summary>
             {manifest!.scenes.map(scene => <section key={scene.id}><h3>{scene.title}</h3>{scene.captions.map((cue, i) => <p key={i}>{cue.text}</p>)}</section>)}
           </details>
         </>

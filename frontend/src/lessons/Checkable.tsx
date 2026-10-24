@@ -76,7 +76,7 @@ export function MarkEvidence({ lesson, ...ctx }: { lesson: MarkEvidenceLesson } 
     <>
       <div className="two-col">
         <div className="card source">
-          <h3>{lesson.content.noteTitle} {lesson.source === 'model' && <span className="tag model">Beispiel erfunden</span>}</h3>
+          <h3>{lesson.content.noteTitle} {lesson.source === 'model' && <span className="tag model">{t('Beispiel erfunden')}</span>}</h3>
           <ul>{lesson.content.note.map((n, i) => <li key={i}>{n}</li>)}</ul>
         </div>
         <div className="card">
@@ -122,7 +122,7 @@ export function MockSite({ lesson, ...ctx }: { lesson: MockSiteLesson } & Ctx) {
 
   return (
     <>
-      <p className="note">{lesson.source === 'model' && <span className="tag model">Beispiel erfunden</span>} {lesson.content.disclaimer}</p>
+      <p className="note">{lesson.source === 'model' && <span className="tag model">{t('Beispiel erfunden')}</span>} {lesson.content.disclaimer}</p>
       {mail.length > 0 && (
         <div className="seg" role="tablist">
           <button role="tab" aria-selected={tab === 'mail'} onClick={() => setTab('mail')}>{t('E-Mail')}</button>

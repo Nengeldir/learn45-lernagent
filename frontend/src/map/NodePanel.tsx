@@ -40,7 +40,7 @@ function NextLesson({ track, onFocus }: { track: Track; onFocus: (nodeId: string
   return (
     <div>
       <button className="btn secondary block" disabled={busy} onClick={go}><Icon name="sparkle" size={16} />{busy ? t('Lektion wird erstellt …') : t('Neue Lektion in «{name}»', { name: trackName(track.id, track.name) })}</button>
-      {error && <p className="error small" role="alert">{error}</p>}
+      {error && <p className="error small" role="alert">{t(error)}</p>}
     </div>
   );
 }
@@ -103,14 +103,14 @@ function Reason({ rec, view }: { rec: Recommendation; view: SessionView }) {
   const { t, source } = useI18n();
   return (
     <dl className="reason">
-      <div><dt>{t('Was der Agent gesehen hat')}</dt><dd>{rec.observation}</dd></div>
-      <div><dt>{t('Vorschlag')}</dt><dd>{rec.reason}</dd></div>
-      <div><dt>{t('Warum das jetzt hilft')}</dt><dd>{rec.why}</dd></div>
+      <div><dt>{t('Was der Agent gesehen hat')}</dt><dd>{t(rec.observation)}</dd></div>
+      <div><dt>{t('Vorschlag')}</dt><dd>{t(rec.reason)}</dd></div>
+      <div><dt>{t('Warum das jetzt hilft')}</dt><dd>{t(rec.why)}</dd></div>
       {rec.basedOn?.length ? <div><dt>{t('Gestützt auf')}</dt><dd><BasedOn rec={rec} view={view} /></dd></div> : null}
       <div>
         <dt>{t('Regel')}</dt>
         <dd>
-          {rec.ruleId} {rec.ruleName}{' '}
+          {rec.ruleId} {t(rec.ruleName)}{' '}
           {rec.tags.map((tag) => <span key={tag} className={`tag ${tag}`}>{source(tag)}</span>)}
           <span className={`tag${rec.provisional ? ' provisional' : ''}`}>{planLabel(rec, view, t)}</span>
         </dd>

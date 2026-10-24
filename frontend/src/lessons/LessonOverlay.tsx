@@ -86,7 +86,7 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
             : <button className="icon-btn" onClick={() => onClose(false)} aria-label={t('Schliessen')} title={t('Schliessen')}><Icon name="close" size={20} /></button>}
         </header>
 
-        {error && <p className="error" role="alert">{error}</p>}
+        {error && <p className="error" role="alert">{t(error)}</p>}
         {!ready && missionTrack && <MissionCard track={missionTrack} onDone={() => setMissionDone(true)} />}
         {notice && !result && <p className="note">{notice}</p>}
 
@@ -125,10 +125,10 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
                 <p className="eyebrow next">{t('Der Agent passt deine Karte an')}</p>
                 <PlanStatus view={view} />
                 <h3>{recNode ? t('Nächster Schritt: {label}', { label: lessonTitle(recNode.lessonId, recNode.label) }) : t('Alles erledigt')}</h3>
-                <p>{rec.reason}</p>
-                <p className="small">{rec.why}</p>
+                <p>{t(rec.reason)}</p>
+                <p className="small">{t(rec.why)}</p>
                 {rec.basedOn?.length ? <div className="small"><strong>{t('Gestützt auf:')}</strong><BasedOn rec={rec} view={view} /></div> : null}
-                <p className="small muted">{rec.ruleId} {rec.ruleName}. {rec.tags.map((tag) => source(tag)).join(', ')}. {planLabel(rec, view, t)}</p>
+                <p className="small muted">{rec.ruleId} {t(rec.ruleName)}. {rec.tags.map((tag) => source(tag)).join(', ')}. {planLabel(rec, view, t)}</p>
                 <button className="btn primary" onClick={() => onClose(true)}><Icon name="map" size={16} />{t('Auf der Karte ansehen')}</button>
               </div>
             )}

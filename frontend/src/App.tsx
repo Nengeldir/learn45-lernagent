@@ -11,7 +11,7 @@ function Routed() {
   if (error && !content) {
     return (
       <div className="center">
-        <p className="error">{error}</p>
+        <p className="error">{t(error)}</p>
         <button className="btn secondary" onClick={() => location.reload()}>{t('Neu laden')}</button>
       </div>
     );

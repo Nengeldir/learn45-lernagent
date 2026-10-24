@@ -152,7 +152,7 @@ export function Login() {
           <p className="small muted">{t('Die DCC-Werte bleiben unverändert. Lernen in der App stuft nichts hoch. «Nicht erhoben» heisst nicht geringe Kompetenz.')}</p>
         </fieldset>
 
-        {error && <p className="error" role="alert">{error}</p>}
+        {error && <p className="error" role="alert">{t(error)}</p>}
         {conflict ? (
           <div className="choice-card" role="alert">
             <p>
