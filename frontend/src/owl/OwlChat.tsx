@@ -11,7 +11,6 @@ const CHIPS = ['Wo finde ich den nächsten Schritt?', 'Erklär es mir ganz einfa
 function OwlFace({ look, mood }: { look: { x: number; y: number }; mood: 'idle' | 'think' | 'happy' }) {
   return (
     <svg className={`owl-face mood-${mood}`} viewBox="0 0 64 64" aria-hidden="true">
-      <rect width="64" height="64" rx="16" fill="#ffffff" />
       <path className="ear left" fill="#E23B2F" d="M18.5 28 25 9.5 31.5 27z" />
       <path className="ear right" fill="#E23B2F" d="M45.5 28 39 9.5 32.5 27z" />
       <circle cx="32" cy="36.5" r="18" fill="#E23B2F" />

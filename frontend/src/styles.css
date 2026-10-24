@@ -1292,9 +1292,11 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .owl-fab.mood-happy { animation: owl-hop 0.55s ease; }
 .owl-face { width: 100%; height: 100%; display: block; overflow: visible; }
 .owl-face .pupils { transition: transform 0.08s linear; }
-.owl-face .lids { transform-origin: center; transform: scaleY(0); }
+.owl-face .lids { transform-box: fill-box; transform-origin: center; transform: scaleY(0); }
 .owl-face { animation: owl-blink 5.5s infinite; }
-.owl-face.mood-think .ear { transform-origin: 50% 100%; animation: owl-ear 0.8s ease-in-out infinite; }
+.owl-face .ear { transform-box: fill-box; transform-origin: 50% 100%; }
+.owl-face.mood-think .ear { animation: owl-ear 0.8s ease-in-out infinite; }
+.owl-face.mood-think .ear.right { animation-direction: reverse; }
 @keyframes owl-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 @keyframes owl-think { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
 @keyframes owl-hop { 0% { transform: translateY(0); } 40% { transform: translateY(-10px); } 100% { transform: translateY(0); } }
