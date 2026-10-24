@@ -70,6 +70,7 @@ Alle in `backend/.env`, alle optional:
 | Variable | Standard | Wofür |
 |---|---|---|
 | `PORT` | `8787` | Port des Servers |
+| `ACCESS_USERS` | leer (keine Anmeldung) | Anmeldung für eine öffentliche Instanz, `name:passwort` durch Kommas getrennt (siehe [Online stellen](#online-stellen)) |
 | `MODEL_TIMEOUT_MS` | `8000` | Wartezeit pro Modellaufruf, danach vorbereitete Inhalte |
 | `PLANNER_TOTAL_MS`, `PLANNER_CALL_MS` | `45000`, `20000` | Zeitgrenzen des Planer-Agenten: ganzer Lauf und pro Aufruf |
 | `LEARNER_DIR` | `backend/var/learners` | Ordner der Lernumgebungen |
@@ -80,6 +81,15 @@ Alle in `backend/.env`, alle optional:
 | `VIDEO_CACHE_DIR`, `VIDEO_SPEECH_CACHE_DIR`, `PODCAST_CACHE_DIR` | unter `backend/var/` | Speicherorte für erzeugte Videos, Sprache und Podcasts |
 
 Die mitgelieferten Lektionen laufen ohne Sprachdienst. Einen braucht es nur für neue Videos und Podcasts.
+
+### Online stellen
+
+`railway.json` beschreibt den Betrieb auf Railway: `npm run build`, dann `npm start`, mit `/api/health` als Gesundheitsprüfung. Ein Server liefert API und Oberfläche aus.
+
+- **Anmeldung.** Ohne Anmeldung kann jede Person mit dem Link die App nutzen, auf Kosten des eigenen Modellschlüssels. Deshalb `ACCESS_USERS` setzen, etwa `owner:langes-geheimnis,jury:anderes-geheimnis`. Der Browser fragt dann nach Name und Passwort. Offen bleibt nur `/api/health`. Wer einen eigenen Eintrag hat, behält den Zugang, wenn ein anderer Eintrag entfernt wird.
+- **Speicher.** Das Dateisystem von Railway wird bei jedem Deploy geleert. Ein Volume anhängen, etwa unter `/data`, und `LEARNER_DIR=/data/learners`, `VIDEO_CACHE_DIR=/data/videos`, `VIDEO_SPEECH_CACHE_DIR=/data/video-speech` und `PODCAST_CACHE_DIR=/data/podcasts` setzen.
+- **Sprache.** `local` braucht macOS. Für neue Videos und Podcasts `VIDEO_SPEECH_PROVIDER=elevenlabs` mit den ElevenLabs-Schlüsseln setzen.
+- **Zugang entziehen.** Den Eintrag aus `ACCESS_USERS` löschen; Railway startet neu, und das alte Passwort gilt nicht mehr.
 
 ## Die App
 
