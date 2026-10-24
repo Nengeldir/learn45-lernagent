@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Answer, VideoLesson, VideoVisual } from '@l45/shared';
+import { useI18n } from '../lib/i18n.tsx';
 
 const reduced = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -206,6 +207,7 @@ function Visual({ visual, p, scene, first, items }: { visual: VideoVisual; p: nu
 }
 
 export function Video({ lesson, onComplete }: { lesson: VideoLesson; onComplete: (a: Answer) => Promise<void> }) {
+  const { t } = useI18n();
   const { scenes, questions } = lesson.content;
   const [scene, setScene] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -249,7 +251,7 @@ export function Video({ lesson, onComplete }: { lesson: VideoLesson; onComplete:
 
   return (
     <>
-      {!lesson.content.videoUrl && <p className="note">Platzhalter-Storyboard. Das fertige Video wird vorab mit der Aha-Engine erzeugt und hier eingebunden.</p>}
+      {!lesson.content.videoUrl && <p className="note">{t('Platzhalter-Storyboard. Das fertige Video wird vorab mit der Aha-Engine erzeugt und hier eingebunden.')}</p>}
       {lesson.content.videoUrl ? (
         <video
           src={lesson.content.videoUrl}
@@ -267,7 +269,7 @@ export function Video({ lesson, onComplete }: { lesson: VideoLesson; onComplete:
           </div>
           <p className="caption" aria-live="polite">{scenes[scene].caption}</p>
           {asking === null && !ended && (
-            <button className="btn secondary" onClick={() => setPlaying(!playing)}>{playing ? 'Pause' : scene === 0 && p === 0 ? 'Abspielen' : 'Weiter abspielen'}</button>
+            <button className="btn secondary" onClick={() => setPlaying(!playing)}>{playing ? t('Pause') : scene === 0 && p === 0 ? t('Abspielen') : t('Weiter abspielen')}</button>
           )}
         </>
       )}
@@ -296,7 +298,7 @@ export function Video({ lesson, onComplete }: { lesson: VideoLesson; onComplete:
             }
           }}
         >
-          Abschliessen
+          {t('Abschliessen')}
         </button>
       )}
     </>

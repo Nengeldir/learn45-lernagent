@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from 'react';
-import type { DccProfile, Lesson, MapNode, Skill } from '@l45/shared';
-import { TYPE_LABEL } from '@l45/shared';
+import type { DccProfile, Lesson, MapNode, Mode, Skill } from '@l45/shared';
+import { useI18n } from '../lib/i18n.tsx';
 import { TRACK_COLOR, bounds, layout, wrap, type Placed } from './layout.ts';
+import { buildLines, climbStops } from './subwayLayout.ts';
+
+/** Where the learner stands on the mountain of one track. */
+interface Climb {
+  name: string;
+  summit: number;
+  here: number;
+}
 
 interface Cam {
   x: number;
@@ -13,7 +21,7 @@ const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').ma
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 export function MindMap({
-  nodes, skills, dcc, lessonOf, selectedId, focusId, onSelect, rightInset = 0,
+  nodes, skills, dcc, lessonOf, selectedId, focusId, onSelect, onOpenMountain, rightInset = 0, lens = 'all',
 }: {
   nodes: MapNode[];
   skills: Skill[];
@@ -23,9 +31,13 @@ export function MindMap({
   /** Node the camera should move to (changes trigger a smooth pan) */
   focusId: string | null;
   onSelect: (id: string | null) => void;
+  /** Opens the mountain of a track (Bergwege) */
+  onOpenMountain?: (trackId: string) => void;
   /** Space covered by the side panel on the right (desktop) */
   rightInset?: number;
+  lens?: Mode | 'all';
 }) {
+  const { t, level, nodeLabel } = useI18n();
   const svgRef = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 1200, h: 800 });
   const [cam, setCam] = useState<Cam>({ x: 600, y: 400, k: 1 });
@@ -33,6 +45,15 @@ export function MindMap({
   const fitted = useRef(false);
   const seen = useRef<Set<string>>(new Set());
   const [fresh, setFresh] = useState<Set<string>>(new Set());
+  const climbs = useMemo(() => {
+    const out = new Map<string, Climb>();
+    for (const line of buildLines(nodes, skills, dcc, lessonOf)) {
+      const summit = line.mountain.metres > 0 ? line.mountain.metres : 1000;
+      const done = climbStops(line.stops, summit).filter((s) => s.node.state === 'done');
+      out.set(line.trackId, { name: line.mountain.name, summit, here: Math.max(0, ...done.map((s) => s.metres)) });
+    }
+    return out;
+  }, [nodes, skills, dcc, lessonOf]);
 
   // Track size
   useEffect(() => {
@@ -157,14 +178,18 @@ export function MindMap({
     if (moved.current > 6) return;
     onSelect(id);
   };
+  const openPeak = (trackId: string) => {
+    if (moved.current > 6) return;
+    onOpenMountain?.(trackId);
+  };
 
   // --- Render -----------------------------------------------------------------------------------
   const edges = [...placed.values()].filter((p) => p.node.parentId);
   const trackDcc = (trackId?: string) => {
     const skill = skills.find((s) => s.tracks.some((t) => t.id === trackId));
-    if (!skill?.dccBased) return 'keine DCC-Position';
+    if (!skill?.dccBased) return t('keine DCC-Position');
     const lv = trackId ? dcc.levels[trackId] : null;
-    return lv ? `DCC: ${lv}` : 'DCC: nicht erhoben';
+    return lv ? t('DCC: {level}', { level: level(lv) }) : t('DCC: nicht erhoben');
   };
 
   return (
@@ -173,7 +198,7 @@ export function MindMap({
         ref={svgRef}
         className="mindmap-svg"
         role="application"
-        aria-label="Lernkarte als Mindmap. Ziehen zum Verschieben, Mausrad zum Zoomen."
+        aria-label={t('Lernkarte als Mindmap. Ziehen zum Verschieben, Mausrad zum Zoomen.')}
         onWheel={onWheel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -194,24 +219,32 @@ export function MindMap({
             if (!parent) return null;
             return <Edge key={`e-${p.node.id}`} from={parent} to={p} />;
           })}
-          {[...placed.values()].map((p) => (
-            <Node
-              key={p.node.id}
-              p={p}
-              lesson={lessonOf(p.node.lessonId)}
-              selected={selectedId === p.node.id}
-              fresh={fresh.has(p.node.id)}
-              dccText={p.node.kind === 'track' ? trackDcc(p.node.trackId) : undefined}
-              onSelect={click}
-            />
-          ))}
+          {[...placed.values()].map((p) => {
+            const lesson = lessonOf(p.node.lessonId);
+            return (
+              <Node
+                key={p.node.id}
+                p={p}
+                lesson={lesson}
+                label={nodeLabel(p.node)}
+                selected={selectedId === p.node.id}
+                fresh={fresh.has(p.node.id)}
+                dim={lens !== 'all' && p.node.kind === 'lesson' && lesson?.mode !== lens}
+                dccText={p.node.kind === 'track' ? trackDcc(p.node.trackId) : undefined}
+                climb={p.node.kind === 'track' && onOpenMountain ? climbs.get(p.node.trackId ?? '') : undefined}
+                onSelect={click}
+                onOpenMountain={openPeak}
+              />
+            );
+          })}
         </g>
       </svg>
       <div className="map-controls" style={{ right: rightInset + 16 }}>
-        <button onClick={() => zoomAt((size.w - rightInset) / 2, size.h / 2, 1.25)} aria-label="Hineinzoomen">+</button>
-        <button onClick={() => zoomAt((size.w - rightInset) / 2, size.h / 2, 0.8)} aria-label="Herauszoomen">−</button>
-        <button onClick={fit} className="wide">Ganze Karte</button>
+        <button onClick={() => zoomAt((size.w - rightInset) / 2, size.h / 2, 1.25)} aria-label={t('Hineinzoomen')}>+</button>
+        <button onClick={() => zoomAt((size.w - rightInset) / 2, size.h / 2, 0.8)} aria-label={t('Herauszoomen')}>−</button>
+        <button onClick={fit} className="wide">{t('Ganze Karte')}</button>
       </div>
+      <p className="knot-note">{t('Der Wissensknoten. In der Mitte stehst du, aussen die Bereiche. Ein Klick öffnet den Schritt. Bergwege ist die andere Ansicht.')}</p>
     </div>
   );
 }
@@ -242,15 +275,20 @@ function Edge({ from, to }: { from: Placed; to: Placed }) {
 }
 
 function Node({
-  p, lesson, selected, fresh, dccText, onSelect,
+  p, lesson, label, selected, fresh, dim, dccText, climb, onSelect, onOpenMountain,
 }: {
   p: Placed;
   lesson?: Lesson;
+  label: string;
   selected: boolean;
   fresh: boolean;
+  dim: boolean;
   dccText?: string;
+  climb?: Climb;
   onSelect: (id: string) => void;
+  onOpenMountain: (trackId: string) => void;
 }) {
+  const { t, type } = useI18n();
   const n = p.node;
   const color = TRACK_COLOR[n.trackId ?? ''] ?? 'var(--ink)';
   const onKey = (e: KeyboardEvent) => {
@@ -260,7 +298,7 @@ function Node({
     }
   };
   const common = {
-    className: `node ${n.kind} ${n.state ?? ''}${selected ? ' selected' : ''}${fresh ? ' fresh' : ''}`,
+    className: `node ${n.kind} ${n.state ?? ''}${selected ? ' selected' : ''}${fresh ? ' fresh' : ''}${dim ? ' dim' : ''}`,
     transform: `translate(${p.x} ${p.y})`,
     tabIndex: 0,
     role: 'button',
@@ -273,9 +311,9 @@ function Node({
 
   if (n.kind === 'start') {
     return (
-      <g {...common} aria-label={`Start: ${n.label}`}>
+      <g {...common} aria-label={t('Start: {label}', { label })}>
         <circle r={40} className="start-disc" />
-        {wrap(n.label, 10).map((line, i, all) => (
+        {wrap(label, 10).map((line, i, all) => (
           <text key={i} y={(i - (all.length - 1) / 2) * 16 + 5} textAnchor="middle" className="start-label">{line}</text>
         ))}
       </g>
@@ -285,9 +323,9 @@ function Node({
   if (n.kind === 'skill') {
     const below = p.y > 0;
     return (
-      <g {...common} aria-label={`Bereich ${n.label}`}>
+      <g {...common} aria-label={t('Bereich {label}', { label })}>
         <circle r={28} className="skill-disc" />
-        <text y={below ? 52 : -42} textAnchor="middle" className="skill-label">{n.label}</text>
+        <text y={below ? 52 : -42} textAnchor="middle" className="skill-label">{label}</text>
       </g>
     );
   }
@@ -297,30 +335,52 @@ function Node({
 
   if (n.kind === 'track') {
     // Label beside the node, away from the branch: above for sideways branches, to the side for upright ones.
-    const lines = wrap(n.label, 22);
+    const lines = wrap(label, 22);
     const sideways = Math.abs(cos) > 0.75;
     const anchor = sideways ? 'middle' : cos > 0 ? 'start' : cos < 0 ? 'end' : 'middle';
     const lx = sideways ? 0 : anchor === 'start' ? 28 : anchor === 'end' ? -28 : 0;
     const ly = sideways ? -32 - lines.length * 18 : sin < 0 ? 0 : -6;
     return (
-      <g {...common} aria-label={`${n.label}, ${dccText}`}>
+      <g {...common} aria-label={`${label}, ${dccText}`}>
         <circle r={20} fill={color} className="track-disc" />
         {lines.map((line, i) => (
           <text key={i} x={lx} y={ly + i * 18} textAnchor={anchor} className="track-label">{line}</text>
         ))}
         <text x={lx} y={ly + lines.length * 18} textAnchor={anchor} className="track-dcc">{dccText}</text>
+        {climb && (
+          <g
+            className="track-peak"
+            role="link"
+            tabIndex={0}
+            aria-label={t('Berg {name} öffnen, {here} von {summit} m', { name: climb.name, here: climb.here, summit: climb.summit })}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenMountain(n.trackId!);
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return;
+              e.preventDefault();
+              e.stopPropagation();
+              onOpenMountain(n.trackId!);
+            }}
+          >
+            <text x={lx} y={sideways ? ly - 22 : ly + lines.length * 18 + 22} textAnchor={anchor} className="track-peak-label">
+              {'▲ '}{t('{name} · {here} / {summit} m', { name: climb.name, here: climb.here, summit: climb.summit })}
+            </text>
+          </g>
+        )}
       </g>
     );
   }
 
   // Lesson node
-  const lines = wrap(n.label, 20);
-  const meta = lesson ? `${TYPE_LABEL[lesson.type]}, ${lesson.durationMin} Min.` : '';
-  const result = n.state === 'done' && n.result ? (n.result.allMet ? 'gelöst' : 'mit Lücken') : '';
+  const lines = wrap(label, 20);
+  const meta = lesson ? `${type(lesson.type)}, ${lesson.durationMin} ${t('Min.')}` : '';
+  const result = n.state === 'done' && n.result ? (n.result.allMet ? t('gelöst') : t('mit Lücken')) : '';
   const stateText =
-    n.state === 'recommended' ? 'Nächster Schritt' : n.state === 'alternative' ? 'Alternative' : n.state === 'done' ? 'erledigt' : 'geplant';
+    n.state === 'recommended' ? t('Nächster Schritt') : n.state === 'alternative' ? t('Alternative') : n.state === 'done' ? t('erledigt') : t('geplant');
   return (
-    <g {...common} aria-label={`${n.label}. ${meta}. ${stateText}${result ? `, ${result}` : ''}`}>
+    <g {...common} aria-label={`${label}. ${meta}. ${stateText}${result ? `, ${result}` : ''}`}>
       {n.state === 'recommended' && <circle r={24} className="halo" />}
       <circle r={13} className="lesson-disc" style={{ ['--tc' as string]: color }} />
       {n.state === 'done' && <path d="M-5 0 l3.5 4 l7 -8" className="check" />}
@@ -328,10 +388,10 @@ function Node({
       {lesson?.type === 'ai-chat' && n.state !== 'done' && <path d="M-6 -4 h12 v7 h-7 l-3 3 v-3 h-2 z" className="glyph" />}
       {lesson?.type === 'mock-site' && n.state !== 'done' && <rect x={-6} y={-5} width={12} height={10} rx={1.5} className="glyph" />}
       {lesson?.type === 'mark-evidence' && n.state !== 'done' && <path d="M-5 -3 h10 M-5 0 h10 M-5 3 h6" className="glyph-line" />}
-      {n.state === 'recommended' && <text y={-30} textAnchor="middle" className="tag-next">Nächster Schritt</text>}
-      {n.state === 'alternative' && <text y={-24} textAnchor="middle" className="tag-alt">Alternative</text>}
+      {n.state === 'recommended' && <text y={-30} textAnchor="middle" className="tag-next">{t('Nächster Schritt')}</text>}
+      {n.state === 'alternative' && <text y={-24} textAnchor="middle" className="tag-alt">{t('Alternative')}</text>}
       {n.addedByAgent && n.state !== 'done' && n.state !== 'recommended' && n.state !== 'alternative' && (
-        <text y={-22} textAnchor="middle" className="tag-new">neu</text>
+        <text y={-22} textAnchor="middle" className="tag-new">{t('neu')}</text>
       )}
       {lines.map((line, i) => (
         <text key={i} y={30 + i * 15} textAnchor="middle" className="lesson-label">{line}</text>
