@@ -64,22 +64,26 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label={lesson ? lessonTitle(lesson.id, lesson.title) : t('Lektion')}>
-      <div className="overlay-panel" ref={ref} tabIndex={-1}>
+      <div className="overlay-panel lesson-panel" ref={ref} tabIndex={-1}>
         <header className="overlay-head">
           <div>
             {lesson && (
-              <p className="meta">
+              <div className="meta">
                 <span className="pill">{type(lesson.type)}</span>
                 <span>{mode(lesson.mode)}</span>
                 <span>{lesson.durationMin} {t('Min.')}</span>
                 <span>{track ? trackName(track.id, track.name) : ''}</span>
                 <span>{level(lesson.level)}</span>
-              </p>
+                <LessonSource lesson={lesson} />
+              </div>
             )}
             <h2>{lesson ? lessonTitle(lesson.id, lesson.title) : ready ? t('Lektion wird geladen …') : missionTrack ? trackName(missionTrack.id, missionTrack.name) : ''}</h2>
-            {lesson && !result && <p>{lesson.intro}</p>}
-            {lesson && !result && lang !== 'de' && <p className="small muted">{t('Die Aufgabe bleibt auf Deutsch. Die Prüfung erkennt die deutschen Formulierungen.')}</p>}
-            {lesson && <LessonSource lesson={lesson} />}
+            {lesson && !result && (
+              <p className="lesson-intro">
+                {lesson.intro}
+                {lang !== 'de' && <span className="small muted"> {t('Die Aufgabe bleibt auf Deutsch. Die Prüfung erkennt die deutschen Formulierungen.')}</span>}
+              </p>
+            )}
           </div>
           {result
             ? <button className="btn secondary" onClick={() => onClose(true)}><Icon name="map" size={16} />{t('Zur Karte')}</button>
@@ -102,7 +106,13 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
         {result && lesson && (
           <div className="feedback" aria-live="polite">
             <div className={`result ${result.allMet ? 'ok' : 'gap'}`}>
-              <h3>{result.allMet ? t('Gelöst') : t('Noch nicht ganz')}</h3>
+              <div className="result-head">
+                <span className="result-icon" aria-hidden="true">{result.allMet ? '✓' : '!'}</span>
+                <h3>{result.allMet ? t('Gelöst') : t('Noch nicht ganz')}</h3>
+                {result.items.length > 0 && (
+                  <span className="result-score">{t('{n} von {total} richtig', { n: result.items.filter((it) => it.correct).length, total: result.items.length })}</span>
+                )}
+              </div>
               <p>{result.summary}</p>
               <span className={`tag ${result.judgedBy === 'model' ? 'model' : result.judgedBy === 'keywords' ? 'prepared' : 'rule'}`}>
                 {t('Geprüft durch: {by}', { by: result.judgedBy === 'model' ? t('KI') : result.judgedBy === 'keywords' ? t('Stichwörter (ohne KI)') : t('Regel') })}
@@ -123,12 +133,15 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
             {rec && view && (
               <div className="next-card">
                 <p className="eyebrow next">{t('Der Agent passt deine Karte an')}</p>
-                <PlanStatus view={view} />
                 <h3>{recNode ? t('Nächster Schritt: {label}', { label: lessonTitle(recNode.lessonId, recNode.label) }) : t('Alles erledigt')}</h3>
                 <p>{t(rec.reason)}</p>
-                <p className="small">{t(rec.why)}</p>
-                {rec.basedOn?.length ? <div className="small"><strong>{t('Gestützt auf:')}</strong><BasedOn rec={rec} view={view} /></div> : null}
-                <p className="small muted">{rec.ruleId} {t(rec.ruleName)}. {rec.tags.map((tag) => source(tag)).join(', ')}. {planLabel(rec, view, t)}</p>
+                <details className="why">
+                  <summary>{t('Warum dieser Schritt?')}</summary>
+                  <PlanStatus view={view} />
+                  <p className="small">{t(rec.why)}</p>
+                  {rec.basedOn?.length ? <div className="small"><strong>{t('Gestützt auf:')}</strong><BasedOn rec={rec} view={view} /></div> : null}
+                  <p className="small muted">{rec.ruleId} {t(rec.ruleName)}. {rec.tags.map((tag) => source(tag)).join(', ')}. {planLabel(rec, view, t)}</p>
+                </details>
                 <button className="btn primary" onClick={() => onClose(true)}><Icon name="map" size={16} />{t('Auf der Karte ansehen')}</button>
               </div>
             )}

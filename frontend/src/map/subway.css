@@ -138,7 +138,8 @@
 .climb-hud strong { font-size: 22px; }
 .peak-board {
   position: relative;
-  width: min(100%, 720px);
+  /* As big as the screen allows: the whole mountain stays in view, up to 1000px wide. */
+  width: min(100%, 1000px, max(720px, calc((100dvh - 190px) * 640 / 560)));
   aspect-ratio: 640 / 560;
   border-radius: 18px;
   overflow: hidden;
@@ -246,8 +247,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  width: min(100%, 720px);
-  margin: 2px 0 8px;
+  width: min(100%, 1000px, max(720px, calc((100dvh - 190px) * 640 / 560)));
+  margin: 2px 0 4px;
 }
 .climb-meter::before {
   content: '';
@@ -398,3 +399,11 @@
   .clouds, .hiker-svg, .hiker-leg, .climber-arm, .gondola-svg, .peak-flag i, .peak-flag span, .climber-bubble { animation: none !important; }
   .cheer i { display: none; }
 }
+
+/* Compact head above the mountain: back link, name and height on one row */
+.peak-head { display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 4px; }
+.peak-head h2 { margin: 0; font-size: 26px; }
+.peak-head .climb-hud { margin: 0; }
+.peak-head .climb-meter { flex-basis: 100%; }
+.peak-head .climb-tools { margin: 0; }
+.peak-head > p:last-child { flex: 1 1 320px; font-size: 13px; }

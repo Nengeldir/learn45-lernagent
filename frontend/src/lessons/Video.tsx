@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { Answer, VideoLesson, VideoVisual } from '@l45/shared';
 import { useI18n } from '../lib/i18n.tsx';
+import { Question } from './Question.tsx';
 
 const reduced = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -282,8 +283,11 @@ function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComple
         />
       ) : (
         <>
-          <div className="stage">
-            <Visual visual={scenes[scene].visual} p={p} scene={scene} first={first} items={scenes[scene].items} />
+          <div className="stage-wrap">
+            <div className="stage">
+              <Visual visual={scenes[scene].visual} p={p} scene={scene} first={first} items={scenes[scene].items} />
+            </div>
+            {asking !== null && <Question q={questions[asking]} n={asking} total={questions.length} onAnswer={answer} />}
           </div>
           <div className="progress" aria-hidden="true">
             {scenes.map((_, i) => <span key={i} className={i <= scene ? 'on' : ''} />)}
@@ -295,16 +299,7 @@ function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComple
         </>
       )}
 
-      {asking !== null && (
-        <div className="panel">
-          <h3>{questions[asking].prompt}</h3>
-          <div className="choices">
-            {questions[asking].options.map((o, i) => (
-              <button key={i} className="choice" onClick={() => answer(i)}>{o}</button>
-            ))}
-          </div>
-        </div>
-      )}
+      {asking !== null && lesson.content.videoUrl && <Question q={questions[asking]} n={asking} total={questions.length} onAnswer={answer} />}
 
       {ended && (
         <button

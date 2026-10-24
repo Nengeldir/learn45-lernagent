@@ -4,6 +4,7 @@ import type { Answer, NarratedVideoManifest, VideoLesson } from '@l45/shared';
 import { useI18n } from '../lib/i18n.tsx';
 import { VideoPlayback, type PlaybackState } from './videoPlayback.ts';
 import { parseVideoManifest } from './videoManifest.ts';
+import { Question } from './Question.tsx';
 
 const initial: PlaybackState = { scene: 0, time: 0, playing: false, asking: null, answers: {}, ended: false, error: '' };
 const subscribeLoading = () => () => {};
@@ -19,7 +20,7 @@ export default function NarratedVideo({ lesson, onComplete, onFallback }: {
   const { t } = useI18n();
   const host = useRef<HTMLDivElement>(null);
   const screen = useRef<HTMLDivElement>(null);
-  const checkpoint = useRef<HTMLElement>(null);
+  const checkpoint = useRef<HTMLDivElement>(null);
   const questionHeading = useRef<HTMLHeadingElement>(null);
   const playButton = useRef<HTMLButtonElement>(null);
   const [controller, setController] = useState<VideoPlayback>();
@@ -97,11 +98,21 @@ export default function NarratedVideo({ lesson, onComplete, onFallback }: {
     <div className="narrated-video" ref={screen}>
       <div className="narrated-stage" hidden={Boolean(error) && !ready}>
         <div className="narrated-canvas" ref={host} />
-        {state.asking !== null && <div className="video-pause-notice" role="status">
-          <strong>{t('Video pausiert')}</strong>
-          <span>{t('Frage {n} von {total} wartet auf dich.', { n: state.asking + 1, total: questions.length })}</span>
-          <span>{t('Beantworte die Frage unten.')}</span>
-        </div>}
+        {state.asking !== null && ready && (
+          <div ref={checkpoint} className="video-pop-host">
+            <Question
+              q={questions[state.asking]}
+              n={state.asking}
+              total={questions.length}
+              id={questionId}
+              headingRef={questionHeading}
+              onAnswer={(i) => void answerQuestion(i)}
+              note={state.scene === manifest!.scenes.length - 1
+                ? t('Wähle eine Antwort. Danach kannst du die Lektion abschliessen.')
+                : t('Wähle eine Antwort. Danach läuft das Video automatisch weiter.')}
+            />
+          </div>
+        )}
       </div>
       {!ready && !problem && <p role="status">{t('Erklärvideo wird geladen …')}</p>}
       {problem && <div className="note" role="alert"><p>{t(problem)}</p><button className="btn secondary" onClick={onFallback}>{t('Storyboard ansehen')}</button></div>}
@@ -124,18 +135,6 @@ export default function NarratedVideo({ lesson, onComplete, onFallback }: {
             <span>{clock(controller!.position)} / {clock(controller!.duration)}</span>
           </div>
           {captions && <p className="video-caption" lang="de">{caption || '\u00a0'}</p>}
-          {state.asking !== null && (
-            <section ref={checkpoint} id={questionId} className="panel video-checkpoint" aria-label={t('Frage {n}', { n: state.asking + 1 })}>
-              <p className="video-checkpoint-label">{t('Video pausiert · Frage {n} von {total}', { n: state.asking + 1, total: questions.length })}</p>
-              <h3 ref={questionHeading} tabIndex={-1}>{questions[state.asking].prompt}</h3>
-              <p>{state.scene === manifest!.scenes.length - 1
-                ? t('Wähle eine Antwort. Danach kannst du die Lektion abschliessen.')
-                : t('Wähle eine Antwort. Danach läuft das Video automatisch weiter.')}</p>
-              <div className="choices">
-                {questions[state.asking].options.map((option, i) => <button className="choice" key={i} onClick={() => void answerQuestion(i)}>{option}</button>)}
-              </div>
-            </section>
-          )}
           {state.ended && questions.every((_, i) => state.answers[i] !== undefined) && (
             <button className="btn primary block" disabled={busy} onClick={async () => {
               setBusy(true);
