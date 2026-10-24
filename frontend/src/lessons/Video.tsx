@@ -216,14 +216,14 @@ export function Video(props: { lesson: VideoLesson; prepareUrl?: string; onCompl
     return <Suspense fallback={<p role="status"><VideoLoading /></p>}><NarratedVideo {...props} onFallback={() => setFallback(true)} /></Suspense>;
   }
   if (props.prepareUrl && !fallback) {
-    return <Suspense fallback={<p role="status">Erklärvideo wird vorbereitet …</p>}><PreparedVideo {...props} prepareUrl={props.prepareUrl} onFallback={() => setFallback(true)} /></Suspense>;
+    return <Suspense fallback={<p role="status"><VideoLoading text="Erklärvideo wird vorbereitet …" /></p>}><PreparedVideo {...props} prepareUrl={props.prepareUrl} onFallback={() => setFallback(true)} /></Suspense>;
   }
   return <StoryboardVideo {...props} />;
 }
 
-function VideoLoading() {
+function VideoLoading({ text = 'Erklärvideo wird geladen …' }: { text?: string }) {
   const { t } = useI18n();
-  return <>{t('Erklärvideo wird geladen …')}</>;
+  return <>{t(text)}</>;
 }
 
 function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComplete: (a: Answer) => Promise<void> }) {
