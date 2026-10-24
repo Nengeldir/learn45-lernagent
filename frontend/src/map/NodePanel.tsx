@@ -1,46 +1,12 @@
 // Side panel next to the map: the agent's next step with its reasons, or details of a selected node.
 // Learners are new to computers: one clear action per view, plain words, the agent's reasoning behind "Mehr erfahren".
-import { useState } from 'react';
-import type { Lesson, MapNode, Recommendation, SessionView, Track } from '@l45/shared';
+import type { Lesson, MapNode, Recommendation, SessionView } from '@l45/shared';
 import { LERNSTAND_LABEL, SOURCE_LABEL, TYPE_LABEL } from '@l45/shared';
 import { NextTopics } from '../lessons/NextTopics.tsx';
-import { api } from '../lib/api.ts';
 import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
-import { Podcast } from './Podcast.tsx';
 
 const LEVEL_TEXT: Record<string, string> = { Grundstufe: 'keins oder wenig', Mittelstufe: 'etwas', Fortgeschritten: 'viel' };
-
-/** Own tracks in which nothing is left to do. */
-export const idleOwnTracks = (view: SessionView): Track[] =>
-  view.skills.find((s) => s.id === 'custom')?.tracks.filter((t) => !view.session.nodes.some((n) => n.kind === 'lesson' && n.trackId === t.id && n.state !== 'done' && n.state !== 'skipped')) ?? [];
-
-/** Own tracks have no prepared lessons. When nothing is open there, the learner can ask for the next one. */
-export function NextLesson({ track, onFocus }: { track: Track; onFocus: (nodeId: string | null) => void }) {
-  const { view, setView } = useStore();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  if (!view?.canCreateTracks) return null;
-  const go = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const r = await api.nextLesson(view.session.id, track.id);
-      setView(r.view, r.generated);
-      onFocus(r.view.recommendation?.nodeId || null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <div>
-      <button className="btn secondary block" disabled={busy} onClick={go}><Icon name="sparkle" size={16} />{busy ? 'Lektion wird erstellt …' : `Noch eine Lektion zu «${track.name}»`}</button>
-      {error && <p className="error small" role="alert">{error}</p>}
-    </div>
-  );
-}
 
 /** Which plan this is: the agent's (A1), the rules' while the agent still works, or the rules' alone. */
 export function planLabel(rec: Recommendation, view: SessionView) {
@@ -204,7 +170,6 @@ export function NodePanel({
           ))}
         </ul>
         {track && <NextTopics key={track.id} trackId={track.id} onStart={onStart} onFocus={onFocus} />}
-        {track && <Podcast key={track.id} sessionId={session.id} track={track} />}
         <details className="more">
           <summary>Mehr erfahren</summary>
           {stand.length > 0 && (

@@ -9,6 +9,7 @@ import { LessonSource } from '../map/NodePanel.tsx';
 import { AiChat } from './AiChat.tsx';
 import { MarkEvidence, MockSite } from './Checkable.tsx';
 import { MissionCard } from './MissionCard.tsx';
+import { PodcastLesson } from './PodcastLesson.tsx';
 import { Video } from './Video.tsx';
 
 export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (showNext: boolean) => void }) {
@@ -87,6 +88,7 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
             {lesson.type === 'mock-site' && <MockSite lesson={lesson} sessionId={sessionId} nodeId={nodeId} onComplete={onComplete} />}
             {lesson.type === 'video' && <Video lesson={lesson} prepareUrl={`/api/sessions/${encodeURIComponent(sessionId)}/nodes/${encodeURIComponent(nodeId)}/video`} onComplete={onComplete} />}
             {lesson.type === 'ai-chat' && <AiChat lesson={lesson} sessionId={sessionId} nodeId={nodeId} onComplete={onComplete} />}
+            {lesson.type === 'podcast' && <PodcastLesson lesson={lesson} sessionId={sessionId} nodeId={nodeId} onComplete={onComplete} />}
           </div>
         )}
 

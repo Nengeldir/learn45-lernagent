@@ -11,6 +11,9 @@ import { extractJson, nowIso } from './util.ts';
 import { validateLesson } from './validate.ts';
 
 export const LESSON_TYPES: LessonType[] = ['video', 'mark-evidence', 'mock-site', 'ai-chat'];
+/** Types a learner can choose for any topic. A podcast needs only criteria and sources, so it fits every track;
+ *  the planner keeps to LESSON_TYPES and the track's own types, so only learners ask for podcasts. */
+export const typesFor = (track: Track): LessonType[] => [...new Set([...(track.custom?.lessonTypes ?? LESSON_TYPES), 'podcast' as const])];
 /** At most this many lessons per session come from the model (agent, rules and new tracks together). */
 export const GENERATED_PER_SESSION = 10;
 
@@ -55,6 +58,12 @@ Regeln: nur erfundene Marken, nur Adressen auf .example, keine echten Firmen. Be
  "criteria":[{"id":"<kriterium-id>","label":"Name","hint":"Hinweis, falls es fehlt"}],
  "fallbackReplies":["Antwort ohne Modell 1","2","3"],"minTurns":3}
 kind ist tutor (stellt Fragen), roleplay (spielt eine Rolle) oder prompt-lab (führt Aufträge wörtlich aus). material ist freiwillig.`,
+  podcast: `{"lines":[{"speaker":"a","text":"Frage oder Überleitung"},{"speaker":"b","text":"Erklärung mit Beispiel"}],
+ "questions":[{"prompt":"Frage","options":["Antwort A","Antwort B","Antwort C"],"correct":0,"explanation":"Warum","criterion":"<kriterium-id>"}]}
+Regeln: Ein Gespräch zwischen Mira (speaker "a", stellt die Fragen, die sich Lernende stellen) und Jonas (speaker "b", erklärt mit einem konkreten Beispiel).
+Gesprochene Sprache: kurze Sätze, keine Aufzählungen, keine Klammern, keine Abkürzungen, keine Adressen. Beide sprechen die zuhörende Person mit du an.
+8 bis 14 Beiträge, zusammen höchstens 2500 Zeichen (etwa zwei Minuten), jeder Beitrag höchstens drei Sätze. Schluss: die Faustregel in einem Satz.
+Danach 2 bis 3 Fragen zum Gehörten. Alle Antworten einer Frage haben genau gleich viele Wörter und ähnliche Länge. Die erste Antwort ist die richtige (correct: 0); der Server mischt die Reihenfolge.`,
 };
 
 const swiss = <T,>(x: T): T => JSON.parse(JSON.stringify(x).replace(/ß/g, 'ss')) as T;
@@ -82,7 +91,7 @@ export function shuffleQuiz<Q extends { options: string[]; correct: number }>(qu
 
 export async function generateLesson(input: GenerateInput, onCall: (c: ModelCall) => void): Promise<GenerateResult> {
   const { track } = input;
-  const types = track.custom?.lessonTypes ?? LESSON_TYPES;
+  const types = typesFor(track);
   if (!types.includes(input.type)) return { ok: false, errors: [`Typ muss in diesem Bereich einer von ${types.join(', ')} sein`] };
   if (!DCC_LEVELS.includes(input.level)) return { ok: false, errors: ['level muss Grundstufe, Mittelstufe oder Fortgeschritten sein'] };
   const targets = [...new Set([input.criterion, ...(input.reviewOf ?? [])])];
@@ -134,6 +143,9 @@ export async function generateLesson(input: GenerateInput, onCall: (c: ModelCall
   let content = swiss(raw.content) as Record<string, unknown>;
   if (input.type === 'video' && Array.isArray(content.questions)) {
     content = { scenes: content.scenes, questions: shuffleQuiz(content.questions as { options: string[]; correct: number }[]) };
+  }
+  if (input.type === 'podcast' && Array.isArray(content.questions)) {
+    content = { lines: content.lines, questions: shuffleQuiz(content.questions as { options: string[]; correct: number }[]) };
   }
   if (input.type === 'ai-chat' && Array.isArray(content.criteria)) {
     // Keyword patterns for judging without a model come from the track, not from the model.

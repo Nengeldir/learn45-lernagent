@@ -6,11 +6,12 @@ import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
 import { MindMap } from '../map/MindMap.tsx';
 import { NodePanel } from '../map/NodePanel.tsx';
-import { LearningPath } from '../path/LearningPath.tsx';
+import { Topics } from '../path/Topics.tsx';
+import { TrackView } from '../path/TrackView.tsx';
 import { AddTrack } from './AddTrack.tsx';
 import { Settings } from './Settings.tsx';
 
-/** Path (one topic as a line of lessons) or the whole mind map. Remembered per browser, the path is the default. */
+/** The list of topics (and one topic as a line of lessons) or the whole mind map. Remembered per browser; the list is the default. */
 type Mode = 'path' | 'map';
 const MODE_KEY = 'lernagent.view';
 const readMode = (): Mode => {
@@ -48,8 +49,9 @@ export function MapScreen() {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [lessonNode, setLessonNode] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
-  // The map starts empty: the first thing to do is to choose what to learn.
-  const [adding, setAdding] = useState(() => Boolean(view && !view.skills.length));
+  const [adding, setAdding] = useState(false);
+  /** The topic open in the list view; null shows all topics. */
+  const [openTrack, setOpenTrack] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const [mode, setModeState] = useState<Mode>(readMode);
@@ -126,6 +128,8 @@ export function MapScreen() {
   if (!view || !content) return <Navigate to="/" replace />;
   const selected = mapNodes.find((n) => n.id === selectedId) ?? null;
 
+  const back = mode === 'map' ? () => setMode('path') : openTrack ? () => setOpenTrack(null) : null;
+
   const select = (id: string | null) => {
     setSelectedId(id);
     setSheetOpen(true);
@@ -134,17 +138,10 @@ export function MapScreen() {
   return (
     <div className="mapscreen">
       <header className="topbar">
-        <BrandMark />
+        {back
+          ? <button className="btn secondary small" onClick={back}><Icon name="back" size={18} />Alle Themen</button>
+          : <BrandMark />}
         <span className="spacer" />
-        {mode === 'map' && (
-          <button className="btn primary small" onClick={() => setMode('path')}>
-            <Icon name="back" size={18} /><span className="label-wide">Zurück zum </span>Lernpfad
-          </button>
-        )}
-        {/* On phones three buttons don't fit in map mode; the map's panel has its own "Neues Thema". */}
-        <button className={`btn secondary small${mode === 'map' ? ' hide-narrow' : ''}`} onClick={() => setAdding(true)}>
-          <Icon name="plus" size={18} />Neues Thema
-        </button>
         <button className="btn quiet small who" onClick={() => setSettings(true)} aria-label={`Mein Konto (${view.session.userName})`}>
           <span className="avatar" aria-hidden="true">{view.session.userName.slice(0, 1).toUpperCase()}</span>
           <span className="name">Mein Konto</span>
@@ -152,8 +149,10 @@ export function MapScreen() {
       </header>
 
       {mode === 'path' ? (
-        <main className="path-area">
-          <LearningPath view={view} onStart={setLessonNode} onAddTrack={() => setAdding(true)} onShowMap={() => setMode('map')} />
+        <main className="path-area" key={openTrack ?? 'topics'}>
+          {openTrack
+            ? <TrackView view={view} trackId={openTrack} onStart={setLessonNode} />
+            : <Topics view={view} onOpen={setOpenTrack} onOwnTopic={() => setAdding(true)} onShowMap={() => setMode('map')} />}
         </main>
       ) : (
         <main className="map-area">
@@ -203,6 +202,7 @@ export function MapScreen() {
           onClose={() => setAdding(false)}
           onAdded={(nodeId) => {
             setAdding(false);
+            if (mode === 'path' && nodeId?.startsWith('t-')) return setOpenTrack(nodeId.slice(2));
             setSelectedId(nodeId?.startsWith('t-') ? nodeId : null);
             setSheetOpen(true);
             setFocusId(null);

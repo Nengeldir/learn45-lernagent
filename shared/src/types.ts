@@ -85,7 +85,7 @@ export interface Criterion {
   ruleOfThumb: string;
 }
 
-export type LessonType = 'video' | 'ai-chat' | 'mock-site' | 'mark-evidence';
+export type LessonType = 'video' | 'ai-chat' | 'mock-site' | 'mark-evidence' | 'podcast';
 
 interface LessonBase {
   id: string;
@@ -159,18 +159,27 @@ export interface NarratedVideoManifest {
   }[];
 }
 
-// --- Podcast: two hosts talk through one track, like an audio overview ---
+// --- Podcast: two hosts talk about one topic, then a few questions ---
 export type PodcastSpeaker = 'a' | 'b';
 export interface PodcastLine { speaker: PodcastSpeaker; text: string }
+export interface PodcastQuestion {
+  prompt: string;
+  options: string[];
+  correct: number;
+  explanation: string;
+  criterion?: string;
+}
+export interface PodcastLesson extends LessonBase {
+  type: 'podcast';
+  content: { lines: PodcastLine[]; questions: PodcastQuestion[] };
+}
 
-/** Times are seconds in the one audio file. */
+/** The narrated audio of a podcast lesson. Times are seconds in the one audio file. */
 export interface PodcastManifest {
-  schemaVersion: 1;
-  trackId: string;
+  schemaVersion: 2;
+  lessonId: string;
   title: string;
   locale: 'de-CH';
-  /** model: written by the model; rule: put together from the track without a model */
-  scriptBy: 'model' | 'rule';
   hosts: Record<PodcastSpeaker, string>;
   narration: { provider: 'local' | 'elevenlabs'; voices: Record<PodcastSpeaker, string>; model?: string };
   duration: number;
@@ -180,10 +189,10 @@ export interface PodcastManifest {
 
 export type PodcastStatus =
   | { state: 'idle' }
-  | { state: 'building'; step: 'script' | 'speech'; completed: number; total: number }
+  | { state: 'building'; completed: number; total: number }
   | { state: 'ready'; manifestUrl: string }
-  /** The script survives a failed narration, so the learner can still read it. */
-  | { state: 'error'; message: string; script?: { hosts: Record<PodcastSpeaker, string>; lines: PodcastLine[] } };
+  /** The script is part of the lesson, so the learner can still read it when narration fails. */
+  | { state: 'error'; message: string };
 
 // --- Chat with the AI ---
 export interface ChatCriterion {
@@ -250,7 +259,7 @@ export interface MarkEvidenceLesson extends LessonBase {
   content: { noteTitle: string; note: string[]; summary: SummarySentence[] };
 }
 
-export type Lesson = VideoLesson | AiChatLesson | MockSiteLesson | MarkEvidenceLesson;
+export type Lesson = VideoLesson | AiChatLesson | MockSiteLesson | MarkEvidenceLesson | PodcastLesson;
 
 // ---------------------------------------------------------------------------
 // Answers and results
@@ -264,6 +273,7 @@ export interface ChatTurn {
 
 export type Answer =
   | { type: 'video'; answers: Record<number, number> }
+  | { type: 'podcast'; answers: Record<number, number> }
   | { type: 'ai-chat'; turns: ChatTurn[] }
   | { type: 'mock-site'; marked: string[]; verdict: 'phishing' | 'echt' | null }
   | { type: 'mark-evidence'; marks: Record<string, 'belegt' | 'erfunden'> };
@@ -580,4 +590,5 @@ export const TYPE_LABEL: Record<LessonType, string> = {
   'ai-chat': 'Mit der KI',
   'mock-site': 'Webseite prüfen',
   'mark-evidence': 'Text prüfen',
+  podcast: 'Podcast',
 };

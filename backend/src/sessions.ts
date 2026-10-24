@@ -11,7 +11,7 @@ import { designTrack } from './designer.ts';
 import { GENERATED_PER_SESSION } from './generator.ts';
 import { allLessons, checkPlan } from './guard.ts';
 import {
-  judgeMarkEvidence, judgeMockSite, judgeVideo, partialMarkEvidence, partialMockSite,
+  judgeMarkEvidence, judgeMockSite, judgeQuiz, partialMarkEvidence, partialMockSite,
 } from './judge.ts';
 import { firstLesson, generatedThisSession, ruleLesson } from './ownlessons.ts';
 import { modelStatus, providerName } from './provider.ts';
@@ -434,6 +434,8 @@ export function publicLesson(l: Lesson): Lesson {
     }
     case 'video':
       return { ...l, content: { ...l.content, questions: l.content.questions.map((q) => ({ ...q, correct: -1, explanation: '' })) } };
+    case 'podcast':
+      return { ...l, content: { ...l.content, questions: l.content.questions.map((q) => ({ ...q, correct: -1, explanation: '' })) } };
     case 'ai-chat':
       return { ...l, content: { ...l.content, aiRole: '', fallbackReplies: [], criteria: l.content.criteria.map((c) => ({ ...c, patterns: [] })) } };
   }
@@ -496,7 +498,7 @@ export async function complete(st: Stored, nodeId: string, a: Answer, durationMi
   let result: LessonResult;
   if (l.type === 'mark-evidence' && a.type === 'mark-evidence') result = judgeMarkEvidence(l, a, track);
   else if (l.type === 'mock-site' && a.type === 'mock-site') result = judgeMockSite(l, a, track);
-  else if (l.type === 'video' && a.type === 'video') result = judgeVideo(l, a, track);
+  else if ((l.type === 'video' && a.type === 'video') || (l.type === 'podcast' && a.type === 'podcast')) result = judgeQuiz(l, a, track);
   else if (l.type === 'ai-chat' && a.type === 'ai-chat') result = await judgeChat(l, a.turns.slice(-30), opts(s), track);
   else throw new HttpError(400, 'Antwort passt nicht zur Lektion');
 

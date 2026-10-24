@@ -86,17 +86,17 @@ describe('Topic previews followed by an explicit format choice', () => {
     expect(calls.filter(c => c.purpose === 'generate')).toHaveLength(1);
   });
 
-  it('uses topic-specific format suggestions and excludes unsupported formats', async () => {
+  it('uses topic-specific format suggestions, excludes unsupported formats and always offers a podcast', async () => {
     const v = await learner();
     setMockHandler(() => JSON.stringify({ topics: [
       { title: 'Linkziele erklären', reason: 'Verstehe die Zieladresse.', criterion: 'link', formats: ['video', 'ai-chat'] },
-      { title: 'Eine Zusammenfassung prüfen', reason: 'Vergleiche Aussagen mit einer Notiz.', criterion: 'link', formats: ['mark-evidence', 'ai-chat', 'podcast'] },
-      { title: 'Eine Login-Seite prüfen', reason: 'Übe direkt an einer Beispiel-Seite.', criterion: 'adresse', formats: ['mock-site', 'video'] },
+      { title: 'Eine Zusammenfassung prüfen', reason: 'Vergleiche Aussagen mit einer Notiz.', criterion: 'link', formats: ['mark-evidence', 'ai-chat', 'lesetext'] },
+      { title: 'Eine Login-Seite prüfen', reason: 'Übe direkt an einer Beispiel-Seite.', criterion: 'adresse', formats: ['mock-site', 'video', 'podcast'] },
     ] }));
     const c = await topics(v);
-    expect(c.topics[0].formats).toEqual(['video', 'ai-chat']);
-    expect(c.topics[1].formats).toEqual(['mark-evidence', 'ai-chat']);
-    expect(c.topics[2].formats).toEqual(['video', 'mock-site']);
+    expect(c.topics[0].formats).toEqual(['video', 'ai-chat', 'podcast']);
+    expect(c.topics[1].formats).toEqual(['mark-evidence', 'ai-chat', 'podcast']);
+    expect(c.topics[2].formats).toEqual(['video', 'mock-site', 'podcast']);
     await choose(v, c, 0, 'mock-site').expect(400);
     expect(calls.filter(c => c.purpose === 'generate')).toHaveLength(0);
   });
@@ -194,7 +194,7 @@ describe('Topic previews followed by an explicit format choice', () => {
   it('rejects invalid, unsupported, cross-learner, and stale choices before generation', async () => {
     const v = await learner();
     const c = await topics(v);
-    await choose(v, c, 0, 'podcast').expect(400);
+    await choose(v, c, 0, 'lesetext').expect(400);
     await choose(v, c, 0, 'unknown-format').expect(400);
     await request(app).post(`/api/sessions/${v.session.id}/topics/choose`).send({ choiceSetId: c.id, topicId: 'made-up', format: 'video' }).expect(400);
     await request(app).post(`/api/sessions/${v.session.id}/topics/custom`).send({ choiceSetId: c.id, topic: 'x' }).expect(400);

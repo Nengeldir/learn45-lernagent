@@ -2,7 +2,7 @@
 // so the agent can treat all types the same way. The track is the learner's: prepared or their own.
 import type {
   AiChatLesson, Answer, ChatTurn, CriterionResult, LessonResult, MarkEvidenceLesson, MockPart, MockSiteLesson,
-  PartialCheck, Track, VideoLesson,
+  PartialCheck, PodcastLesson, Track, VideoLesson,
 } from '@l45/shared';
 
 const criterionLabel = (track: Track | undefined, id: string) => track?.criteria.find((c) => c.id === id)?.label ?? id;
@@ -88,9 +88,9 @@ export function judgeMockSite(lesson: MockSiteLesson, a: MockAnswer, track?: Tra
   return { allMet: verdictOk && signalsMissed === 0 && !overFlagged, criteria, items, summary, judgedBy: 'rule' };
 }
 
-// --- Video with questions ------------------------------------------------------------------
+// --- Video and podcast: questions with one right answer ---------------------------------------
 
-export function judgeVideo(lesson: VideoLesson, a: Extract<Answer, { type: 'video' }>, track?: Track): LessonResult {
+export function judgeQuiz(lesson: VideoLesson | PodcastLesson, a: { answers: Record<number, number> }, track?: Track): LessonResult {
   const criteria: CriterionResult[] = [];
   const items: LessonResult['items'] = [];
   lesson.content.questions.forEach((q, i) => {
