@@ -1239,12 +1239,17 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .lesson-ai-chat { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 8px; }
 .lesson-ai-chat > .lesson-progress { flex: none; margin-bottom: 0; }
 .lesson-ai-chat > .goal, .lesson-ai-chat > .activity-actions, .lesson-ai-chat > .contribution-saved, .chat-how { flex: none; }
-.lesson-ai-chat > .chat-layout { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 8px; }
+.lesson-ai-chat > .chat-layout { display: flex; flex-direction: column; align-items: stretch; flex: 1; min-height: 0; gap: 8px; }
 .lesson-ai-chat .chat { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .lesson-ai-chat .chat-log { height: auto; min-height: 70px; flex: 1; }
 .lesson-ai-chat .composer { flex: none; }
 .lesson-ai-chat .chat-material { flex: none; padding: 8px 12px; }
 .lesson-ai-chat .chat-material[open] { max-height: 22dvh; overflow: auto; }
+.lesson-ai-chat > .learn-more { flex: none; }
+/* Expanded resources follow the conversation in the lesson's normal scroll area. */
+.lesson-content:has(.lesson-ai-chat .learn-more-body) { overflow-y: auto; }
+.lesson-ai-chat:has(.learn-more-body), .lesson-ai-chat:has(.learn-more-body) > .chat-layout { flex: none; }
+.lesson-ai-chat:has(.learn-more-body) .chat-log { flex: none; height: clamp(180px, 34dvh, 330px); }
 .chat-how { font-size: 13px; color: var(--ink-2); }
 .chat-how summary { cursor: pointer; }
 .chat-how p { margin: 5px 0; }
