@@ -183,7 +183,7 @@ export function NodePanel({
         <LessonFacts node={selected} />
         <p>{lesson.intro}</p>
         <LessonSource lesson={lesson} />
-        {selected.addedByAgent && <p className="note small">{t('Diesen Knoten hat der Agent nach deinen Ergebnissen neu hinzugefügt.')}</p>}
+        {selected.addedByAgent && <p className="note small">{t('Diese Lektion hat der Agent nach deinen Ergebnissen neu hinzugefügt.')}</p>}
         {isAlt && recNode && (
           <p className="note">{t('Das ist die Alternative zur Empfehlung «{label}». Wenn du sie startest, merkt sich der Agent, dass du die Empfehlung abgelehnt hast.', { label: labelOf(recNode) })}</p>
         )}

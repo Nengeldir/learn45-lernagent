@@ -92,7 +92,7 @@ export const RM: Record<string, string> = {
   "Mit 10 Minuten mehr gäbe es noch einen Schritt.": "Cun 10 minutas dapli dess quai anc in pass.",
   "10 Minuten mehr": "10 minutas dapli",
   "Zurück zum nächsten Schritt": "Enavos al proxim pass",
-  "Diesen Knoten hat der Agent nach deinen Ergebnissen neu hinzugefügt.": "L’agent ha agiuntà quest nuv tenor tes resultats.",
+  "Diese Lektion hat der Agent nach deinen Ergebnissen neu hinzugefügt.": "L’agent ha agiuntà questa lecziun tenor tes resultats.",
   "Geplant. Du kannst sie freiwillig jederzeit starten.": "Planisà. Ti pos al cumenzar cura che ti vuls.",
   "Gelöst": "Schlià",
   "Mit Lücken": "Cun largias",
