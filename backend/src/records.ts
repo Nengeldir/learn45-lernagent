@@ -8,6 +8,7 @@ import type {
 import { criterionLabel, ruleOfThumb, trackIn } from './tracks.ts';
 import { newId, nowIso } from './util.ts';
 import { nextRecordId, writeRecord, writeReference, type Stored } from './workspace.ts';
+import { firstReviewAt, scheduleReview } from './reviewSchedule.ts';
 
 export interface RecordInput {
   kind: RecordKind;
@@ -183,6 +184,11 @@ export function lernstand(st: Stored, trackId: string, criterion: string): Lerns
   let state: LernstandState = 'unbekannt';
   if (demo) state = missedSince(st, demo) ? 'am-ueben' : 'sicher';
   else if (recs.length) state = 'am-ueben';
+  const review = st.session.reviewQueue.find((q) => q.trackId === trackId && q.criterion === criterion);
+  const latestEvent = [...st.session.events].reverse().find((ev) => ev.trackId === trackId && outcome(ev, criterion) !== null);
+  if (review?.lastReviewSource === 'recall' && review.lastReviewedAt && (!latestEvent || review.lastReviewedAt >= latestEvent.at)) {
+    state = review.lastCorrect ? 'sicher' : 'am-ueben';
+  }
   return { trackId, criterion, state, recordIds: recs.map((r) => r.id) };
 }
 
@@ -196,27 +202,33 @@ function queueReview(st: Stored, rec: LearningRecord) {
   const s = st.session;
   const item = s.reviewQueue.find((q) => q.status === 'waiting' && q.trackId === rec.trackId && q.criterion === rec.criterion);
   const fresh = { recordId: rec.id, addedAt: rec.createdAt, addedAfterEvents: s.events.length, addedInSession: s.sessionNo };
-  if (item) Object.assign(item, fresh);
-  else s.reviewQueue.push({ id: newId('rv'), trackId: rec.trackId, criterion: rec.criterion!, status: 'waiting', ...fresh });
+  if (item) item.recordId = rec.id;
+  else s.reviewQueue.push({ id: newId('rv'), trackId: rec.trackId, criterion: rec.criterion!, status: 'waiting', dueAt: firstReviewAt(rec.createdAt), intervalDays: 1, streak: 0, lapses: 0, ...fresh });
 }
 
-/** Due after at least 2 other lessons, or in a later session. */
+/** Use real deadlines; legacy items retain their old trigger until migrated. */
 export function isDue(st: Stored, q: ReviewItem, eventsSoFar = st.session.events.length) {
-  return q.status === 'waiting' && (eventsSoFar - q.addedAfterEvents >= 2 || st.session.sessionNo > q.addedInSession);
+  return q.status === 'waiting' && (q.dueAt ? Date.parse(q.dueAt) <= Date.now() : eventsSoFar - q.addedAfterEvents >= 2 || st.session.sessionNo > q.addedInSession);
 }
 
-export const dueReviews = (st: Stored, trackId?: string) => st.session.reviewQueue.filter((q) => isDue(st, q) && (!trackId || q.trackId === trackId));
+export const dueReviews = (st: Stored, trackId?: string) => st.session.reviewQueue
+  .filter((q) => isDue(st, q) && (!trackId || q.trackId === trackId))
+  .sort((a, b) => Number(b.lastCorrect === false) - Number(a.lastCorrect === false) || (b.lapses ?? 0) - (a.lapses ?? 0) || (a.dueAt ?? a.addedAt).localeCompare(b.dueAt ?? b.addedAt));
 
-/** A due review is done when a later lesson solves the criterion without help. Call before recordFromEvent. */
+/** Keep reviews recurring. A missed criterion in a normal lesson also shortens its deadline. */
 export function settleReviews(st: Stored, ev: LearningEvent) {
   const before = st.session.events.findIndex((x) => x.id === ev.id);
-  for (const q of st.session.reviewQueue) {
-    if (q.trackId !== ev.trackId || !isDue(st, q, before)) continue;
-    // Any mode counts here: a review in a chat with the AI is still retrieval, as long as no hint was needed.
-    if (outcome(ev, q.criterion) === 'met' && !ev.helpUsed && ev.attempts <= 1) {
-      q.status = 'done';
-      q.doneEventId = ev.id;
+  const track = trackIn(st, ev.trackId);
+  for (const criterion of track?.criteria ?? []) {
+    const result = outcome(ev, criterion.id);
+    if (result === null) continue;
+    let q = st.session.reviewQueue.find((q) => q.trackId === ev.trackId && q.criterion === criterion.id);
+    if (!q) {
+      q = { id: newId('rv'), trackId: ev.trackId, criterion: criterion.id, recordId: ev.id, addedAt: ev.at, addedAfterEvents: st.session.events.length, addedInSession: st.session.sessionNo, status: 'waiting', dueAt: firstReviewAt(ev.at), intervalDays: 1, streak: 0, lapses: 0 };
+      st.session.reviewQueue.push(q);
     }
+    if (result === 'missed') scheduleReview(q, false);
+    else if (isDue(st, q, before) && !ev.helpUsed && ev.attempts <= 1) scheduleReview(q, true);
   }
 }
 

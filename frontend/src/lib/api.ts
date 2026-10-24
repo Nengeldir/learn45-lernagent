@@ -1,4 +1,4 @@
-import type { LessonAnswerCheck, LessonAnswerFeedback, CompletionReward, Answer, ChatTurn, ContentBundle, DccLevel, Lesson, LessonResult, LessonType, NextTopic, TopicChoices, PartialCheck, PodcastStatus, SessionView, Source } from '@l45/shared';
+import type { ReviewQuestion, ReviewFeedback, LessonAnswerCheck, LessonAnswerFeedback, CompletionReward, Answer, ChatTurn, ContentBundle, DccLevel, Lesson, LessonResult, LessonType, NextTopic, TopicChoices, PartialCheck, PodcastStatus, SessionView, Source } from '@l45/shared';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public body: Record<string, unknown> = {}) {
@@ -45,6 +45,8 @@ export const api = {
   content: () => call<ContentBundle>('GET', '/api/content'),
   login: (body: LoginBody) => call<SessionView>('POST', '/api/login', body),
   session: (id: string) => call<SessionView>('GET', s(id)),
+  startReview: (id: string, reviewId: string) => call<{ question: ReviewQuestion; view: SessionView }>('POST', `${s(id)}/reviews/${encodeURIComponent(reviewId)}/start`, {}),
+  answerReview: (id: string, reviewId: string, challengeId: string, option: number) => call<{ feedback: ReviewFeedback; view: SessionView }>('POST', `${s(id)}/reviews/${encodeURIComponent(reviewId)}/answer`, { challengeId, option }),
   generated: (id: string) => call<Lesson[]>('GET', `${s(id)}/lessons`),
   patch: (id: string, body: Record<string, unknown>) => call<SessionView>('PATCH', s(id), body),
   addTracks: (id: string, trackIds: string[]) => call<{ view: SessionView; generated: Lesson[] }>('POST', `${s(id)}/tracks`, { trackIds }),

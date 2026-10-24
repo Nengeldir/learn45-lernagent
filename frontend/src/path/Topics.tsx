@@ -9,12 +9,14 @@ import { useI18n } from '../lib/i18n.tsx';
 import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
 import { TRACK_COLOR, trackColors } from '../map/layout.ts';
+import { ReviewCard } from '../reviews/Reviews.tsx';
 
-export function Topics({ view, onOpen, onOwnTopic, onShowMap }: {
+export function Topics({ view, onOpen, onOwnTopic, onShowMap, onReview }: {
   view: SessionView;
   onOpen: (trackId: string) => void;
   onOwnTopic: () => void;
   onShowMap: () => void;
+  onReview: () => void;
 }) {
   const { content, setView } = useStore();
   const { t, skillName, trackName } = useI18n();
@@ -46,6 +48,7 @@ export function Topics({ view, onOpen, onOwnTopic, onShowMap }: {
 
   return (
     <div className="home">
+      <ReviewCard view={view} onStart={onReview} />
       <RewardsSummary progress={view.rewards} name={session.userName} />
       <LearningGoals progress={view.rewards} />
       <h1 className="home-title">{t('Was möchtest du lernen?')}</h1>

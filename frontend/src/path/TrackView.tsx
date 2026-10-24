@@ -11,11 +11,13 @@ import { useStore } from '../lib/store.tsx';
 import { trackColors } from '../map/layout.ts';
 import { mountainsOf, STEPS_PER_MOUNTAIN } from './mountains.ts';
 import { pathOf } from './order.ts';
+import { ReviewCard } from '../reviews/Reviews.tsx';
 
-export function TrackView({ view, trackId, onStart }: {
+export function TrackView({ view, trackId, onStart, onReview }: {
   view: SessionView;
   trackId: string;
   onStart: (nodeId: string) => void;
+  onReview: () => void;
 }) {
   const { lessonOf } = useStore();
   const { t, trackName } = useI18n();
@@ -37,6 +39,7 @@ export function TrackView({ view, trackId, onStart }: {
         <h1 className="home-title">{trackName(track.id, track.name)}</h1>
         <TopicLevel progress={view.rewards.tracks[track.id]} name={trackName(track.id, track.name)} />
       </header>
+      <ReviewCard view={view} trackId={trackId} onStart={onReview} />
 
       <section className="climb" aria-labelledby="climb-title">
         <div className="climb-visual">
