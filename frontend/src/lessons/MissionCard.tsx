@@ -37,7 +37,7 @@ export function MissionCard({ track, onDone }: { track: Track; onDone: () => voi
       <p>{t('Der Agent richtet die Beispiele danach aus. Du kannst die Mission später in den Einstellungen unter «Profil» ändern.')}</p>
       <div className="choices">
         {suggestions.map((s) => (
-          <button key={s} className="choice" aria-pressed={text === s} onClick={() => setText(s)}>{t(s)}</button>
+          <button key={s} className="choice" aria-pressed={text === t(s)} onClick={() => setText(t(s))}>{t(s)}</button>
         ))}
       </div>
       <label className="field">
