@@ -45,7 +45,18 @@ ANTHROPIC_MODEL=claude-haiku-5-5
 
 Der Schlüssel bleibt im Backend. Der Browser spricht nie direkt mit einem Modell. Antwortet das Modell im Chat nicht innerhalb von 8 Sekunden, nimmt die App die vorbereitete Antwort und kennzeichnet sie. Was an das Modell geht, steht unter «Datenschutz».
 
-Der Planer-Agent läuft nur mit `MODEL_PROVIDER=anthropic` (Werkzeuge über die Messages API). Er nutzt `ANTHROPIC_PLANNER_MODEL` (Standard `claude-opus-5-5` mit tiefer Denkstufe, damit ein Schritt in 20 Sekunden passt). Mit `openai` oder ohne Anbieter planen nur die Regeln.
+Alternativ unterstützt OpenAI Chat, Beurteilung, Bereichsentwurf, Lektionsgenerierung und den Planer-Agenten über die Responses API:
+
+```
+MODEL_PROVIDER=openai
+OPENAI_API_KEY=...
+OPENAI_MODEL=gpt-6-luna
+OPENAI_PLANNER_MODEL=gpt-6-sol
+OPENAI_REASONING_EFFORT=low
+OPENAI_PLANNER_REASONING_EFFORT=low
+```
+
+`OPENAI_MODEL` übernimmt Chat, Hinweise und Beurteilung. `OPENAI_PLANNER_MODEL` übernimmt Planung, neue Bereiche und Lektionen; ohne diese Einstellung wird `OPENAI_MODEL` verwendet. Beide Denkstufen sind standardmässig `low` und können getrennt geändert werden. Der OpenAI-Endpunkt muss die Responses API unterstützen; ein reiner Chat-Completions-Endpunkt reicht nicht. Anthropic bleibt über die Messages API unterstützt: `ANTHROPIC_MODEL` für Chat und Beurteilung, `ANTHROPIC_PLANNER_MODEL` (Standard `claude-opus-5-5`) mit tiefer Denkstufe für Planung, Bereichsentwurf und Lektionen. Scheitert ein Plan, übernehmen die Regeln.
 
 ## Anmeldung und DCC
 
@@ -90,13 +101,33 @@ Eigene Bereiche haben keine vorbereiteten Lektionen. Der Agent erzeugt jede weit
 | Webseite prüfen | Phishing-Mail und gefälschte Login-Seite | Regel |
 | Mit der KI | Tutor, Rollenspiel, Auftrag an die KI formulieren | Modell, sonst Stichworte |
 
-«Was ist eine Ableitung?» ist als gesprochenes Erklärvideo mit vier animierten Szenen umgesetzt. Es enthält deutsche Sprachausgabe, zeitlich passende Untertitel und die beiden bisherigen Fragen nach Szene 2 und 4. Die übrigen Videos bleiben Storyboards.
+Alle sieben vorbereiteten Video-Lektionen enthalten deutsche ElevenLabs-Sprachausgabe, animierte Szenen, zeitlich passende Untertitel und die bisherigen Fragen. Die geprüfte Ableitungsanimation bleibt erhalten; die übrigen Themen verwenden wiederverwendbare Szenenvorlagen.
 
 Die Ableitungslektion liegt unter Mathematik → Ableitung auf der Lernkarte. Abspielen, Pause, Zurückspulen, Ton und Untertitel funktionieren im Lektionsfenster. Unbeantwortete Fragen lassen sich nicht überspringen. Die Antworten werden wie bisher im Backend bewertet. Kann das Video nicht geladen werden, lässt sich auf das Storyboard wechseln.
 
+### Videos für eigene Themen und vorbereitete Lektionen
+
+Unter **Bereich hinzufügen → Eigenes Thema** das Lernziel eingeben und **Ein Erklärvideo mit Fragen** wählen. Der Textanbieter plant den Bereich mit Quellen und schreibt eine neue Video-Lektion. Danach öffnet sich das Video; der Server erzeugt beim ersten Öffnen Sprache und Animation, zeigt den Fortschritt und speichert das Ergebnis. Die gleichen Fragenpausen, Untertitel, Spulfunktionen und die Bewertung funktionieren auch für diese Lektionen. Die KI liefert strukturierte Szenen und Beschriftungen, keinen ausführbaren Animationscode.
+
+Für **neue Inhalte** müssen `MODEL_PROVIDER=anthropic` mit `ANTHROPIC_API_KEY` oder `MODEL_PROVIDER=openai` mit `OPENAI_API_KEY` und `OPENAI_MODEL` eingerichtet sein. ElevenLabs erzeugt nur die Sprache und ersetzt das Textmodell nicht. Ohne Textmodell bleiben neue Themen gesperrt; alle mitgelieferten Video-Lektionen lassen sich abspielen. Fehlende oder ausgefallene Spracherzeugung bietet weiterhin das Storyboard an.
+
+Alle vorbereiteten Videos erzeugen (bereits aktuelle Videos werden ohne Sprachaufruf übersprungen):
+
+```bash
+npm run videos:build -- --all
+npm run videos:build -- info-v1
+npm run build
+```
+
+Die vorhandene Ableitungsanimation wird dabei beibehalten. Ihr eigener Befehl steht unten. `--force` baut allgemeine Videos neu und verwendet vorhandene Sprachpassagen aus dem Cache. `--replace-custom` ersetzt auf ausdrücklichen Wunsch auch eine eigene Animation durch die allgemeinen Vorlagen.
+
+Fertige Katalogvideos liegen in `frontend/public/videos/<lesson-id>/`. Neue Videos liegen unter `backend/var/videos/<content-hash>/`, fertige Sprachpassagen unter `backend/var/video-speech/`. `VIDEO_CACHE_DIR` und `VIDEO_SPEECH_CACHE_DIR` können diese Speicherorte ändern. Änderungen am Lektionsinhalt erzeugen eine neue Version; Fragenlösungen und die zufällige Reihenfolge der Antworten gehören nicht zum Sprachcache. Beim erneuten Öffnen, gleichzeitigem Öffnen oder nach einem Serverneustart wird fertige Sprache wiederverwendet.
+
+Ein fehlgeschlagener oder unklar beendeter kostenpflichtiger Sprachaufruf wird nicht automatisch wiederholt. Bereits fertige Passagen bleiben erhalten. Nach Prüfung des Fehlers kann ein gezielter neuer Versuch mit `npm run videos:build -- <lesson-id> --retry-failed` ausgelöst werden. Ein Manifest wird erst veröffentlicht, wenn alle Szenen vertont, kompiliert und als renderbar geprüft sind. Die API liefert keine Fragenlösungen aus.
+
 ### Ableitungsvideo neu erzeugen
 
-Die mitgelieferte Lektion enthält deutsche ElevenLabs-Sprachausgabe (Lily, `eleven_multilingual_v2`) und läuft ohne API-Schlüssel. Sie nutzt ein geprüftes Drehbuch und feste Szenenvorlagen; freie Themengenerierung ist noch nicht umgesetzt. Die Darstellung verwendet eine eigenständige, versionierte Kopie der animlib aus OwlYouNeed in `packages/animlib`. Das andere Repository wird weder zur Laufzeit benötigt noch verändert.
+Die mitgelieferte Lektion enthält deutsche ElevenLabs-Sprachausgabe (Lily, `eleven_multilingual_v2`) und läuft ohne API-Schlüssel. Die Ableitung nutzt ein geprüftes Drehbuch. Weitere vorbereitete und von der KI erstellte Video-Lektionen werden aus ihren Szenentexten und kurzen Bildbeschriftungen vertont. Die Darstellung verwendet eine eigenständige, versionierte Kopie der animlib aus OwlYouNeed in `packages/animlib`. Das andere Repository wird weder zur Laufzeit benötigt noch verändert.
 
 ```bash
 npm run video:build
@@ -283,7 +314,7 @@ Neue Lektionen kommen als JSON nach `data/lessons/`. Beim Start prüft das Backe
 - Eigene Bereiche nur mit KI. Ihre Quellen schlägt die KI vor. Geprüft wird nur, ob die Adresse antwortet, nicht der Inhalt. Die App sagt das bei jeder Lektion und im Bereich.
 - Bereiche lassen sich noch nicht von der Karte entfernen. Höchstens 8 eigene Bereiche.
 - Kein Lernen mit anderen Personen. Die Modi sind «Alleine» und «Mit KI». Der Teil «Wisdom/Community» aus «teach» kommt mit diesem Modus.
-- Nur die Ableitungslektion hat ein fertiges Erklärvideo; die übrigen Videos sind Storyboards. Erzeugte Videos nutzen nur die einfachen Bilder «steps» und «url-parts».
+- Erzeugte Videos verwenden wiederverwendbare Animationen («steps» und «url-parts»), keine frei erfundenen Animationsprogramme. Bei Ausfällen ist das Storyboard verfügbar.
 - Keine echte Anmeldung: Name und DCC-Resultat reichen. Wer den Namen kennt, kann weitermachen.
 - Der Speicher ist ein Ordner pro Person, ohne Datenbank und ohne Sperren für mehrere Server.
 - Der Planer-Agent läuft nur mit Anthropic. Mit OpenAI planen die Regeln.

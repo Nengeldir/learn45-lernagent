@@ -206,11 +206,15 @@ function Visual({ visual, p, scene, first, items }: { visual: VideoVisual; p: nu
 }
 
 const NarratedVideo = lazy(() => import('./NarratedVideo.tsx'));
+const PreparedVideo = lazy(() => import('./PreparedVideo.tsx'));
 
-export function Video(props: { lesson: VideoLesson; onComplete: (a: Answer) => Promise<void> }) {
+export function Video(props: { lesson: VideoLesson; prepareUrl?: string; onComplete: (a: Answer) => Promise<void> }) {
   const [fallback, setFallback] = useState(false);
   if (props.lesson.content.narrated && !fallback) {
     return <Suspense fallback={<p role="status">Erklärvideo wird geladen …</p>}><NarratedVideo {...props} onFallback={() => setFallback(true)} /></Suspense>;
+  }
+  if (props.prepareUrl && !fallback) {
+    return <Suspense fallback={<p role="status">Erklärvideo wird vorbereitet …</p>}><PreparedVideo {...props} prepareUrl={props.prepareUrl} onFallback={() => setFallback(true)} /></Suspense>;
   }
   return <StoryboardVideo {...props} />;
 }

@@ -133,7 +133,7 @@ export async function generateLesson(input: GenerateInput, onCall: (c: ModelCall
   const title = String(raw.title ?? '').trim();
   let content = swiss(raw.content) as Record<string, unknown>;
   if (input.type === 'video' && Array.isArray(content.questions)) {
-    content = { ...content, questions: shuffleQuiz(content.questions as { options: string[]; correct: number }[]) };
+    content = { scenes: content.scenes, questions: shuffleQuiz(content.questions as { options: string[]; correct: number }[]) };
   }
   if (input.type === 'ai-chat' && Array.isArray(content.criteria)) {
     // Keyword patterns for judging without a model come from the track, not from the model.

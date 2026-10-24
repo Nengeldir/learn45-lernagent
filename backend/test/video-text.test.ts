@@ -20,4 +20,11 @@ describe('German animation labels', () => {
     expect(textTex('na\u0308her')).toBe(textTex('näher'));
     expect(() => layoutLatex(textTex('A & B: 50%'))).not.toThrow();
   });
+  it('renders scientific notation used in novel lesson labels', () => {
+    for(const text of ['CO₂ und H₂O','Fläche = πr²','ΔE ≥ 0','20 °C','α × β ≠ Ω']) {
+      const glyphs=layoutLatex(textTex(text));
+      expect(glyphs.paths.length,text).toBeGreaterThan(0);
+      expect(glyphs.width,text).toBeLessThan(14);
+    }
+  });
 });

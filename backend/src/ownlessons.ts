@@ -35,12 +35,12 @@ async function generate(st: Stored, track: Track, types: LessonType[], want: Wan
 }
 
 /** The first lesson of a new own track: a short starter on the first criterion, at the level the learner stated. */
-export function firstLesson(st: Stored, track: Track, goal?: string): Promise<GenerateResult> {
+export function firstLesson(st: Stored, track: Track, goal?: string, requestedType?: 'video'): Promise<GenerateResult> {
   const types = track.custom!.lessonTypes;
-  return generate(st, track, [...types.filter((t) => t === 'video'), ...types.filter((t) => t !== 'video')], {
+  return generate(st, track, requestedType ? [requestedType] : [...types.filter((t) => t === 'video'), ...types.filter((t) => t !== 'video')], {
     criterion: track.criteria[0].id,
     level: track.custom!.selfLevel,
-    contextHint: `Einstieg in «${track.name}». Zeigt, was die Person schon weiss.`,
+    contextHint: `Einstieg in «${track.name}». ${requestedType === 'video' ? 'Die Person wünscht ausdrücklich ein Erklärvideo mit Fragen zu ihrem Thema.' : 'Zeigt, was die Person schon weiss.'}`,
     mission: goal ?? track.mission?.default ?? track.custom!.topic,
     basedOn: [],
   });

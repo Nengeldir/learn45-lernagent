@@ -148,7 +148,7 @@ export interface NarratedVideoManifest {
   title: string;
   locale: 'de-CH';
   scriptHash: string;
-  narration: { provider: 'local' | 'elevenlabs'; voice: string };
+  narration: { provider: 'local' | 'elevenlabs'; voice: string; model?: string };
   scenes: {
     id: string;
     title: string;
