@@ -1407,3 +1407,47 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 @media (prefers-reduced-motion: reduce) {
   .hiker-svg, .hiker-svg *, .gondola-svg, .cheer line, .cheer text { animation: none !important; }
 }
+
+/* --- Red and white (Jiaqi): the progress card, level emblem and medals use flag red and white instead of green and yellow --- */
+.rewards-hero { background: var(--red); color: #ffffff; box-shadow: 0 8px 28px rgb(218 41 28 / 0.18); }
+.rewards-hero::after { border-color: rgb(255 255 255 / 0.12); box-shadow: 0 0 0 30px rgb(255 255 255 / 0.07); opacity: 1; }
+.level-emblem { background: #ffffff; color: var(--red); }
+.level-emblem > .icon { fill: var(--red); }
+.rewards-intro .eyebrow, .rewards-intro > p:not(.eyebrow), .hero-progress > p, .hero-progress .xp-label > span, .rewards-stats { color: rgb(255 255 255 / 0.88); }
+.hero-progress .xp-label > strong, .rewards-stats strong, .rewards-stats .icon { color: #ffffff; }
+.hero-progress .xp-bar { background: rgb(0 0 0 / 0.18); }
+.hero-progress .xp-bar > span { background: #ffffff; }
+.rewards-stats { border-top-color: rgb(255 255 255 / 0.3); }
+.celebration-medal { background: var(--red); color: #ffffff; }
+.recommended .topic-start { color: var(--on-red); background: var(--red); }
+/* Progress, streaks and finished steps in red instead of green. Wrong answers keep their cross and the darker alert red. */
+:root { --ok: var(--red); --ok-soft: var(--red-soft); }
+.inspection-check { background: var(--red); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) { --ok: #ff6b5e; --ok-soft: #3a1d1b; }
+}
+:root[data-theme='dark'] {
+  --paper: #141213;
+  --surface: #1e1b1c;
+  --surface-2: #2a2627;
+  --surface-3: #332e2f;
+  --ink: #f3efed;
+  --ink-2: #b7adaa;
+  --ink-3: #8a807d;
+  --line: #3b3536;
+  --line-strong: #4a4244;
+  --on-ink: #141213;
+  --red: #e8392c;
+  --red-dark: #ff8a80;
+  --red-soft: #3a1d1b;
+  --trail: var(--red);
+  --trail-dark: var(--red-dark);
+  --trail-soft: var(--red-soft);
+  --ok: #ff6b5e;
+  --ok-soft: #3a1d1b;
+}
+/* Neutral warm greys instead of the green-tinted ones */
+:root { --surface-3: #e9e3e1; --line-strong: #d3cac7; --ink-3: #8f8784; --scrim: rgb(20 14 14 / 0.42); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) { --surface-3: #332e2f; --ink-3: #8a807d; --line-strong: #4a4244; --on-ink: #141213; --trail: var(--red); --trail-dark: var(--red-dark); --trail-soft: var(--red-soft); }
+}
