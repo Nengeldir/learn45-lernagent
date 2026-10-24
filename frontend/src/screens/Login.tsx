@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import type { DccLevel, DccResultFile, LoginConflict } from '@l45/shared';
 import { DCC_LEVELS } from '@l45/shared';
 import { api, ApiError } from '../lib/api.ts';
+import { LangSwitch, localeOf, useI18n } from '../lib/i18n.tsx';
+import { ThemeSwitch } from '../lib/theme.tsx';
 import { useStore } from '../lib/store.tsx';
 
 const SAMPLES = [
@@ -13,6 +15,7 @@ const SAMPLES = [
 
 export function Login() {
   const { content, setView } = useStore();
+  const { t, lang, level, trackName } = useI18n();
   const nav = useNavigate();
   const tracks = useMemo(() => content?.skills.filter((s) => s.dccBased).flatMap((s) => s.tracks) ?? [], [content]);
   const [name, setName] = useState('');
@@ -28,11 +31,11 @@ export function Login() {
     setError(null);
     try {
       const data = JSON.parse(await f.text()) as DccResultFile;
-      if (data?.type !== 'dcc-result' || !Array.isArray(data.areas)) throw new Error('kein DCC-Resultat');
+      if (data?.type !== 'dcc-result' || !Array.isArray(data.areas)) throw new Error(t('kein DCC-Resultat'));
       setFile({ name: f.name, data });
     } catch {
       setFile(null);
-      setError(`«${f.name}» ist keine gültige DCC-Resultatdatei. Nimm eine der Beispieldateien als Vorlage.`);
+      setError(t('«{name}» ist keine gültige DCC-Resultatdatei. Nimm eine der Beispieldateien als Vorlage.', { name: f.name }));
     }
   };
 
@@ -70,17 +73,24 @@ export function Login() {
 
   return (
     <div className="login">
+      <div className="lang-float">
+        <ThemeSwitch />
+        <LangSwitch />
+      </div>
       <section className="login-intro">
-        <h1>Lernagent</h1>
-        <p className="lead">Lerne den Umgang mit dem Computer in kleinen Schritten. Du wählst ein Thema, der Lernagent zeigt dir immer, was als Nächstes kommt.</p>
+        <h1>
+          <img className="logo" src="/icons/owl.svg" alt="" width={46} height={46} />
+          <span className="brand-name">Owl for <img className="learn45-mark" src="/icons/learn45.png" alt="Learn45" /></span>
+        </h1>
+        <p className="lead">{t('Lerne den Umgang mit dem Computer in kleinen Schritten. Du wählst ein Thema, der Lernagent zeigt dir immer, was als Nächstes kommt.')}</p>
         <MiniMap />
-        <p className="small muted">Prototyp für Learn45. Anmeldung ohne Passwort, nur erfundene Daten.</p>
+        <p className="small muted">{t('Prototyp für Learn45. Anmeldung ohne Passwort, nur erfundene Daten.')}</p>
       </section>
 
-      <section className="login-card" aria-label="Anmelden">
-        <h2>Willkommen!</h2>
+      <section className="login-card" aria-label={t('Anmelden')}>
+        <h2>{t('Willkommen!')}</h2>
         <label className="field">
-          <span>Wie heisst du?</span>
+          <span>{t('Wie heisst du?')}</span>
           <input
             type="text"
             value={name}
@@ -93,11 +103,11 @@ export function Login() {
 
         {/* Optional and only for the prepared Digitale-Kompetenz tracks, so it stays closed unless asked for. */}
         <details className="dcc-box more">
-          <summary>Ich habe ein DCC-Resultat (freiwillig)</summary>
-          <p className="small muted">Nur nötig, wenn du einen DCC-Test gemacht hast. Sonst einfach weiter.</p>
+          <summary>{t('Ich habe ein DCC-Resultat (freiwillig)')}</summary>
+          <p className="small muted">{t('Nur nötig, wenn du einen DCC-Test gemacht hast. Sonst einfach weiter.')}</p>
           <div className="seg" role="tablist">
-            <button role="tab" aria-selected={mode === 'file'} onClick={() => setMode('file')}>Resultat laden</button>
-            <button role="tab" aria-selected={mode === 'manual'} onClick={() => setMode('manual')}>Stufen eingeben</button>
+            <button role="tab" aria-selected={mode === 'file'} onClick={() => setMode('file')}>{t('Resultat laden')}</button>
+            <button role="tab" aria-selected={mode === 'manual'} onClick={() => setMode('manual')}>{t('Stufen eingeben')}</button>
           </div>
 
           {mode === 'file' ? (
@@ -109,13 +119,13 @@ export function Login() {
                 onDrop={onDrop}
               >
                 <input type="file" accept=".json,application/json" onChange={(e) => e.target.files?.[0] && readFile(e.target.files[0])} />
-                {file ? <strong>{file.name}</strong> : <span>DCC-Resultat (JSON) hierher ziehen oder auswählen</span>}
+                {file ? <strong>{file.name}</strong> : <span>{t('DCC-Resultat (JSON) hierher ziehen oder auswählen')}</span>}
               </label>
               <p className="small muted">
-                Beispieldateien:{' '}
+                {t('Beispieldateien')}:{' '}
                 {SAMPLES.map((s, i) => (
                   <span key={s.file}>
-                    <a href={`/dcc-beispiele/${s.file}`} download>{s.label}</a>
+                    <a href={`/dcc-beispiele/${s.file}`} download>{t(s.label)}</a>
                     {i < SAMPLES.length - 1 ? ', ' : ''}
                   </span>
                 ))}
@@ -125,8 +135,8 @@ export function Login() {
                   <tbody>
                     {tracks.map((t) => (
                       <tr key={t.id}>
-                        <td>{t.dccArea} {t.name}</td>
-                        <td>{levelOf(t.dccArea) ?? <span className="muted">nicht erhoben</span>}</td>
+                        <td>{t.dccArea} {trackName(t.id, t.name)}</td>
+                        <td>{levelOf(t.dccArea) ? level(levelOf(t.dccArea)) : <span className="muted">{level(null)}</span>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -138,11 +148,11 @@ export function Login() {
               <tbody>
                 {tracks.map((t) => (
                   <tr key={t.id}>
-                    <td><label htmlFor={`lv-${t.id}`}>{t.dccArea} {t.name}</label></td>
+                    <td><label htmlFor={`lv-${t.id}`}>{t.dccArea} {trackName(t.id, t.name)}</label></td>
                     <td>
                       <select id={`lv-${t.id}`} value={levels[t.id] ?? ''} onChange={(e) => setLevels({ ...levels, [t.id]: (e.target.value || null) as DccLevel | null })}>
-                        <option value="">nicht erhoben</option>
-                        {DCC_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+                        <option value="">{level(null)}</option>
+                        {DCC_LEVELS.map((l) => <option key={l} value={l}>{level(l)}</option>)}
                       </select>
                     </td>
                   </tr>
@@ -150,25 +160,25 @@ export function Login() {
               </tbody>
             </table>
           )}
-          <p className="small muted">Die DCC-Werte bleiben unverändert. Lernen in der App stuft nichts hoch. «Nicht erhoben» heisst nicht geringe Kompetenz.</p>
+          <p className="small muted">{t('Die DCC-Werte bleiben unverändert. Lernen in der App stuft nichts hoch. «Nicht erhoben» heisst nicht geringe Kompetenz.')}</p>
         </details>
 
-        {error && <p className="error" role="alert">{error}</p>}
+        {error && <p className="error" role="alert">{t(error)}</p>}
         {conflict ? (
           <div className="choice-card" role="alert">
             <p>
-              <strong>Willkommen zurück, {conflict.name}!</strong>{' '}
-              Du hast schon {conflict.lessonsDone} {conflict.lessonsDone === 1 ? 'Lektion' : 'Lektionen'} geschafft.
+              <strong>{t('Willkommen zurück, {name}!', { name: conflict.name })}</strong>{' '}
+              {t('Du hast schon {n} {lessons} geschafft.', { n: conflict.lessonsDone, lessons: conflict.lessonsDone === 1 ? t('Lektion') : t('Lektionen') })}
             </p>
             <div className="row">
-              <button className="btn primary big" disabled={busy} onClick={() => submit('continue')}>Weitermachen</button>
-              <button className="btn secondary" disabled={busy} onClick={() => submit('new')}>Neu anfangen</button>
+              <button className="btn primary big" disabled={busy} onClick={() => submit('continue')}>{t('Weitermachen')}</button>
+              <button className="btn secondary" disabled={busy} onClick={() => submit('new')}>{t('Neu anfangen')}</button>
             </div>
-            <p className="small muted">Neu anfangen gibt dir eine leere Karte. Dein alter Stand bleibt gespeichert.</p>
+            <p className="small muted">{t('Neu anfangen gibt dir eine leere Karte. Dein alter Stand bleibt gespeichert.')}</p>
           </div>
         ) : (
           <button className="btn primary big block" disabled={!ready || busy} onClick={() => submit()}>
-            {busy ? 'Einen Moment …' : "Los geht's"}
+            {busy ? t('Einen Moment …') : t("Los geht's")}
           </button>
         )}
       </section>
@@ -176,33 +186,34 @@ export function Login() {
   );
 }
 
-/** Small static drawing of the mind map, as in the team sketch. */
+/** Small static drawing of the knowledge map: five DCC lines leave one station and climb towards the peak. */
 function MiniMap() {
-  const tracks = [[-122, 'var(--c-info)'], [-58, 'var(--c-problem)'], [8, 'var(--c-sicherheit)'], [188, 'var(--c-inhalte)'], [148, 'var(--c-komm)']] as const;
-  const d = { x: 150, y: 95 };
+  // Top to bottom in the bundle; reach = how far each line is already built.
+  const lines = [['var(--c-info)', 96], ['var(--c-komm)', 70], ['var(--c-inhalte)', 108], ['var(--c-sicherheit)', 52], ['var(--c-problem)', 84]] as const;
+  const gap = 8;
+  const top = 118;
   return (
-    <svg viewBox="0 0 300 260" className="minimap" aria-hidden="true">
-      <path d={`M150 205 L${d.x} ${d.y}`} stroke="var(--ink)" strokeWidth="4" />
-      <path d="M150 205 L70 240 M150 205 L230 240" stroke="var(--ink)" strokeWidth="4" />
-      {tracks.map(([a, c]) => {
-        const r = (a * Math.PI) / 180;
-        const x = d.x + Math.cos(r) * 70;
-        const y = d.y + Math.sin(r) * 70;
-        const x2 = x + Math.cos(r) * 38;
-        const y2 = y + Math.sin(r) * 38;
+    <svg viewBox="0 0 320 220" className="minimap" aria-hidden="true">
+      <path d="M0 210 L70 150 L110 168 L222 44 L268 108 L296 92 L320 108 V220 H0 Z" fill="var(--mountain)" />
+      <path d="M222 44 L240 69 L230 64 L221 72 L211 63 L204 66 Z" fill="var(--mountain-snow)" />
+      <path d="M222 44 V24" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
+      <path d="M222 24 L238 29 L222 34 Z" fill="var(--trail)" />
+      {lines.map(([c, reach], i) => {
+        const y = 166 + i * gap;
+        const x = 96 + i * gap * Math.tan(Math.PI / 8);
+        const at = (t: number) => `${x + t} ${y - t}`;
+        const stops = [30, 60, 90].filter((t) => t < reach - 8);
         return (
-          <g key={a}>
-            <path d={`M${d.x} ${d.y} L${x} ${y}`} stroke={c} strokeWidth="3" />
-            <path d={`M${x} ${y} L${x2} ${y2}`} stroke={c} strokeWidth="2" strokeDasharray="2 5" />
-            <circle cx={x} cy={y} r="8" fill={c} />
-            <circle cx={x2} cy={y2} r="5" fill="var(--surface)" stroke={c} strokeWidth="2" />
+          <g key={c}>
+            <path d={`M${at(reach)} L${at(top)}`} stroke={c} strokeWidth="2.5" strokeDasharray="1 6" strokeLinecap="round" />
+            <path d={`M40 ${y} H${x} L${at(reach)}`} stroke={c} strokeWidth="5" fill="none" strokeLinejoin="round" strokeLinecap="round" />
+            <circle cx="70" cy={y} r="2" fill="#fff" />
+            {stops.map((t) => <circle key={t} cx={x + t} cy={y - t} r="2" fill="#fff" />)}
+            <circle cx={x + reach} cy={y - reach} r="5.5" fill="var(--surface)" stroke={c} strokeWidth="3" />
           </g>
         );
       })}
-      <circle cx={d.x} cy={d.y} r="16" fill="var(--surface)" stroke="var(--ink)" strokeWidth="3" />
-      <circle cx="70" cy="240" r="11" fill="var(--surface)" stroke="var(--ink)" strokeWidth="3" />
-      <circle cx="230" cy="240" r="11" fill="var(--surface)" stroke="var(--ink)" strokeWidth="3" />
-      <circle cx="150" cy="205" r="20" fill="var(--ink)" />
+      <rect x="30" y="158" width="20" height={4 * gap + 16} rx="10" fill="var(--surface)" stroke="var(--ink)" strokeWidth="3" />
     </svg>
   );
 }
