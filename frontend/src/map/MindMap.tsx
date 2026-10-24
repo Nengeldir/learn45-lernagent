@@ -14,7 +14,7 @@ const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').ma
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 export function MindMap({
-  nodes, skills, dcc, lessonOf, selectedId, focusId, onSelect, rightInset = 0,
+  nodes, skills, dcc, lessonOf, selectedId, focusId, onSelect, rightInset = 0, bottomCoverage = 0,
 }: {
   nodes: MapNode[];
   /** The learner's skills and tracks */
@@ -27,10 +27,13 @@ export function MindMap({
   onSelect: (id: string | null) => void;
   /** Space covered by the side panel on the right (desktop) */
   rightInset?: number;
+  /** Fraction covered by the mobile bottom sheet. */
+  bottomCoverage?: number;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 1200, h: 800 });
   const [cam, setCam] = useState<Cam>({ x: 600, y: 400, k: 1 });
+  const visibleHeight = size.h * (1 - bottomCoverage);
   const placed = useMemo(() => layout(nodes), [nodes]);
   const colors = useMemo(() => trackColors(nodes), [nodes]);
   const fitted = useRef(false);
@@ -61,9 +64,9 @@ export function MindMap({
   const fit = useCallback(() => {
     const b = bounds(placed);
     const w = Math.max(200, size.w - rightInset);
-    const k = clamp(Math.min(w / (b.maxX - b.minX), size.h / (b.maxY - b.minY)) * 0.94, 0.3, 1.3);
-    setCam({ k, x: w / 2 - ((b.minX + b.maxX) / 2) * k, y: size.h / 2 - ((b.minY + b.maxY) / 2) * k });
-  }, [placed, size, rightInset]);
+    const k = clamp(Math.min(w / (b.maxX - b.minX), visibleHeight / (b.maxY - b.minY)) * 0.94, 0.3, 1.3);
+    setCam({ k, x: w / 2 - ((b.minX + b.maxX) / 2) * k, y: visibleHeight / 2 - ((b.minY + b.maxY) / 2) * k });
+  }, [placed, size, rightInset, visibleHeight]);
 
   // First view: the whole map if it is readable, otherwise readable and centred on the next step.
   // A map with only the start node is fitted again as soon as the first track is added.
@@ -71,17 +74,17 @@ export function MindMap({
     if (fitted.current || placed.size === 0 || size.w < 50) return;
     const b = bounds(placed);
     const w = Math.max(200, size.w - rightInset);
-    const fitK = Math.min(w / (b.maxX - b.minX), size.h / (b.maxY - b.minY)) * 0.94;
+    const fitK = Math.min(w / (b.maxX - b.minX), visibleHeight / (b.maxY - b.minY)) * 0.94;
     if (fitK >= 0.72) fit();
     else {
       const rec = [...placed.values()].find((p) => p.node.state === 'recommended') ?? placed.get('start');
       const k = 0.85;
       const cx = rec ? (rec.x + 0) / 2 : 0;
       const cy = rec ? (rec.y + 0) / 2 : 0;
-      setCam({ k, x: w / 2 - cx * k, y: size.h / 2 - cy * k });
+      setCam({ k, x: w / 2 - cx * k, y: visibleHeight / 2 - cy * k });
     }
     fitted.current = placed.size > 1;
-  }, [fit, placed, size, rightInset]);
+  }, [fit, placed, size, rightInset, visibleHeight]);
 
   // Smoothly move the camera to a node
   const animateTo = useCallback((id: string | null) => {
@@ -90,7 +93,7 @@ export function MindMap({
     const w = size.w - rightInset;
     setCam((c) => {
       const k = Math.max(c.k, 0.8);
-      const target = { k, x: w / 2 - p.x * k, y: size.h / 2 - p.y * k };
+      const target = { k, x: w / 2 - p.x * k, y: visibleHeight / 2 - p.y * k };
       if (reduced()) return target;
       const from = { ...c };
       const t0 = performance.now();
@@ -103,7 +106,7 @@ export function MindMap({
       requestAnimationFrame(step);
       return c;
     });
-  }, [placed, size, rightInset]);
+  }, [placed, size, rightInset, visibleHeight]);
 
   useEffect(() => {
     if (focusId && fitted.current) animateTo(focusId);
@@ -213,9 +216,9 @@ export function MindMap({
           ))}
         </g>
       </svg>
-      <div className="map-controls" style={{ right: rightInset + 16 }}>
-        <button className="icon-btn" onClick={() => zoomAt((size.w - rightInset) / 2, size.h / 2, 0.8)} aria-label="Herauszoomen" title="Herauszoomen"><Icon name="minus" /></button>
-        <button className="icon-btn" onClick={() => zoomAt((size.w - rightInset) / 2, size.h / 2, 1.25)} aria-label="Hineinzoomen" title="Hineinzoomen"><Icon name="plus" /></button>
+      <div className="map-controls" style={{ right: rightInset + 16, bottom: size.h * bottomCoverage + 16 }}>
+        <button className="icon-btn" onClick={() => zoomAt((size.w - rightInset) / 2, visibleHeight / 2, 0.8)} aria-label="Herauszoomen" title="Herauszoomen"><Icon name="minus" /></button>
+        <button className="icon-btn" onClick={() => zoomAt((size.w - rightInset) / 2, visibleHeight / 2, 1.25)} aria-label="Hineinzoomen" title="Hineinzoomen"><Icon name="plus" /></button>
         <span className="sep" aria-hidden="true" />
         <button className="icon-btn fit" onClick={fit}><Icon name="fit" size={16} />Ganze Karte</button>
       </div>
@@ -260,7 +263,7 @@ function Node({
     }
   };
   const common = {
-    className: `node ${n.kind} ${n.state ?? ''}${selected ? ' selected' : ''}${fresh ? ' fresh' : ''}`,
+    className: `node ${n.kind}${n.topicId ? ' topic-preview' : ''} ${n.state ?? ''}${selected ? ' selected' : ''}${fresh ? ' fresh' : ''}`,
     transform: `translate(${p.x} ${p.y})`,
     tabIndex: 0,
     role: 'button',
@@ -311,7 +314,7 @@ function Node({
 
   // Lesson node
   const lines = wrap(n.label, 20);
-  const meta = lesson ? `${TYPE_LABEL[lesson.type]}, ${lesson.durationMin} Min.${lesson.source === 'model' ? ', KI' : ''}` : '';
+  const meta = n.topicId ? 'Thema · Format wählen' : lesson ? `${TYPE_LABEL[lesson.type]}, ${lesson.durationMin} Min.${lesson.source === 'model' ? ', KI' : ''}` : '';
   const result = n.state === 'done' && n.result ? (n.result.allMet ? 'gelöst' : 'mit Lücken') : '';
   const stateText =
     n.state === 'recommended' ? 'Nächster Schritt' : n.state === 'alternative' ? 'Alternative' : n.state === 'done' ? 'erledigt' : 'geplant';
@@ -326,7 +329,7 @@ function Node({
       {lesson?.type === 'ai-chat' && n.state !== 'done' && <path d="M-6 -4 h12 v7 h-7 l-3 3 v-3 h-2 z" className="glyph" />}
       {lesson?.type === 'mock-site' && n.state !== 'done' && <rect x={-6} y={-5} width={12} height={10} rx={1.5} className="glyph" />}
       {lesson?.type === 'mark-evidence' && n.state !== 'done' && <path d="M-5 -3 h10 M-5 0 h10 M-5 3 h6" className="glyph-line" />}
-      {n.state === 'recommended' && <Flag y={-33} kind="next" text="Nächster Schritt" />}
+      {n.state === 'recommended' && <Flag y={-33} kind="next" text={n.topicId ? 'Empfohlen' : 'Nächster Schritt'} />}
       {n.state === 'alternative' && <Flag y={-31} kind="alt" text="Alternative" />}
       {n.addedByAgent && n.state !== 'done' && n.state !== 'recommended' && n.state !== 'alternative' && <Flag y={-30} kind="new" text="neu" />}
       {lines.map((line, i) => (

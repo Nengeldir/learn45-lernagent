@@ -358,7 +358,7 @@ export function Settings({ onClose, onLogout }: { onClose: () => void; onLogout:
                 <ul className="log">
                   {[...session.recommendations].reverse().map((r) => (
                     <li key={r.id}>
-                      <div className="meta"><span>{time(r.createdAt)}</span><strong>{r.ruleId} {r.ruleName}</strong><span>{r.status === 'open' ? 'offen' : r.status === 'accepted' ? 'angenommen' : 'abgelehnt'}</span></div>
+                      <div className="meta"><span>{time(r.createdAt)}</span><strong>{r.ruleId} {r.ruleName}</strong><span>{r.status === 'open' ? 'offen' : r.status === 'accepted' ? 'angenommen' : r.status === 'chosen' ? 'andere Richtung gewählt' : 'abgelehnt'}</span></div>
                       <p>{node(r.nodeId)?.label ?? 'Kein nächster Schritt'}{r.alternativeNodeId ? `. Alternative: ${node(r.alternativeNodeId)?.label}` : ''}</p>
                       <p className="small muted">{r.observation} {r.tags.map((t) => SOURCE_LABEL[t]).join(', ')}</p>
                       {r.basedOn?.length ? <p className="small muted">Gestützt auf: {r.basedOn.join(', ')}</p> : null}

@@ -164,6 +164,20 @@ Das Drehbuch steht in `data/videos/derivative.json`, die Vorlagen in `scripts/vi
 
 Lösungen bleiben im Backend. Der Browser bekommt die Lektionen ohne Lösungen.
 
+## Nächstes Thema und Format wählen
+
+Die Lernkarte bietet im Seitenbereich drei kurze Themenvorschläge (einen davon empfohlen) und «Eigenes Thema vorschlagen». Auf der Karte erscheinen sie als mögliche Verzweigungen. Zuerst wird das Thema gewählt, danach eines der bestehenden Formate, die der Themenplan dafür als passend nennt: Video, Mit der KI, Text prüfen oder Webseite prüfen. Bei erzeugten Lektionen sind auch Formate verfügbar, für die der Bereich noch kein vorbereitetes Beispiel hat. Diese Änderung führt keinen zusätzlichen Text- oder Podcast-Lektionstyp ein; die Podcast-Übersicht pro Bereich bleibt verfügbar.
+
+Die Vorschläge sind reine Vorschauen. Erst «Lektion starten» erzeugt genau die gewählte Lektion im gewählten Format oder verwendet eine dazu passende vorhandene Lektion. Auch nach dem Abschliessen einer Lektion wird keine vollständige Folgelektion automatisch erzeugt. Neue eigene Bereiche werden in diesem Ablauf zuerst nur mit Lernzielen und Quellen geplant; die erste Lektion entsteht ebenfalls erst nach der Auswahl.
+
+Das zuletzt erfolgreich gewählte Format wird im Lernverlauf gespeichert und beim nächsten Mal vorausgewählt, sofern es verfügbar ist. Es bleibt über Serverneustarts und neue Sitzungen hinweg erhalten. Andere Themen zu wählen wird neutral als «andere Richtung gewählt» vermerkt. Vorschläge erzeugen weder Lektionsdateien noch dauerhafte Lernknoten.
+
+Ohne KI stehen nur vorhandene vorbereitete Lektionen mit ihrem jeweiligen Format zur Auswahl, gegebenenfalls weniger als drei. Eigene Themen benötigen eine KI-Verbindung und müssen zu den Lernzielen des Bereichs passen; für andere Ziele lässt sich ein neuer Bereich hinzufügen. Schlägt die Themenplanung fehl, bleiben drei Vorschläge nach Regeln verfügbar. Eine fehlgeschlagene Lektionsgenerierung lässt die Auswahl für einen erneuten Versuch bestehen.
+
+API: `POST /api/sessions/:id/tracks/:track/topics` liefert und speichert die Vorschauen, `POST /api/sessions/:id/topics/custom` prüft einen eigenen Themenwunsch, und `POST /api/sessions/:id/topics/choose` erzeugt die gewählte Lektion. Veraltete oder doppelte Auswahlen werden zurückgewiesen. Ältere API-Clients behalten ihren bisherigen Planungsablauf, bis sie erstmals die Themenauswahl abrufen; die neue Oberfläche verwendet immer die Themenauswahl.
+
+Die folgenden Beschreibungen des automatisch erzeugten Agenten-Plans gelten für diesen bisherigen API-Ablauf.
+
 ## Wie der Agent entscheidet
 
 Die Regeln antworten sofort. Mit KI plant danach der Planer-Agent (A1), und die Regeln prüfen seinen Plan. Ohne KI gelten die Regeln allein, angeschrieben als «Plan nach Regeln».

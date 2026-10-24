@@ -1,44 +1,12 @@
 // Side panel next to the map: the agent's next step with its reasons, or details of a selected node.
-import { useState } from 'react';
-import type { Lesson, MapNode, Recommendation, SessionView, Track } from '@l45/shared';
+import type { Lesson, MapNode, Recommendation, SessionView } from '@l45/shared';
 import { LERNSTAND_LABEL, MODE_LABEL, SOURCE_LABEL, TYPE_LABEL } from '@l45/shared';
-import { api } from '../lib/api.ts';
+import { NextTopics } from '../lessons/NextTopics.tsx';
 import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
 import { Podcast } from './Podcast.tsx';
 
 const LEVEL_TEXT: Record<string, string> = { Grundstufe: 'keins oder wenig', Mittelstufe: 'etwas', Fortgeschritten: 'viel' };
-
-/** Own tracks in which nothing is left to do. */
-const idleOwnTracks = (view: SessionView): Track[] =>
-  view.skills.find((s) => s.id === 'custom')?.tracks.filter((t) => !view.session.nodes.some((n) => n.kind === 'lesson' && n.trackId === t.id && n.state !== 'done' && n.state !== 'skipped')) ?? [];
-
-/** Own tracks have no prepared lessons. When nothing is open there, the learner can ask for the next one. */
-function NextLesson({ track, onFocus }: { track: Track; onFocus: (nodeId: string | null) => void }) {
-  const { view, setView } = useStore();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  if (!view?.canCreateTracks) return null;
-  const go = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const r = await api.nextLesson(view.session.id, track.id);
-      setView(r.view, r.generated);
-      onFocus(r.view.recommendation?.nodeId || null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <div>
-      <button className="btn secondary block" disabled={busy} onClick={go}><Icon name="sparkle" size={16} />{busy ? 'Lektion wird erstellt …' : `Neue Lektion in «${track.name}»`}</button>
-      {error && <p className="error small" role="alert">{error}</p>}
-    </div>
-  );
-}
 
 /** Which plan this is: the agent's (A1), the rules' while the agent still works, or the rules' alone. */
 export function planLabel(rec: Recommendation, view: SessionView) {
@@ -139,52 +107,26 @@ export function NodePanel({
         <button className="btn primary block" onClick={onAddTrack}><Icon name="plus" size={16} />Bereich hinzufügen</button>
         <p className="small muted">
           {view.canCreateTracks
-            ? 'Für ein eigenes Thema plant der Agent mit der KI, was du können musst, sucht Quellen und erstellt einen Einstieg.'
+            ? 'Für ein eigenes Thema plant der Agent mit der KI die Lernziele und Quellen. Danach wählst du Thema und Format deiner ersten Lektion.'
             : 'Ohne KI stehen die vorbereiteten Bereiche zur Wahl. Eigene Themen plant der Agent nur mit KI.'}
         </p>
       </div>
     );
   }
 
-  // --- Default: the next step ---
-  if (!selected) {
+  const nextTrackId = selected?.topicId ? selected.trackId : recNode?.trackId ?? session.events.at(-1)?.trackId ?? view.skills.flatMap(s => s.tracks)[0]?.id;
+  // Topic previews use the same chooser from the map and from the default next-step panel.
+  if ((!selected || selected.topicId) && nextTrackId) {
     return (
       <div className="panel-inner">
-        <p className="eyebrow next">Nächster Schritt</p>
-        {recNode && rec ? (
-          <>
-            <h2>{recNode.label}</h2>
-            <LessonFacts node={recNode} />
-            <div className="panel-actions">
-              <button className="btn primary" onClick={() => onStart(recNode.id)}><Icon name="play" size={16} />Starten</button>
-              {altNode && <button className="btn secondary" onClick={() => onSelect(altNode.id)}>Alternative</button>}
-            </div>
-            <PlanStatus view={view} />
-            <Reason rec={rec} view={view} />
-          </>
-        ) : (
-          <>
-            <h2>{session.planning ? 'Nächster Schritt wird geplant' : 'Alles erledigt'}</h2>
-            <PlanStatus view={view} />
-            {rec && !session.planning && <Reason rec={rec} view={view} />}
-            {!session.planning && (
-              <>
-                {idleOwnTracks(view).map((t) => <NextLesson key={t.id} track={t} onFocus={onFocus} />)}
-                <button className="btn secondary block" onClick={onAddTrack}><Icon name="plus" size={16} />Bereich hinzufügen</button>
-              </>
-            )}
-          </>
-        )}
+        <NextTopics key={`${nextTrackId}:${selected?.topicId ?? 'next'}`} trackId={nextTrackId} initialTopicId={selected?.topicId} onStart={onStart} onFocus={onFocus} />
+        <button className="btn secondary block" onClick={onAddTrack}><Icon name="plus" size={16} />Bereich hinzufügen</button>
         <Legend />
-        <p className="small muted">
-          {view.agentAvailable
-            ? 'Mit KI startet jeder Bereich mit einem Einstieg. Nach jeder Lektion erzeugt der Agent die nächste passende Lektion. Vorbereitete Lektionen nimmt er nur, wenn das nicht klappt.'
-            : 'Ohne KI: Die Karte zeigt die vorbereiteten Lektionen, die Regeln wählen den nächsten Schritt.'}
-        </p>
       </div>
     );
   }
 
+  if (!selected) return null;
   const lesson = lessonOf(selected.lessonId);
 
   if (selected.kind === 'lesson' && lesson) {
@@ -200,7 +142,7 @@ export function NodePanel({
         <LessonSource lesson={lesson} />
         {selected.addedByAgent && <p className="note small">Diesen Knoten hat der Agent nach deinen Ergebnissen neu hinzugefügt.</p>}
         {isAlt && recNode && (
-          <p className="note">Das ist die Alternative zur Empfehlung «{recNode.label}». Wenn du sie startest, merkt sich der Agent, dass du die Empfehlung abgelehnt hast.</p>
+          <p className="note">Das ist die Alternative zur Empfehlung «{recNode.label}». Du kannst diese Richtung wählen; die anderen Themen bleiben offen.</p>
         )}
         {selected.state === 'planned' && <p className="small muted">Geplant. Du kannst sie freiwillig jederzeit starten.</p>}
         {selected.state === 'done' && selected.result && (
@@ -249,6 +191,7 @@ export function NodePanel({
             </li>
           ))}
         </ul>
+        {track && <NextTopics key={track.id} trackId={track.id} onStart={onStart} onFocus={onFocus} />}
         <ul className="nodelist">
           {lessons.map((n) => (
             <li key={n.id}>
@@ -269,7 +212,6 @@ export function NodePanel({
               ))}
             </ul>
             <p className="small muted">Von der KI vorgeschlagen und beim Anlegen erreichbar, aber nicht von Menschen geprüft.</p>
-            {idleOwnTracks(view).some((t) => t.id === track.id) && <NextLesson track={track} onFocus={onFocus} />}
           </>
         )}
       </div>
@@ -338,7 +280,7 @@ function Legend() {
   return (
     <div className="legend" aria-label="Legende">
       <span><i className="lg rec" />nächster Schritt</span>
-      <span><i className="lg alt" />Alternative</span>
+      <span><i className="lg alt" />mögliche Richtung</span>
       <span><i className="lg planned" />geplant</span>
       <span><i className="lg done" />erledigt</span>
     </div>
