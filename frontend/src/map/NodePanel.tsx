@@ -181,7 +181,7 @@ export function NodePanel({
         <BackLink onClick={() => onSelect(null)} />
         <p className="eyebrow">{trackName(selected.trackId)}</p>
         <h2>{labelOf(selected)}</h2>
-        <TopicLevel progress={view.rewards.tracks[selected.trackId!]} name={labelOf(selected)} />
+        {selected.trackId && <TopicLevel progress={view.rewards.tracks[selected.trackId]} name={labelOf(selected)} />}
         <LessonFacts node={selected} />
         <p>{lesson.intro}</p>
         <LessonSource lesson={lesson} />
@@ -219,7 +219,7 @@ export function NodePanel({
       <div className="panel-inner">
         <BackLink onClick={() => onSelect(null)} />
         <h2>{labelOf(selected)}</h2>
-        <TopicLevel progress={view.rewards.tracks[selected.trackId!]} name={labelOf(selected)} />
+        {selected.trackId && <TopicLevel progress={view.rewards.tracks[selected.trackId]} name={labelOf(selected)} />}
         <p>
           {skill?.dccBased ? (
             <>{t('DCC-Position:')} <strong>{level(lv)}</strong> <span className="muted small">{t('(aus dem DCC, wird hier nicht verändert)')}</span></>
@@ -276,7 +276,7 @@ export function NodePanel({
       <div className="panel-inner">
         <BackLink onClick={() => onSelect(null)} />
         <h2>{labelOf(selected)}</h2>
-        <TopicLevel progress={view.rewards.tracks[selected.trackId!]} name={labelOf(selected)} />
+        {selected.trackId && <TopicLevel progress={view.rewards.tracks[selected.trackId]} name={labelOf(selected)} />}
         <p>{text}</p>
         <button className="btn secondary block" onClick={onAddTrack}><Icon name="plus" size={16} />{t('Bereich hinzufügen')}</button>
       </div>
