@@ -1,12 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import type { Mode } from '@l45/shared';
 import { LessonOverlay } from '../lessons/LessonOverlay.tsx';
+import { LangSwitch, useI18n } from '../lib/i18n.tsx';
 import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
 import { MindMap } from '../map/MindMap.tsx';
 import { NodePanel } from '../map/NodePanel.tsx';
+import { KnowledgeMap } from '../map/SubwayMap.tsx';
 import { AddTrack } from './AddTrack.tsx';
 import { Settings, STATUS } from './Settings.tsx';
+
+const BOARD_KEY = 'lernagent.board';
+const storedBoard = (): 'knot' | 'lines' => {
+  try {
+    return localStorage.getItem(BOARD_KEY) === 'lines' ? 'lines' : 'knot';
+  } catch {
+    return 'knot';
+  }
+};
 
 function useWide() {
   const q = '(min-width: 900px)';
@@ -22,6 +34,7 @@ function useWide() {
 
 export function MapScreen() {
   const { view, content, lessonOf, logout, refresh } = useStore();
+  const { t, mode } = useI18n();
   const nav = useNavigate();
   const wide = useWide();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -32,6 +45,19 @@ export function MapScreen() {
   const [adding, setAdding] = useState(() => Boolean(view && !view.skills.length));
   const [sheetOpen, setSheetOpen] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+  const [lens, setLens] = useState<Mode | 'all'>('all');
+  const [routeTrackId, setRouteTrackId] = useState<string | null>(null);
+  const [board, setBoard] = useState<'knot' | 'lines'>(storedBoard);
+  const chooseBoard = (next: 'knot' | 'lines') => {
+    try {
+      localStorage.setItem(BOARD_KEY, next);
+    } catch {
+      // The choice then lasts only for this visit.
+    }
+    setBoard(next);
+  };
+  // A mountain opened from a knowledge knot leads back to that knot.
+  const [fromKnot, setFromKnot] = useState(false);
 
   // While the planner agent works, ask the server every 1.5 s. When it is done, its plan replaces the provisional one.
   const planning = Boolean(view?.session.planning);
@@ -44,7 +70,7 @@ export function MapScreen() {
       if (stop) return;
       if (v && !v.session.planning) {
         if (v.recommendation?.ruleId === 'A1') {
-          setToast('Der Agent hat deinen Plan angepasst');
+          setToast(t('Der Agent hat deinen Plan angepasst'));
           if (!lessonNode) setFocusId(v.recommendation.nodeId);
         }
         return;
@@ -56,7 +82,7 @@ export function MapScreen() {
       stop = true;
       clearTimeout(timer);
     };
-  }, [planning, refresh, lessonNode]);
+  }, [planning, refresh, lessonNode, t]);
 
   useEffect(() => {
     if (!toast) return;
@@ -81,6 +107,31 @@ export function MapScreen() {
     setSheetOpen(true);
   };
 
+  const openMountain = (trackId: string, nodeId?: string) => {
+    setFromKnot(board === 'knot');
+    chooseBoard('lines');
+    setRouteTrackId(trackId);
+    if (nodeId) select(nodeId);
+  };
+  const showKnot = (nodeId: string) => {
+    setFromKnot(false);
+    chooseBoard('knot');
+    select(nodeId);
+    setFocusId(null);
+    requestAnimationFrame(() => setFocusId(nodeId));
+  };
+  const openRoute = (trackId: string | null) => {
+    if (trackId === null && fromKnot && routeTrackId) {
+      const knot = view.session.nodes.find((n) => n.kind === 'track' && n.trackId === routeTrackId);
+      setRouteTrackId(null);
+      if (knot) showKnot(knot.id);
+      return;
+    }
+    setFromKnot(false);
+    setRouteTrackId(trackId);
+  };
+  const onMountain = board === 'lines' && routeTrackId !== null;
+
   return (
     <div className="mapscreen">
       <header className="topbar">
@@ -90,31 +141,61 @@ export function MapScreen() {
           <span className="name">{view.session.userName}</span>
         </span>
         <span className="spacer" />
-        {view.session.planning && <span className="status planning" role="status">Agent plant …</span>}
-        <span className={`status ${view.modelStatus}`} title="Ohne KI kommen Gesprächsantworten und Hinweise aus vorbereiteten Texten.">{STATUS[view.modelStatus]}</span>
-        <button className="btn primary small" onClick={() => setAdding(true)} aria-label="Bereich hinzufügen">
-          <Icon name="plus" size={16} /><span className="label-wide">Bereich hinzufügen</span>
+        <div className="lens-switch" role="group" aria-label={t('Ansicht der Lernkarte')}>
+          <button type="button" className="btn quiet small" aria-pressed={board === 'knot'} onClick={() => chooseBoard('knot')}>{t('Wissensknoten')}</button>
+          <button type="button" className="btn quiet small" aria-pressed={board === 'lines'} onClick={() => chooseBoard('lines')}>{t('Bergwege')}</button>
+        </div>
+        <div className="lens-switch" role="group" aria-label={t('Lernform')}>
+          <button type="button" className="btn quiet small" aria-pressed={lens === 'all'} onClick={() => setLens('all')}>{t('Alle')}</button>
+          {(['alone', 'ai', 'peer'] as const).map((m) => (
+            <button key={m} type="button" className="btn quiet small" aria-pressed={lens === m} onClick={() => setLens(m)}>{mode(m)}</button>
+          ))}
+        </div>
+        <LangSwitch />
+        {view.session.planning && <span className="status planning" role="status">{t('Agent plant …')}</span>}
+        <span className={`status ${view.modelStatus}`} title={t('Ohne KI kommen Gesprächsantworten und Hinweise aus vorbereiteten Texten.')}>{t(STATUS[view.modelStatus] ?? '')}</span>
+        <button className="btn primary small" onClick={() => setAdding(true)} aria-label={t('Bereich hinzufügen')}>
+          <Icon name="plus" size={16} /><span className="label-wide">{t('Bereich hinzufügen')}</span>
         </button>
-        <button className="icon-btn" onClick={() => setSettings(true)} aria-label="Einstellungen" title="Einstellungen">
+        <button className="icon-btn" onClick={() => setSettings(true)} aria-label={t('Einstellungen')} title={t('Einstellungen')}>
           <Icon name="settings" size={20} />
         </button>
       </header>
 
       <main className="map-area">
-        <MindMap
-          nodes={view.session.nodes}
-          skills={view.skills}
-          dcc={view.dcc}
-          lessonOf={lessonOf}
-          selectedId={selectedId}
-          focusId={focusId}
-          onSelect={select}
-          rightInset={wide ? 400 : 0}
-        />
-        <aside className={`side${wide ? '' : ' sheet'}${!wide && !sheetOpen ? ' collapsed' : ''}`} aria-label="Details">
+        {board === 'knot' ? (
+          <MindMap
+            nodes={view.session.nodes}
+            skills={view.skills}
+            dcc={view.dcc}
+            lessonOf={lessonOf}
+            selectedId={selectedId}
+            focusId={focusId}
+            lens={lens}
+            onSelect={select}
+            onOpenMountain={(trackId) => openMountain(trackId)}
+            rightInset={wide ? 400 : 0}
+          />
+        ) : (
+          <KnowledgeMap
+            nodes={view.session.nodes}
+            skills={view.skills}
+            dcc={view.dcc}
+            lessonOf={lessonOf}
+            selectedId={selectedId}
+            focusId={focusId}
+            lens={lens}
+            wide={wide}
+            routeTrackId={routeTrackId}
+            backLabel={fromKnot ? t('Zurück zu den Wissensknoten') : undefined}
+            onSelect={select}
+            onOpenRoute={openRoute}
+          />
+        )}
+        <aside className={`side${wide ? '' : ' sheet'}${!wide && !sheetOpen ? ' collapsed' : ''}`} aria-label={t('Details')}>
           {!wide && (
             <button className="sheet-handle" onClick={() => setSheetOpen(!sheetOpen)} aria-expanded={sheetOpen}>
-              {sheetOpen ? 'Einklappen' : 'Nächster Schritt'}
+              {sheetOpen ? t('Einklappen') : t('Nächster Schritt')}
             </button>
           )}
           {(wide || sheetOpen) && (
@@ -123,9 +204,15 @@ export function MapScreen() {
               selected={selected}
               onSelect={(id) => {
                 select(id);
-                if (id) setFocusId(id);
+                if (id) {
+                  setFocusId(id);
+                  const trackId = view.session.nodes.find((n) => n.id === id)?.trackId;
+                  if (trackId && routeTrackId) setRouteTrackId(trackId);
+                }
               }}
               onStart={(id) => setLessonNode(id)}
+              onShowMountain={onMountain ? undefined : openMountain}
+              onShowKnot={board === 'lines' ? showKnot : undefined}
               onAddTrack={() => setAdding(true)}
               onFocus={(id) => {
                 setSelectedId(null);
@@ -157,10 +244,11 @@ export function MapScreen() {
 }
 
 export function BrandMark() {
+  const { t } = useI18n();
   return (
     <span className="brand-mark">
       <span className="logo"><Icon name="map" size={18} /></span>
-      Lernagent
+      {t('Lernagent')}
     </span>
   );
 }

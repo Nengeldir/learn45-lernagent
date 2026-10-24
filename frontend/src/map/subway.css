@@ -1,0 +1,400 @@
+.kb {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  overflow: auto;
+}
+.kb.is-wide { padding-right: 412px; }
+.kb:not(.is-wide) { padding-bottom: 72px; }
+.kb-note { margin: 0; font-size: 13px; color: var(--ink-2); }
+
+.metro { position: relative; display: flex; flex-direction: column; gap: 4px; padding-left: 22px; }
+.metro::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 28px;
+  bottom: 28px;
+  width: 8px;
+  border-radius: 8px;
+  background: var(--ink);
+}
+.metro-skill {
+  margin: 10px 0 2px 8px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.metro-line {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 92px;
+}
+.metro-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  padding: 6px 4px;
+  font: inherit;
+}
+.metro-name strong { display: block; font-size: 14px; line-height: 1.25; }
+.metro-name small { display: block; color: var(--ink-2); font-size: 12px; }
+.metro-badge {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--line-color);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 0 4px var(--paper);
+}
+.metro-rail {
+  position: relative;
+  height: 92px;
+  overflow: visible;
+}
+.rail {
+  position: absolute;
+  left: 0;
+  top: 30px;
+  height: 8px;
+  border-radius: 8px;
+  background: var(--line-color);
+}
+.spur {
+  position: absolute;
+  top: 30px;
+  width: 8px;
+  height: 34px;
+  margin-left: -4px;
+  border-radius: 8px;
+  background: var(--line-color);
+}
+.rail-empty {
+  position: absolute;
+  left: 16px;
+  top: 44px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.kb-stop {
+  position: absolute;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  top: 34px;
+  border-radius: 50%;
+  border: 4px solid var(--line-color);
+  background: var(--surface);
+  padding: 0;
+  cursor: pointer;
+}
+.kb-stop.is-spur { top: 64px; }
+.kb-stop em {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  width: 132px;
+  font-style: normal;
+  font-size: 11px;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--ink);
+  pointer-events: none;
+}
+.kb-stop.is-recommended, .kb-stop.is-focus {
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--line-color) 35%, transparent);
+  z-index: 2;
+}
+.kb-stop.is-done { background: var(--line-color); }
+.kb-stop.is-alternative { box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 28%, transparent); }
+.kb-stop.is-selected { outline: 2px solid var(--ink); outline-offset: 2px; }
+.kb-stop.is-dim { opacity: 0.35; }
+
+.peak { display: flex; flex-direction: column; gap: 8px; min-height: 0; flex: 1; }
+.peak-head h2 { margin: 4px 0; font-size: 28px; }
+.peak-head p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.climb-hud { margin: 0 0 4px; font-size: 15px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.climb-hud strong { font-size: 22px; }
+.peak-board {
+  position: relative;
+  width: min(100%, 720px);
+  aspect-ratio: 640 / 560;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #8ed4f8;
+}
+.peak-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.trail { stroke: #e2231a; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 8 7; }
+.metre-scale { position: absolute; inset: 0; pointer-events: none; font-size: 12px; font-weight: 700; color: #1d4e73; }
+.metre-scale span { position: absolute; left: 10px; transform: translateY(-50%); }
+.peak-flag {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  transform: translate(-1px, -34px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.peak-flag i { width: 3px; height: 58px; background: #3a2a22; flex: none; }
+.peak-flag span {
+  max-width: 148px;
+  background: #e2231a;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.15;
+  text-align: left;
+  padding: 5px 14px 5px 8px;
+  clip-path: polygon(0 0, 100% 10%, 90% 50%, 100% 90%, 0 100%);
+}
+.summit {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 22%;
+  z-index: 6;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.summit h3 { margin: 0 0 8px; }
+.summit p { margin: 0 0 10px; }
+.summit-kicker { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.summit-flag { font-size: 18px; font-weight: 700; }
+.holds { display: flex; gap: 8px; margin-bottom: 12px; }
+.holds i { width: 14px; height: 28px; border-radius: 7px; border: 2px solid var(--ink); background: transparent; }
+.holds i.in { background: var(--trail); }
+.peak .kb-stop {
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 3px solid #e2231a;
+  background: #fff;
+  box-shadow: none;
+}
+.peak .kb-stop.is-done { background: #e2231a; }
+.peak .kb-stop.is-recommended, .peak .kb-stop.is-focus {
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  box-shadow: 0 0 0 4px rgba(226, 35, 26, 0.28);
+}
+.peak .kb-stop em {
+  left: 16px;
+  top: 50%;
+  width: 150px;
+  transform: translateY(-50%);
+  text-align: left;
+  color: #1c1915;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 8px;
+  padding: 2px 6px;
+  opacity: 0;
+}
+.peak .kb-stop:hover em,
+.peak .kb-stop:focus-visible em,
+.peak .kb-stop.is-recommended em,
+.peak .kb-stop.is-selected em,
+.peak .kb-stop.is-focus em { opacity: 1; }
+.peak .kb-stop em b { display: block; font-size: 11px; color: #e2231a; }
+.peak .kb-stop.label-left em { left: auto; right: 16px; text-align: right; }
+.peak-empty {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 16px;
+  margin: 0;
+  font-size: 14px;
+}
+
+@media (max-width: 720px) {
+  .metro-line { grid-template-columns: 1fr; min-height: 0; }
+  .metro-rail { overflow-x: auto; }
+}
+
+/* Climber, cable car and cheers on the mountain */
+.climb-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 720px);
+  margin: 2px 0 8px;
+}
+.climb-meter::before {
+  content: '';
+  flex: 1;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e2231a, #ff7a45) 0 0 / var(--climbed, 0%) 100% no-repeat, var(--surface-2);
+}
+.climb-meter small { flex: none; font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.climb-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 6px; }
+.climb-tools .btn[aria-pressed='true'] { background: #e2231a; color: #fff; }
+.friend-name { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.friend-name input {
+  width: 110px;
+  font: inherit;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.trail { stroke: #ffffff; stroke-opacity: 0.85; }
+.trail-climbed { stroke: #e2231a; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.trailhead { fill: #e2231a; stroke: #fff; stroke-width: 3; }
+.clouds { animation: drift 14s ease-in-out infinite alternate; }
+@keyframes drift { to { transform: translateX(18px); } }
+
+.cable line { stroke: #1c1915; stroke-width: 2; }
+.cable .pylon { stroke: #5b3b1e; stroke-width: 4; stroke-linecap: round; }
+
+.hiker, .gondola {
+  position: absolute;
+  z-index: 5;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  transform: translate(-50%, -100%);
+}
+.hiker { width: 11%; min-width: 46px; margin-left: -2%; }
+.hiker-svg { display: block; width: 100%; filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff) drop-shadow(0 3px 3px rgba(0, 0, 0, 0.35)); }
+.hiker.is-left .hiker-svg { transform: scaleX(-1); }
+.hiker-svg:not(.is-walking) { animation: idle 2.4s ease-in-out infinite; }
+.hiker-svg .hiker-leg, .hiker-svg .climber-arm { transform-box: view-box; }
+.hiker-svg .hiker-leg { transform-origin: 22px 33px; }
+.hiker-svg .climber-arm.high { transform-origin: 22px 20px; }
+.hiker-svg .climber-arm.low { transform-origin: 17px 22px; }
+.hiker-svg.is-walking .hiker-leg { animation: step 0.36s ease-in-out infinite alternate; }
+.hiker-svg.is-walking .hiker-leg.back { animation-direction: alternate-reverse; }
+.hiker-svg.is-walking .climber-arm.high { animation: swing-axe 0.36s ease-in-out infinite alternate; }
+.hiker-svg.is-walking .climber-arm.low { animation: step 0.36s ease-in-out infinite alternate-reverse; }
+@keyframes step { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
+@keyframes swing-axe { from { transform: rotate(-24deg); } to { transform: rotate(8deg); } }
+@keyframes idle { 50% { transform: translateY(-2px); } }
+.hiker.is-left .hiker-svg:not(.is-walking) { animation-name: idle-left; }
+@keyframes idle-left { from, to { transform: scaleX(-1); } 50% { transform: scaleX(-1) translateY(-2px); } }
+
+.gondola { width: 9%; min-width: 40px; transform: translate(-50%, -6%); }
+.gondola-svg { display: block; width: 100%; transform-origin: 50% 0; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.3)); }
+.gondola.is-moving .gondola-svg { animation: swing 0.9s ease-in-out infinite alternate; }
+@keyframes swing { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+.gondola-names {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: #1c1915;
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+.climber-bubble {
+  position: absolute;
+  left: 100%;
+  bottom: 70%;
+  width: max-content;
+  max-width: 170px;
+  margin-left: 4px;
+  padding: 5px 9px;
+  font-size: 12px;
+  line-height: 1.25;
+  text-align: left;
+  color: #1c1915;
+  background: #fff;
+  border-radius: 10px 10px 10px 2px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  animation: pop 0.25s ease-out;
+}
+.hiker:hover .climber-bubble, .gondola:hover .climber-bubble { outline: 2px solid #e2231a; }
+@keyframes pop { from { transform: scale(0.6); opacity: 0; } }
+
+.peer-badge {
+  position: absolute;
+  right: -14px;
+  top: -14px;
+  font-size: 13px;
+  line-height: 1;
+  pointer-events: none;
+}
+.peak.is-together .kb-stop:not(.is-done) { border-style: dashed; }
+.peak-flag.is-topped i { animation: wave-pole 1.6s ease-in-out infinite; }
+.peak-flag.is-topped span { animation: wave 0.9s ease-in-out infinite alternate; transform-origin: 0 50%; }
+@keyframes wave { to { transform: skewY(-6deg) scaleX(0.94); } }
+@keyframes wave-pole { 50% { transform: translateY(-1px); } }
+
+.cheer { position: absolute; z-index: 7; width: 0; height: 0; pointer-events: none; }
+.cheer i {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px;
+  border-radius: 2px;
+  background: #f5c400;
+  animation: burst 0.9s ease-out forwards;
+}
+.cheer i:nth-child(3n) { background: #e2231a; }
+.cheer i:nth-child(3n + 1) { background: #fff; }
+.cheer.is-big i { width: 11px; height: 11px; animation-duration: 1.4s; }
+@keyframes burst {
+  from { transform: rotate(var(--a)) translateY(0); opacity: 1; }
+  to { transform: rotate(var(--a)) translateY(-56px) rotate(180deg); opacity: 0; }
+}
+.cheer.is-big i { animation-name: burst-big; }
+@keyframes burst-big {
+  from { transform: rotate(var(--a)) translateY(0); opacity: 1; }
+  to { transform: rotate(var(--a)) translateY(-110px) rotate(240deg); opacity: 0; }
+}
+.cheer b {
+  position: absolute;
+  left: 0;
+  top: -64px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 22px;
+  color: #e2231a;
+  text-shadow: 0 0 4px #fff, 0 0 8px #fff;
+  animation: rise 1.6s ease-out forwards;
+}
+.cheer.is-big b { font-size: 28px; }
+@keyframes rise { to { transform: translate(-50%, -34px); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .clouds, .hiker-svg, .hiker-leg, .climber-arm, .gondola-svg, .peak-flag i, .peak-flag span, .climber-bubble { animation: none !important; }
+  .cheer i { display: none; }
+}

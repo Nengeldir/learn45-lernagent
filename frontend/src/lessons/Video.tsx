@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { Answer, VideoLesson, VideoVisual } from '@l45/shared';
+import { useI18n } from '../lib/i18n.tsx';
 
 const reduced = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -210,12 +211,18 @@ const NarratedVideo = lazy(() => import('./NarratedVideo.tsx'));
 export function Video(props: { lesson: VideoLesson; onComplete: (a: Answer) => Promise<void> }) {
   const [fallback, setFallback] = useState(false);
   if (props.lesson.content.narrated && !fallback) {
-    return <Suspense fallback={<p role="status">Erklärvideo wird geladen …</p>}><NarratedVideo {...props} onFallback={() => setFallback(true)} /></Suspense>;
+    return <Suspense fallback={<p role="status"><VideoLoading /></p>}><NarratedVideo {...props} onFallback={() => setFallback(true)} /></Suspense>;
   }
   return <StoryboardVideo {...props} />;
 }
 
+function VideoLoading() {
+  const { t } = useI18n();
+  return <>{t('Erklärvideo wird geladen …')}</>;
+}
+
 function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComplete: (a: Answer) => Promise<void> }) {
+  const { t } = useI18n();
   const { scenes, questions } = lesson.content;
   const [scene, setScene] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -262,8 +269,8 @@ function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComple
       {!lesson.content.videoUrl && (
         <p className="note">
           {lesson.source === 'model'
-            ? <>Von der KI erstellt: ein kurzes Storyboard mit Fragen. <span className="tag model">Beispiel erfunden</span></>
-            : 'Platzhalter-Storyboard. Das fertige Video wird vorab mit der Aha-Engine erzeugt und hier eingebunden.'}
+            ? <>{t('Von der KI erstellt: ein kurzes Storyboard mit Fragen.')} <span className="tag model">{t('Beispiel erfunden')}</span></>
+            : t('Platzhalter-Storyboard. Das fertige Video wird vorab mit der Aha-Engine erzeugt und hier eingebunden.')}
         </p>
       )}
       {lesson.content.videoUrl ? (
@@ -283,7 +290,7 @@ function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComple
           </div>
           <p className="caption" aria-live="polite">{scenes[scene].caption}</p>
           {asking === null && !ended && (
-            <button className="btn secondary" onClick={() => setPlaying(!playing)}>{playing ? 'Pause' : scene === 0 && p === 0 ? 'Abspielen' : 'Weiter abspielen'}</button>
+            <button className="btn secondary" onClick={() => setPlaying(!playing)}>{playing ? t('Pause') : scene === 0 && p === 0 ? t('Abspielen') : t('Weiter abspielen')}</button>
           )}
         </>
       )}
@@ -312,7 +319,7 @@ function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComple
             }
           }}
         >
-          Abschliessen
+          {t('Abschliessen')}
         </button>
       )}
     </>
