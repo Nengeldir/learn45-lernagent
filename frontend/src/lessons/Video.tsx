@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { Answer, VideoLesson, VideoVisual } from '@l45/shared';
+import { useI18n } from '../lib/i18n.tsx';
+import { Question } from './Question.tsx';
 
 const reduced = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -211,15 +213,21 @@ const PreparedVideo = lazy(() => import('./PreparedVideo.tsx'));
 export function Video(props: { lesson: VideoLesson; prepareUrl?: string; onComplete: (a: Answer) => Promise<void> }) {
   const [fallback, setFallback] = useState(false);
   if (props.lesson.content.narrated && !fallback) {
-    return <Suspense fallback={<p role="status">Erklärvideo wird geladen …</p>}><NarratedVideo {...props} onFallback={() => setFallback(true)} /></Suspense>;
+    return <Suspense fallback={<p role="status"><VideoLoading /></p>}><NarratedVideo {...props} onFallback={() => setFallback(true)} /></Suspense>;
   }
   if (props.prepareUrl && !fallback) {
-    return <Suspense fallback={<p role="status">Erklärvideo wird vorbereitet …</p>}><PreparedVideo {...props} prepareUrl={props.prepareUrl} onFallback={() => setFallback(true)} /></Suspense>;
+    return <Suspense fallback={<p role="status"><VideoLoading text="Erklärvideo wird vorbereitet …" /></p>}><PreparedVideo {...props} prepareUrl={props.prepareUrl} onFallback={() => setFallback(true)} /></Suspense>;
   }
   return <StoryboardVideo {...props} />;
 }
 
+function VideoLoading({ text = 'Erklärvideo wird geladen …' }: { text?: string }) {
+  const { t } = useI18n();
+  return <>{t(text)}</>;
+}
+
 function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComplete: (a: Answer) => Promise<void> }) {
+  const { t } = useI18n();
   const { scenes, questions } = lesson.content;
   const [scene, setScene] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -266,8 +274,8 @@ function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComple
       {!lesson.content.videoUrl && (
         <p className="note">
           {lesson.source === 'model'
-            ? <>Von der KI erstellt: ein kurzes Storyboard mit Fragen. <span className="tag model">Beispiel erfunden</span></>
-            : 'Platzhalter-Storyboard. Das fertige Video wird vorab mit der Aha-Engine erzeugt und hier eingebunden.'}
+            ? <>{t('Von der KI erstellt: ein kurzes Storyboard mit Fragen.')} <span className="tag model">{t('Beispiel erfunden')}</span></>
+            : t('Platzhalter-Storyboard. Das fertige Video wird vorab mit der Aha-Engine erzeugt und hier eingebunden.')}
         </p>
       )}
       {lesson.content.videoUrl ? (
@@ -279,29 +287,23 @@ function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComple
         />
       ) : (
         <>
-          <div className="stage">
-            <Visual visual={scenes[scene].visual} p={p} scene={scene} first={first} items={scenes[scene].items} />
+          <div className="stage-wrap">
+            <div className="stage">
+              <Visual visual={scenes[scene].visual} p={p} scene={scene} first={first} items={scenes[scene].items} />
+            </div>
+            {asking !== null && <Question q={questions[asking]} n={asking} total={questions.length} onAnswer={answer} />}
           </div>
           <div className="progress" aria-hidden="true">
             {scenes.map((_, i) => <span key={i} className={i <= scene ? 'on' : ''} />)}
           </div>
           <p className="caption" aria-live="polite">{scenes[scene].caption}</p>
           {asking === null && !ended && (
-            <button className="btn secondary" onClick={() => setPlaying(!playing)}>{playing ? 'Pause' : scene === 0 && p === 0 ? 'Abspielen' : 'Weiter abspielen'}</button>
+            <button className="btn secondary" onClick={() => setPlaying(!playing)}>{playing ? t('Pause') : scene === 0 && p === 0 ? t('Abspielen') : t('Weiter abspielen')}</button>
           )}
         </>
       )}
 
-      {asking !== null && (
-        <div className="panel">
-          <h3>{questions[asking].prompt}</h3>
-          <div className="choices">
-            {questions[asking].options.map((o, i) => (
-              <button key={i} className="choice" onClick={() => answer(i)}>{o}</button>
-            ))}
-          </div>
-        </div>
-      )}
+      {asking !== null && lesson.content.videoUrl && <Question q={questions[asking]} n={asking} total={questions.length} onAnswer={answer} />}
 
       {ended && (
         <button
@@ -316,7 +318,7 @@ function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComple
             }
           }}
         >
-          Abschliessen
+          {t('Abschliessen')}
         </button>
       )}
     </>
