@@ -1108,8 +1108,8 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .lesson-video { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .lesson-video > .narrated-video, .lesson-video > .storyboard-video { display: flex; flex-direction: column; flex: 1; min-height: 0; max-width: none; }
 .lesson-video .lesson-progress, .lesson-video .video-timeline, .lesson-video .video-controls, .lesson-video .video-transcript { flex: none; }
-.video-workspace { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; flex: 1; min-height: 0; }
-.video-workspace.has-check { grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); }
+/* Reserve the sidebar from the start; checkpoints must not resize the player. */
+.video-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 360px); grid-template-rows: minmax(0, 1fr); gap: 20px; flex: 1; min-height: 0; }
 .video-player { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .lesson-shell .narrated-stage, .lesson-shell .storyboard-stage { width: 100%; max-width: none; aspect-ratio: auto; flex: 1; height: auto; min-height: 180px; max-height: none; }
 .lesson-video .video-transcript[open] { max-height: 28dvh; overflow: auto; }
@@ -1267,7 +1267,7 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .lesson-ai-chat > .activity-actions, .podcast-lesson > .activity-actions { justify-content: flex-end; }
 
 @media (max-width: 960px) {
-  .video-workspace, .video-workspace.has-check { grid-template-columns: minmax(0, 1fr); flex: none; gap: 14px; }
+  .video-workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; flex: none; gap: 14px; }
   .lesson-video, .lesson-video > .narrated-video, .lesson-video > .storyboard-video { flex: none; }
   .lesson-shell .narrated-stage, .lesson-shell .storyboard-stage { flex: none; aspect-ratio: 16 / 10; min-height: 0; }
   .video-question-panel { max-height: none; overflow: visible; }

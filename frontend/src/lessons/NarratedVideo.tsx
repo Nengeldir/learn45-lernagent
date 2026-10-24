@@ -93,7 +93,7 @@ export default function NarratedVideo({ lesson, onComplete, onFallback }: {
   return (
     <div className="narrated-video" ref={screen}>
       <LessonProgress completed={completed} total={questions.length} label="Deine Wissens-Checks" detail={ready ? `Abschnitt ${state.scene + 1} / ${manifest!.scenes.length} · ${completed} / ${questions.length} Checks` : 'Video wird geladen …'} />
-      <div className={`video-workspace${state.asking !== null || state.ended ? ' has-check' : ''}`}>
+      <div className="video-workspace">
         <div className="video-player">
           <div className="narrated-stage" hidden={Boolean(error) && !ready}>
             <div className="narrated-canvas" ref={host} />

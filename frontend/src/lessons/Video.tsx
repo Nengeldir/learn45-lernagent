@@ -281,7 +281,7 @@ function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComple
 
   return <div className="storyboard-video">
     <LessonProgress completed={Object.keys(answers).length} total={questions.length} label="Deine Wissens-Checks" detail={`Abschnitt ${scene + 1} / ${scenes.length} · ${Object.keys(answers).length} / ${questions.length} Checks`} />
-    <div className={`video-workspace${asking !== null || ended ? ' has-check' : ''}`}>
+    <div className="video-workspace">
       <div className="video-player">
         <div className="stage storyboard-stage">
           {lesson.content.videoUrl ? <video ref={rawVideo} src={lesson.content.videoUrl} controls onTimeUpdate={checkRaw} onSeeking={checkRaw} onEnded={() => { setEnded(true); setAtEnd(true); if (asking === null) { const q = pending(scenes.length - 1); if (q >= 0) setAsking(q); } }} />
