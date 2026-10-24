@@ -114,10 +114,8 @@ const EN: Record<string, string> = {
   'Was ist eine Ableitung?': 'What is a derivative?',
   'Erklär mir die Ableitung': 'Explain the derivative to me',
   Zurück: 'Back',
-  'Gipfel erreicht': 'Summit reached',
   'Demo mit Beispieldaten': 'Demo with sample data',
   'Lektion abschliessen': 'Finish lesson',
-  'Berg zurücksetzen': 'Reset this mountain',
   'Alle Lektionen auf {name} erledigt.': 'Every lesson on {name} is done.',
   'Das ist die Alternative zur Empfehlung «{label}». Wenn du sie startest, merkt sich der Agent, dass du die Empfehlung abgelehnt hast.':
     'This is the alternative to the suggestion “{label}”. If you start it, the agent remembers that you declined the suggestion.',
@@ -125,19 +123,7 @@ const EN: Record<string, string> = {
   'Dein Ziel:': 'Your goal:',
   'KI-Zusammenfassung': 'AI summary',
   'Satz {n}': 'Sentence {n}',
-  'Der Aufstieg geht nach oben. Leichtere Übungen liegen tiefer, schwierigere näher am Gipfel.':
-    'The climb goes up. Easier exercises sit lower, harder ones nearer the summit.',
-  'DCC dieser Linie: {level}. Die Meter ändern sie nicht.':
-    'DCC for this line: {level}. The metres do not change it.',
-  'Du stehst auf {here} m. Der Gipfel dieser Linie ist bei {summit} m. Die Fahne gibt es, wenn jede Übung dieses Wegs gelöst ist.':
-    'You are at {here} m. The summit of this line is {summit} m. The flag is there once every exercise on this route is solved.',
   Weiter: 'Continue',
-  'Im Gipfelbuch, nicht im DCC.': 'In the summit book, not in the DCC.',
-  'Jede Linie ist ein Wissensbereich. Ein Klick öffnet den Bergweg. Die Tiefe dort folgt der Schwierigkeit der Übung, nicht der DCC-Stufe.':
-    'Each line is one area of knowledge. A click opens the mountain route. Depth there follows the difficulty of the exercise, not the DCC level.',
-  'Auf diesem Netz gibt es noch keinen Schritt «{mode}».': 'This network has no “{mode}” step yet.',
-  '{mountain}, {metres} m. Der Weg führt nach oben. Die Meter gehören zu diesem Übungsweg und ändern das DCC nicht.':
-    '{mountain}, {metres} m. The route leads up. The metres belong to this exercise route and do not change the DCC.',
   'Was der Agent gesehen hat': 'What the agent saw',
   Vorschlag: 'Suggestion',
   'Warum das jetzt hilft': 'Why this helps now',
