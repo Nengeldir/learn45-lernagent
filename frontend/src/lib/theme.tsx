@@ -1,6 +1,7 @@
 // Light or dark: follows the system by default, the switch can pin either one. Stored per browser.
 import { useState, type ReactNode } from 'react';
 import { useI18n } from './i18n.tsx';
+import { FoldMenu } from './fold.tsx';
 
 export type Theme = 'auto' | 'light' | 'dark';
 
@@ -58,13 +59,10 @@ export function ThemeSwitch() {
     apply(next);
     setTheme(next);
   };
-  return (
-    <div className="lens-switch theme-switch" role="group" aria-label={t('Erscheinungsbild')}>
-      {OPTIONS.map((o) => (
-        <button key={o.value} type="button" className="btn quiet small" aria-pressed={theme === o.value} aria-label={t(o.label)} title={t(o.label)} onClick={() => choose(o.value)}>
-          <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">{ICON[o.value]}</svg>
-        </button>
-      ))}
-    </div>
-  );
+  const options = OPTIONS.map((o) => ({
+    value: o.value,
+    label: t(o.label),
+    icon: <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">{ICON[o.value]}</svg>,
+  }));
+  return <FoldMenu className="theme-switch" label={t('Erscheinungsbild')} value={theme} options={options} onChoose={choose} />;
 }

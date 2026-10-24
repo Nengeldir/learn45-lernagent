@@ -5,6 +5,7 @@ import { MODE_LABEL, SOURCE_LABEL, TYPE_LABEL } from '@l45/shared';
 import { FR } from './lang-fr.ts';
 import { IT } from './lang-it.ts';
 import { RM } from './lang-rm.ts';
+import { FoldMenu } from './fold.tsx';
 
 export type Lang = 'de' | 'fr' | 'it' | 'rm' | 'en';
 
@@ -464,13 +465,6 @@ export function useI18n() {
 /** Language buttons: DE · FR · IT · RM · EN. */
 export function LangSwitch() {
   const { t, lang, setLang } = useI18n();
-  return (
-    <div className="lens-switch" role="group" aria-label={t('Sprache')}>
-      {LANGS.map((l) => (
-        <button key={l.code} type="button" className="btn quiet small" lang={l.code} title={l.name} aria-label={l.name} aria-pressed={lang === l.code} onClick={() => setLang(l.code)}>
-          {l.short}
-        </button>
-      ))}
-    </div>
-  );
+  const options = LANGS.map((l) => ({ value: l.code, label: l.name, lang: l.code, icon: <b className="fold-code">{l.short}</b> }));
+  return <FoldMenu className="lang-switch" label={t('Sprache')} value={lang} options={options} onChoose={setLang} />;
 }
