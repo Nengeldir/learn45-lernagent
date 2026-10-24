@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { Lesson, MapNode, Recommendation, SessionView, Track } from '@l45/shared';
 import { LERNSTAND_LABEL, MODE_LABEL, SOURCE_LABEL, TYPE_LABEL } from '@l45/shared';
 import { api } from '../lib/api.ts';
+import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
 
 const LEVEL_TEXT: Record<string, string> = { Grundstufe: 'keins oder wenig', Mittelstufe: 'etwas', Fortgeschritten: 'viel' };
@@ -32,7 +33,7 @@ function NextLesson({ track, onFocus }: { track: Track; onFocus: (nodeId: string
   };
   return (
     <div>
-      <button className="btn secondary" disabled={busy} onClick={go}>{busy ? 'Lektion wird erstellt …' : `Neue Lektion in «${track.name}»`}</button>
+      <button className="btn secondary block" disabled={busy} onClick={go}><Icon name="sparkle" size={16} />{busy ? 'Lektion wird erstellt …' : `Neue Lektion in «${track.name}»`}</button>
       {error && <p className="error small" role="alert">{error}</p>}
     </div>
   );
@@ -109,13 +110,12 @@ function Reason({ rec, view }: { rec: Recommendation; view: SessionView }) {
 }
 
 export function NodePanel({
-  view, selected, onSelect, onStart, onMoreTime, onAddTrack, onFocus,
+  view, selected, onSelect, onStart, onAddTrack, onFocus,
 }: {
   view: SessionView;
   selected: MapNode | null;
   onSelect: (id: string | null) => void;
   onStart: (nodeId: string) => void;
-  onMoreTime: () => void;
   onAddTrack: () => void;
   /** Move the map to a node, e.g. a lesson that was just made */
   onFocus: (nodeId: string | null) => void;
@@ -131,10 +131,11 @@ export function NodePanel({
   if (!selected && !view.skills.length) {
     return (
       <div className="panel-inner">
-        <p className="muted small">Los geht's</p>
+        <span className="empty-hero" aria-hidden="true"><Icon name="map" size={26} /></span>
+        <p className="eyebrow">Los geht's</p>
         <h2>Was willst du lernen?</h2>
         <p>Deine Karte ist noch leer. Wähle ein eigenes Thema, zum Beispiel «Security+ Prüfung bestehen», oder einen vorbereiteten Bereich.</p>
-        <div className="row"><button className="btn primary" onClick={onAddTrack}>Bereich hinzufügen</button></div>
+        <button className="btn primary block" onClick={onAddTrack}><Icon name="plus" size={16} />Bereich hinzufügen</button>
         <p className="small muted">
           {view.canCreateTracks
             ? 'Für ein eigenes Thema plant der Agent mit der KI, was du können musst, sucht Quellen und erstellt einen Einstieg.'
@@ -148,29 +149,28 @@ export function NodePanel({
   if (!selected) {
     return (
       <div className="panel-inner">
-        <p className="eyebrow-free muted small">Nächster Schritt</p>
-        <PlanStatus view={view} />
+        <p className="eyebrow next">Nächster Schritt</p>
         {recNode && rec ? (
           <>
             <h2>{recNode.label}</h2>
             <LessonFacts node={recNode} />
-            <Reason rec={rec} view={view} />
-            <div className="row">
-              <button className="btn primary" onClick={() => onStart(recNode.id)}>Starten</button>
-              {altNode && <button className="btn secondary" onClick={() => onSelect(altNode.id)}>Alternative ansehen</button>}
+            <div className="panel-actions">
+              <button className="btn primary" onClick={() => onStart(recNode.id)}><Icon name="play" size={16} />Starten</button>
+              {altNode && <button className="btn secondary" onClick={() => onSelect(altNode.id)}>Alternative</button>}
             </div>
+            <PlanStatus view={view} />
+            <Reason rec={rec} view={view} />
           </>
         ) : (
           <>
-            <h2>{session.planning ? 'Nächster Schritt wird geplant' : view.remainingMin > 0 ? 'Alles erledigt' : 'Für heute fertig'}</h2>
+            <h2>{session.planning ? 'Nächster Schritt wird geplant' : 'Alles erledigt'}</h2>
+            <PlanStatus view={view} />
             {rec && !session.planning && <Reason rec={rec} view={view} />}
-            {session.planning ? null : view.remainingMin > 0 ? (
+            {!session.planning && (
               <>
                 {idleOwnTracks(view).map((t) => <NextLesson key={t.id} track={t} onFocus={onFocus} />)}
-                <div className="row"><button className="btn secondary" onClick={onAddTrack}>Bereich hinzufügen</button></div>
+                <button className="btn secondary block" onClick={onAddTrack}><Icon name="plus" size={16} />Bereich hinzufügen</button>
               </>
-            ) : (
-              <button className="btn secondary" onClick={onMoreTime}>10 Minuten mehr</button>
             )}
           </>
         )}
@@ -191,14 +191,13 @@ export function NodePanel({
     const isAlt = selected.state === 'alternative';
     return (
       <div className="panel-inner">
-        <button className="linkbtn small" onClick={() => onSelect(null)}>Zurück zum nächsten Schritt</button>
-        <p className="muted small">{trackName(selected.trackId)}</p>
+        <BackLink onClick={() => onSelect(null)} />
+        <p className="eyebrow">{trackName(selected.trackId)}</p>
         <h2>{selected.label}</h2>
         <LessonFacts node={selected} />
         <p>{lesson.intro}</p>
         <LessonSource lesson={lesson} />
         {selected.addedByAgent && <p className="note small">Diesen Knoten hat der Agent nach deinen Ergebnissen neu hinzugefügt.</p>}
-        {isRec && rec && <><PlanStatus view={view} /><Reason rec={rec} view={view} /></>}
         {isAlt && recNode && (
           <p className="note">Das ist die Alternative zur Empfehlung «{recNode.label}». Wenn du sie startest, merkt sich der Agent, dass du die Empfehlung abgelehnt hast.</p>
         )}
@@ -209,12 +208,13 @@ export function NodePanel({
             <p className="small">{selected.result.summary}</p>
           </div>
         )}
-        <div className="row">
+        <div className="panel-actions">
           <button className="btn primary" onClick={() => onStart(selected.id)}>
-            {isAlt ? 'Alternative starten' : selected.state === 'done' ? 'Nochmals' : 'Starten'}
+            <Icon name="play" size={16} />{isAlt ? 'Alternative starten' : selected.state === 'done' ? 'Nochmals' : 'Starten'}
           </button>
           {isRec && altNode && <button className="btn secondary" onClick={() => onSelect(altNode.id)}>Lieber etwas anderes</button>}
         </div>
+        {isRec && rec && <><PlanStatus view={view} /><Reason rec={rec} view={view} /></>}
       </div>
     );
   }
@@ -228,7 +228,7 @@ export function NodePanel({
     const stand = view.workspace.lernstand.filter((l) => l.trackId === selected.trackId);
     return (
       <div className="panel-inner">
-        <button className="linkbtn small" onClick={() => onSelect(null)}>Zurück zum nächsten Schritt</button>
+        <BackLink onClick={() => onSelect(null)} />
         <h2>{selected.label}</h2>
         <p>
           {skill?.dccBased ? (
@@ -283,10 +283,10 @@ export function NodePanel({
         : 'Bereich ohne DCC-Position. Der Agent plant hier nur aus deinem Lernverlauf.';
     return (
       <div className="panel-inner">
-        <button className="linkbtn small" onClick={() => onSelect(null)}>Zurück zum nächsten Schritt</button>
+        <BackLink onClick={() => onSelect(null)} />
         <h2>{selected.label}</h2>
         <p>{text}</p>
-        <div className="row"><button className="btn secondary small" onClick={onAddTrack}>Bereich hinzufügen</button></div>
+        <button className="btn secondary block" onClick={onAddTrack}><Icon name="plus" size={16} />Bereich hinzufügen</button>
       </div>
     );
   }
@@ -294,7 +294,7 @@ export function NodePanel({
   // Start node: profile
   return (
     <div className="panel-inner">
-      <button className="linkbtn small" onClick={() => onSelect(null)}>Zurück zum nächsten Schritt</button>
+      <BackLink onClick={() => onSelect(null)} />
       <h2>{session.userName}</h2>
       <p className="small muted">DCC-Profil {dcc.source === 'file' ? `aus «${dcc.fileName ?? 'Datei'}»` : 'von Hand eingegeben'}{dcc.assessedOn ? `, erhoben am ${new Date(dcc.assessedOn).toLocaleDateString('de-CH')}` : ''}</p>
       <table className="levels">
@@ -341,4 +341,8 @@ function Legend() {
       <span><i className="lg done" />erledigt</span>
     </div>
   );
+}
+
+function BackLink({ onClick }: { onClick: () => void }) {
+  return <button className="linkbtn small back" onClick={onClick}><Icon name="back" size={16} />Zurück zum nächsten Schritt</button>;
 }

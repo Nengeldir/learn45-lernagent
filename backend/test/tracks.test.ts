@@ -81,7 +81,7 @@ afterEach(async () => {
 });
 
 async function emptyLogin(name = 'Test'): Promise<SessionView> {
-  return (await request(app).post('/api/login').send({ name, timeBudgetMin: 60 }).expect(201)).body;
+  return (await request(app).post('/api/login').send({ name }).expect(201)).body;
 }
 
 async function createOwn(v: SessionView, body: Record<string, unknown> = { topic: 'Security+ Prüfung bestehen', goal: 'Ich will im Dezember die Security+ Prüfung bestehen' }, status = 201) {

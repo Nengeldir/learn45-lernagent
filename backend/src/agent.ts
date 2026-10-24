@@ -29,7 +29,6 @@ export const RULE_NAME: Record<RuleId, string> = {
   R1: 'Wiederholte Schwierigkeit',
   R2: 'Unterfordert',
   R3: 'Start nach DCC-Profil',
-  R4: 'Wenig Zeit',
   R5: 'Alternative gewählt',
   R6: 'Hilfe in der Aufgabe',
   R7: 'Bereich abgeschlossen',
@@ -64,7 +63,6 @@ export interface AgentInput {
   events: LearningEvent[];
   observations: Observation[];
   lessons: Lesson[];
-  remainingMin: number;
   /** For unique ids of agent-created lessons */
   counter: number;
   /** A track the learner just added or asked a new lesson for: go there (R8) */
@@ -165,42 +163,6 @@ export function clarifyLesson(track: Track, criterionId: string, n: number): AiC
 }
 
 export function decide(input: AgentInput): Decision {
-  const base = { newNodes: [] as MapNode[], newLessons: [] as Lesson[] };
-  const end = (ruleId: RuleId, observation: string, reason: string, why: string): Decision => ({
-    ...base, ruleId, ruleName: RULE_NAME[ruleId], observation, reason, why, tags: ['rule'],
-  });
-
-  if (input.remainingMin <= 0) {
-    return end('R4', 'Die geplante Zeit für heute ist um.', 'Deine Zeit für heute ist aufgebraucht.', 'Lieber an einem guten Punkt aufhören. Die Karte merkt sich, wo es weitergeht.');
-  }
-
-  const core = coreDecision(input);
-  const chosen = input.nodes.find((n) => n.id === core.nodeId) ?? core.newNodes.find((n) => n.id === core.nodeId);
-  const chosenLesson = chosen?.lessonId ? [...input.lessons, ...core.newLessons].find((l) => l.id === chosen.lessonId) : undefined;
-  if (!chosenLesson || chosenLesson.durationMin <= input.remainingMin) return core;
-
-  // R4: does not fit the remaining time -> shortest fitting next step, same track first.
-  const fits = frontier(input)
-    .map((n) => ({ n, l: lessonOf(input, n)! }))
-    .filter((x) => x.l && x.l.durationMin <= input.remainingMin)
-    .sort((a, b) => Number(b.n.trackId === chosen?.trackId) - Number(a.n.trackId === chosen?.trackId) || a.l.durationMin - b.l.durationMin);
-  if (!fits[0]) {
-    return end('R4', `Noch ${input.remainingMin} Min. Zeit; der nächste Schritt dauert ${chosenLesson.durationMin} Min.`, `Für keinen nächsten Schritt reichen die restlichen ${input.remainingMin} Minuten.`, 'Lieber an einem guten Punkt aufhören. Die Karte merkt sich, wo es weitergeht.');
-  }
-  return {
-    ...core,
-    ruleId: 'R4',
-    ruleName: RULE_NAME.R4,
-    nodeId: fits[0].n.id,
-    alternativeNodeId: chosen!.id,
-    observation: `${core.observation} Noch ${input.remainingMin} Min. Zeit.`,
-    reason: `Dir bleiben noch ${input.remainingMin} Minuten. «${chosenLesson.title}» dauert ${chosenLesson.durationMin}.`,
-    why: 'Ein kleiner, abgeschlossener Schritt bringt mehr als ein angefangener grosser. Der längere Schritt bleibt als Alternative.',
-    tags: ['rule'],
-  };
-}
-
-function coreDecision(input: AgentInput): Decision {
   const base = { newNodes: [] as MapNode[], newLessons: [] as Lesson[] };
   const last = input.events.at(-1);
 

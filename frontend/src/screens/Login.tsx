@@ -16,7 +16,6 @@ export function Login() {
   const nav = useNavigate();
   const tracks = useMemo(() => content?.skills.filter((s) => s.dccBased).flatMap((s) => s.tracks) ?? [], [content]);
   const [name, setName] = useState('');
-  const [time, setTime] = useState(15);
   const [mode, setMode] = useState<'file' | 'manual'>('file');
   const [file, setFile] = useState<{ name: string; data: DccResultFile } | null>(null);
   const [levels, setLevels] = useState<Record<string, DccLevel | null>>({});
@@ -53,7 +52,6 @@ export function Login() {
     try {
       const v = await api.login({
         name,
-        timeBudgetMin: time,
         resume,
         ...(mode === 'file' && file ? { dccFile: file.data, fileName: file.name } : { levels: mode === 'manual' ? levels : {} }),
       });
@@ -84,12 +82,6 @@ export function Login() {
         <label className="field">
           <span>Dein Name</span>
           <input type="text" value={name} onChange={(e) => { setName(e.target.value); setConflict(null); }} autoComplete="given-name" maxLength={40} />
-        </label>
-        <label className="field">
-          <span>Zeit für heute</span>
-          <select value={time} onChange={(e) => setTime(Number(e.target.value))}>
-            {[5, 10, 15, 30, 45].map((m) => <option key={m} value={m}>{m} Minuten</option>)}
-          </select>
         </label>
 
         <fieldset className="dcc-box">

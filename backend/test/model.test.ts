@@ -11,7 +11,7 @@ const app = createApp();
 const levels = { 't-info': 'Mittelstufe', 't-komm': 'Grundstufe', 't-inhalte': 'Grundstufe', 't-sicherheit': 'Mittelstufe', 't-problem': 'Grundstufe' };
 
 async function chatNode() {
-  const res = await request(app).post('/api/login').send({ name: 'Quirina', timeBudgetMin: 60, levels }).expect(201);
+  const res = await request(app).post('/api/login').send({ name: 'Quirina', levels }).expect(201);
   const v: SessionView = await addTracks(app, res.body, catalog);
   // With the agent each track starts with one lesson; for Kommunikation (Grundstufe) that is a chat.
   const n = v.session.nodes.find((x) => x.lessonId === 'komm-c1')!;

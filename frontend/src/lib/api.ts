@@ -27,7 +27,6 @@ const n = (id: string, node: string) => `${s(id)}/nodes/${encodeURIComponent(nod
 
 export interface LoginBody {
   name: string;
-  timeBudgetMin: number;
   dccFile?: unknown;
   fileName?: string;
   levels?: Record<string, DccLevel | null>;

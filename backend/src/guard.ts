@@ -4,7 +4,6 @@ import { frontier } from './agent.ts';
 import { content } from './content.ts';
 import type { Stored } from './workspace.ts';
 
-export const remaining = (s: Session) => Math.max(0, s.timeBudgetMin - s.usedMin);
 export const allLessons = (s: Session): Lesson[] => [...content.lessons, ...s.generatedLessons];
 
 export interface Plan {
@@ -33,7 +32,6 @@ export function checkPlan(st: Stored, plan: Plan, staged: { nodes: MapNode[]; le
   else if (!reachable.has(node.id)) e.push(`Knoten ${plan.nodeId} ist nicht erreichbar (erledigt oder der Schritt davor fehlt)`);
   const lesson = node?.lessonId ? lessons.find((l) => l.id === node.lessonId) : undefined;
   if (node && !lesson) e.push(`Lektion zu ${plan.nodeId} fehlt`);
-  if (lesson && lesson.durationMin > remaining(s)) e.push(`R4: «${lesson.title}» dauert ${lesson.durationMin} Min., es bleiben ${remaining(s)}`);
 
   // An alternative is needed whenever another node is reachable. With one track and one new node there is none.
   if (!plan.alternativeNodeId) {

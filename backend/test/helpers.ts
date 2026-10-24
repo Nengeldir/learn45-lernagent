@@ -13,7 +13,7 @@ export const catalog = ['t-info', 't-komm', 't-inhalte', 't-sicherheit', 't-prob
 
 /** Login. The map starts empty; unless it has tracks already (resume), all prepared tracks are added in one go. */
 export async function login(app: Express, body: Record<string, unknown> = {}, status = 201): Promise<SessionView> {
-  const res = await request(app).post('/api/login').send({ name: 'Test', timeBudgetMin: 60, levels, ...body });
+  const res = await request(app).post('/api/login').send({ name: 'Test', levels, ...body });
   expect(res.status, JSON.stringify(res.body)).toBe(status);
   if (status !== 201 || res.body.session.nodes.some((n: MapNode) => n.kind === 'track')) return res.body;
   return addTracks(app, res.body, catalog);

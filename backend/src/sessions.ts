@@ -9,7 +9,7 @@ import { decide, planTrack, updateObservations, type Decision } from './agent.ts
 import { content } from './content.ts';
 import { designTrack } from './designer.ts';
 import { GENERATED_PER_SESSION } from './generator.ts';
-import { allLessons, checkPlan, remaining } from './guard.ts';
+import { allLessons, checkPlan } from './guard.ts';
 import {
   judgeMarkEvidence, judgeMockSite, judgeVideo, partialMarkEvidence, partialMockSite,
 } from './judge.ts';
@@ -86,7 +86,6 @@ const sameDcc = (a: DccProfile, b: DccProfile) => JSON.stringify(a.levels) === J
 
 export interface LoginInput {
   name: string;
-  timeBudgetMin: number;
   dcc: DccProfile;
   /** Needed when a learner with this name exists */
   resume?: 'continue' | 'new';
@@ -114,8 +113,6 @@ function createLearner(name: string, input: LoginInput): Stored {
     sessionNo: 1,
     createdAt: nowIso(),
     userName: name,
-    timeBudgetMin: input.timeBudgetMin,
-    usedMin: 0,
     simulation: false,
     // The map starts empty. The learner adds tracks: prepared ones or own topics (addTracks, createTrack).
     nodes: [{ id: 'start', kind: 'start', parentId: null, label: name }],
@@ -160,8 +157,6 @@ function resume(learnerId: string, input: LoginInput): Stored {
     id: newId('s'),
     sessionNo: s.sessionNo + 1,
     createdAt: nowIso(),
-    timeBudgetMin: input.timeBudgetMin,
-    usedMin: 0,
     simulation: false,
     helpUsed: {},
     checks: {},
@@ -266,7 +261,6 @@ export function recommend(st: Stored, provisional = false, focusTrackId?: string
     events: s.events,
     observations: s.observations,
     lessons: allLessons(s),
-    remainingMin: remaining(s),
     counter: s.nodes.length,
     focusTrackId,
   });
@@ -279,7 +273,7 @@ export function recommend(st: Stored, provisional = false, focusTrackId?: string
   applyRecommendation(s, rec);
 }
 
-/** After a change of time or session: an open agent plan stays if it still passes the guardrails. */
+/** After a change of settings or session: an open agent plan stays if it still passes the guardrails. */
 function keepOrRecommend(st: Stored) {
   const rec = openRecommendation(st.session);
   if (rec?.ruleId === 'A1') {
@@ -509,7 +503,6 @@ export async function complete(st: Stored, nodeId: string, a: Answer, durationMi
   };
   s.events.push(event);
   s.observations = updateObservations(s.observations, event, (trackId, key) => criterionLabel(st, trackId, key), () => newId('ob'));
-  s.usedMin += l.durationMin;
   if (l.transfer) s.transfer.push({ at, lessonTitle: l.title, text: l.transfer });
   settleReviews(st, event);
   recordFromEvent(st, event);
@@ -551,13 +544,8 @@ export async function _idle() {
   while (running.size) await Promise.all([...running.keys()]);
 }
 
-export function patch(st: Stored, body: { timeBudgetMin?: unknown; simulation?: unknown }) {
+export function patch(st: Stored, body: { simulation?: unknown }) {
   const s = st.session;
-  if (body.timeBudgetMin !== undefined) {
-    const t = Number(body.timeBudgetMin);
-    if (!Number.isFinite(t) || t < 1 || t > 180) throw new HttpError(400, 'Zeit: 1 bis 180 Minuten');
-    s.timeBudgetMin = Math.round(t);
-  }
   if (body.simulation !== undefined) s.simulation = Boolean(body.simulation);
   keepOrRecommend(st);
   save(st);
@@ -569,7 +557,6 @@ export function view(st: Stored): SessionView {
     session,
     dcc: st.dcc,
     recommendation: openRecommendation(st.session),
-    remainingMin: remaining(st.session),
     modelStatus: modelStatus(st.session.simulation),
     agentAvailable: agentAvailable(st.session),
     canCreateTracks: !offline(st.session),

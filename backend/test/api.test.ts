@@ -16,7 +16,7 @@ const app = createApp();
 async function login(body: Record<string, unknown> = {}): Promise<SessionView> {
   const res = await request(app)
     .post('/api/login')
-    .send({ name: 'Test', timeBudgetMin: 60, dccFile: sample('dcc-gemischt.json'), fileName: 'dcc-gemischt.json', ...body });
+    .send({ name: 'Test', dccFile: sample('dcc-gemischt.json'), fileName: 'dcc-gemischt.json', ...body });
   expect(res.status).toBe(201);
   return addTracks(app, res.body, catalog);
 }
@@ -123,20 +123,6 @@ describe('Agent', () => {
     const recs = res.body.view.session.recommendations;
     expect(recs.at(-1).status).toBe('declined');
     expect(res.body.view.recommendation).toBeNull();
-  });
-
-  it('beachtet die verbleibende Zeit (R4)', async () => {
-    const v = await login();
-    const res = await request(app).patch(`/api/sessions/${v.session.id}`).send({ timeBudgetMin: 1 }).expect(200);
-    const after: SessionView = res.body;
-    const rec = after.recommendation!;
-    if (rec.nodeId) {
-      const lessons = (await request(app).get('/api/content')).body.lessons as { id: string; durationMin: number }[];
-      const l = lessons.find((x) => x.id === node(after, rec.nodeId).lessonId)!;
-      expect(l.durationMin).toBeLessThanOrEqual(1);
-    } else {
-      expect(rec.ruleId).toBe('R4');
-    }
   });
 
   it('ändert das DCC-Profil durch Lernen nie', async () => {

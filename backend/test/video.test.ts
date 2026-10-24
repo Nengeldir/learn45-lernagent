@@ -41,7 +41,7 @@ describe('Was ist eine Ableitung?', () => {
     expect(lesson.content.questions.map((q: { afterScene: number }) => q.afterScene)).toEqual([1, 3]);
     expect(lesson.content.questions.every((q: { correct: number; explanation: string }) => q.correct === -1 && q.explanation === '')).toBe(true);
     expect(JSON.stringify(manifest)).not.toContain('"correct"');
-    const login = await request(app).post('/api/login').send({ name: 'Video-Test', timeBudgetMin: 30, levels: {} }).expect(201);
+    const login = await request(app).post('/api/login').send({ name: 'Video-Test', levels: {} }).expect(201);
     // The map starts empty: the learner adds the math track first.
     const before = await addTracks(app, login.body, ['t-analysis']);
     const node = nodeOf(before, 'math-v1');

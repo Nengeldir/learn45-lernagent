@@ -59,9 +59,8 @@ export function createApp() {
   app.post('/api/login', h((req, res) => {
     const body = req.body ?? {};
     const dcc = body.dccFile ? profileFromFile(body.dccFile, body.fileName) : profileFromManual(body.levels);
-    const time = Number(body.timeBudgetMin ?? 15);
     const resume = body.resume === 'continue' || body.resume === 'new' ? body.resume : undefined;
-    const st = login({ name: String(body.name ?? ''), timeBudgetMin: Number.isFinite(time) && time > 0 ? Math.min(180, time) : 15, dcc, resume });
+    const st = login({ name: String(body.name ?? ''), dcc, resume });
     res.status(201).json(view(st));
   }));
 

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Answer, Lesson, LessonResult } from '@l45/shared';
 import { MODE_LABEL, SOURCE_LABEL, TYPE_LABEL } from '@l45/shared';
 import { api } from '../lib/api.ts';
+import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
 import { BasedOn, LessonSource, PlanStatus, planLabel } from '../map/NodePanel.tsx';
 import { AiChat } from './AiChat.tsx';
@@ -78,7 +79,9 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
             {lesson && !result && <p>{lesson.intro}</p>}
             {lesson && <LessonSource lesson={lesson} />}
           </div>
-          <button className="btn quiet" onClick={() => onClose(Boolean(result))}>{result ? 'Zur Karte' : 'Schliessen'}</button>
+          {result
+            ? <button className="btn secondary" onClick={() => onClose(true)}><Icon name="map" size={16} />Zur Karte</button>
+            : <button className="icon-btn" onClick={() => onClose(false)} aria-label="Schliessen" title="Schliessen"><Icon name="close" size={20} /></button>}
         </header>
 
         {error && <p className="error" role="alert">{error}</p>}
@@ -117,14 +120,14 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
             {lesson.transfer && <div className="transfer"><strong>Für deine Arbeit:</strong> {lesson.transfer}</div>}
             {rec && view && (
               <div className="next-card">
-                <p className="small muted">Der Agent passt deine Karte an</p>
+                <p className="eyebrow next">Der Agent passt deine Karte an</p>
                 <PlanStatus view={view} />
-                <h3>{recNode ? `Nächster Schritt: ${recNode.label}` : 'Für heute fertig'}</h3>
+                <h3>{recNode ? `Nächster Schritt: ${recNode.label}` : 'Alles erledigt'}</h3>
                 <p>{rec.reason}</p>
                 <p className="small">{rec.why}</p>
                 {rec.basedOn?.length ? <div className="small"><strong>Gestützt auf:</strong><BasedOn rec={rec} view={view} /></div> : null}
                 <p className="small muted">{rec.ruleId} {rec.ruleName}. {rec.tags.map((t) => SOURCE_LABEL[t]).join(', ')}. {planLabel(rec, view)}</p>
-                <button className="btn primary" onClick={() => onClose(true)}>Auf der Karte ansehen</button>
+                <button className="btn primary" onClick={() => onClose(true)}><Icon name="map" size={16} />Auf der Karte ansehen</button>
               </div>
             )}
           </div>

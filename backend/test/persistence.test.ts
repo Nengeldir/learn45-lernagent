@@ -48,14 +48,13 @@ describe('Lernstand auf der Festplatte', () => {
     const app2 = createApp();
     await request(app2).get(`/api/sessions/${v.session.id}`).expect(200);
     // Same name, other case: the learner is asked to choose.
-    const conflict = await request(app2).post('/api/login').send({ name: 'mara', timeBudgetMin: 30, levels }).expect(409);
+    const conflict = await request(app2).post('/api/login').send({ name: 'mara', levels }).expect(409);
     expect(conflict.body).toMatchObject({ code: 'learner-exists', name: 'Mara', lessonsDone: 1 });
 
-    const again = await login(app2, { name: 'mara', resume: 'continue', timeBudgetMin: 30 });
+    const again = await login(app2, { name: 'mara', resume: 'continue' });
     expect(again.session.learnerId).toBe(v.session.learnerId);
     expect(again.session.id).not.toBe(v.session.id);
     expect(again.session.sessionNo).toBe(2);
-    expect(again.session.usedMin).toBe(0);
     expect(again.session.events).toHaveLength(1);
     expect(again.session.nodes.find((n) => n.lessonId === 'sich-v1')!.state).toBe('done');
     expect(again.workspace.records).toEqual(before.workspace.records);
