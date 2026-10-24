@@ -6,7 +6,7 @@ import { api } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { useStore } from '../lib/store.tsx';
 
-export const MISSION_PRIVACY = 'Deine Mission und deine Antworten in den Lektionen gehen an die KI, dein Name nicht.';
+export const MISSION_PRIVACY = 'Die KI sieht dein Ziel und deine Antworten, aber nicht deinen Namen.';
 
 export function MissionCard({ track, onDone }: { track: Track; onDone: () => void }) {
   const { view, setView } = useStore();

@@ -1,19 +1,20 @@
-// A lesson opens over the map. After finishing, feedback and the agent's next step are shown here.
+// A lesson opens over the topic. After finishing, feedback is shown here; the learner then chooses what comes next.
 import { useEffect, useRef, useState } from 'react';
 import type { Answer, Lesson, LessonResult } from '@l45/shared';
 import { api } from '../lib/api.ts';
 import { Icon } from '../lib/icons.tsx';
 import { useI18n } from '../lib/i18n.tsx';
 import { useStore } from '../lib/store.tsx';
-import { BasedOn, LessonSource, PlanStatus, planLabel } from '../map/NodePanel.tsx';
+import { LessonSource } from '../map/NodePanel.tsx';
 import { AiChat } from './AiChat.tsx';
 import { MarkEvidence, MockSite } from './Checkable.tsx';
 import { MissionCard } from './MissionCard.tsx';
+import { PodcastLesson } from './PodcastLesson.tsx';
 import { Video } from './Video.tsx';
 
 export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (showNext: boolean) => void }) {
   const { view, setView } = useStore();
-  const { t, lang, type, mode, level, source, trackName, lessonTitle } = useI18n();
+  const { t, lang, type, mode, level, trackName, lessonTitle } = useI18n();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<LessonResult | null>(null);
@@ -59,8 +60,6 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
 
   const track = view?.skills.flatMap((s) => s.tracks).find((t) => t.id === lesson?.trackId);
   const missed = result?.criteria.filter((c) => c.status === 'missed').map((c) => track?.criteria.find((x) => x.id === c.key)).filter(Boolean) ?? [];
-  const rec = view?.recommendation;
-  const recNode = view?.session.nodes.find((n) => n.id === rec?.nodeId);
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label={lesson ? lessonTitle(lesson.id, lesson.title) : t('Lektion')}>
@@ -100,6 +99,7 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
             {lesson.type === 'mock-site' && <MockSite lesson={lesson} sessionId={sessionId} nodeId={nodeId} onComplete={onComplete} />}
             {lesson.type === 'video' && <Video lesson={lesson} prepareUrl={`/api/sessions/${encodeURIComponent(sessionId)}/nodes/${encodeURIComponent(nodeId)}/video`} onComplete={onComplete} />}
             {lesson.type === 'ai-chat' && <AiChat lesson={lesson} sessionId={sessionId} nodeId={nodeId} onComplete={onComplete} />}
+            {lesson.type === 'podcast' && <PodcastLesson lesson={lesson} sessionId={sessionId} nodeId={nodeId} onComplete={onComplete} />}
           </div>
         )}
 
@@ -129,22 +129,12 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
             {missed.length > 0 && (
               <div className="note"><strong>{t('Merksatz:')}</strong> {missed.map((m) => m!.ruleOfThumb).join(' ')}</div>
             )}
-            {lesson.transfer && <div className="transfer"><strong>{t('Für deine Arbeit:')}</strong> {lesson.transfer}</div>}
-            {rec && view && (
-              <div className="next-card">
-                <p className="eyebrow next">{t('Der Agent passt deine Karte an')}</p>
-                <h3>{recNode ? t('Nächster Schritt: {label}', { label: lessonTitle(recNode.lessonId, recNode.label) }) : t('Alles erledigt')}</h3>
-                <p>{t(rec.reason)}</p>
-                <details className="why">
-                  <summary>{t('Warum dieser Schritt?')}</summary>
-                  <PlanStatus view={view} />
-                  <p className="small">{t(rec.why)}</p>
-                  {rec.basedOn?.length ? <div className="small"><strong>{t('Gestützt auf:')}</strong><BasedOn rec={rec} view={view} /></div> : null}
-                  <p className="small muted">{rec.ruleId} {t(rec.ruleName)}. {rec.tags.map((tag) => source(tag)).join(', ')}. {planLabel(rec, view, t)}</p>
-                </details>
-                <button className="btn primary" onClick={() => onClose(true)}><Icon name="map" size={16} />{t('Auf der Karte ansehen')}</button>
-              </div>
-            )}
+            {lesson.transfer && <div className="transfer"><strong>{t('Im Alltag:')}</strong> {lesson.transfer}</div>}
+            <div className="next-card">
+              <p className="eyebrow next">{t('Wie geht es weiter?')}</p>
+              <h3>{t('Du wählst, was du als Nächstes lernst.')}</h3>
+              <button className="btn primary big" onClick={() => onClose(true)}><Icon name="play" size={20} />{t('Weiter')}</button>
+            </div>
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import type { Lesson, MapNode, Recommendation, SessionView, Track } from '@l45/shared';
 import { LERNSTAND_LABEL } from '@l45/shared';
+import { NextTopics } from '../lessons/NextTopics.tsx';
 import { api } from '../lib/api.ts';
 import { localeOf, useI18n } from '../lib/i18n.tsx';
 import { Icon } from '../lib/icons.tsx';
@@ -80,7 +81,7 @@ export function PlanStatus({ view }: { view: SessionView }) {
   return null;
 }
 
-/** Where a lesson comes from: made by the AI (with its source) or prepared. */
+/** Where a lesson comes from. Only lessons the AI wrote are marked: their examples are invented. */
 export function LessonSource({ lesson }: { lesson: Lesson }) {
   const { view } = useStore();
   const { t } = useI18n();
@@ -161,7 +162,8 @@ export function NodePanel({
   const { t, lang, level, lessonTitle, trackName: trackLabel, skillName } = useI18n();
   const { session, recommendation: rec, dcc } = view;
   const byId = (id?: string) => session.nodes.find((n) => n.id === id);
-  const recNode = byId(rec?.nodeId);
+  // A started recommendation counts as accepted and leaves the view; its node still shows what comes next.
+  const recNode = byId(rec?.nodeId) ?? session.nodes.find((n) => n.kind === 'lesson' && n.state === 'recommended');
   const altNode = byId(rec?.alternativeNodeId);
   const trackName = (id?: string) => trackLabel(id, view.skills.flatMap((s) => s.tracks).find((tr) => tr.id === id)?.name ?? '');
   const labelOf = (n?: MapNode) => (n ? lessonTitle(n.lessonId, n.kind === 'track' ? trackLabel(n.trackId, n.label) : n.kind === 'skill' ? skillName(n.skillId, n.label) : n.label) : '');
@@ -184,46 +186,19 @@ export function NodePanel({
     );
   }
 
-  // --- Default: the next step ---
-  if (!selected) {
+  // --- Default: choose the next topic and format. Topic previews on the map open the same chooser. ---
+  const nextTrackId = selected?.topicId ? selected.trackId : recNode?.trackId ?? session.events.at(-1)?.trackId ?? view.skills.flatMap((s) => s.tracks)[0]?.id;
+  if ((!selected || selected.topicId) && nextTrackId) {
     return (
       <div className="panel-inner">
-        <p className="eyebrow next">{t('Nächster Schritt')}</p>
-        {recNode && rec ? (
-          <>
-            <h2>{labelOf(recNode)}</h2>
-            <LessonFacts node={recNode} />
-            <div className="panel-actions">
-              <button className="btn primary" onClick={() => onStart(recNode.id)}><Icon name="play" size={16} />{t('Starten')}</button>
-              {altNode && <button className="btn secondary" onClick={() => onSelect(altNode.id)}>{t('Alternative')}</button>}
-            </div>
-            <ViewLinks node={recNode} onShowMountain={onShowMountain} onShowKnot={onShowKnot} />
-            <PlanStatus view={view} />
-            <Reason rec={rec} view={view} />
-          </>
-        ) : (
-          <>
-            <h2>{session.planning ? t('Nächster Schritt wird geplant') : t('Alles erledigt')}</h2>
-            <PlanStatus view={view} />
-            {rec && !session.planning && <Reason rec={rec} view={view} />}
-            {!session.planning && (
-              <>
-                {idleOwnTracks(view).map((tr) => <NextLesson key={tr.id} track={tr} onFocus={onFocus} />)}
-                <button className="btn secondary block" onClick={onAddTrack}><Icon name="plus" size={16} />{t('Bereich hinzufügen')}</button>
-              </>
-            )}
-          </>
-        )}
-        <Legend />
-        <p className="small muted">
-          {view.agentAvailable
-            ? t('Mit KI startet jeder Bereich mit einem Einstieg. Nach jeder Lektion erzeugt der Agent die nächste passende Lektion. Vorbereitete Lektionen nimmt er nur, wenn das nicht klappt.')
-            : t('Ohne KI: Die Karte zeigt die vorbereiteten Lektionen, die Regeln wählen den nächsten Schritt.')}
-        </p>
+        <NextTopics key={`${nextTrackId}:${selected?.topicId ?? 'next'}`} trackId={nextTrackId} initialTopicId={selected?.topicId} onStart={onStart} onFocus={onFocus} />
+        {recNode && <ViewLinks node={recNode} onShowMountain={onShowMountain} onShowKnot={onShowKnot} />}
+        <button className="btn secondary block" onClick={onAddTrack}><Icon name="plus" size={16} />{t('Bereich hinzufügen')}</button>
       </div>
     );
   }
 
+  if (!selected) return null;
   const lesson = lessonOf(selected.lessonId);
 
   if (selected.kind === 'lesson' && lesson) {
@@ -264,6 +239,7 @@ export function NodePanel({
     const skill = view.skills.find((s) => s.tracks.some((t) => t.id === selected.trackId));
     const lv = selected.trackId ? dcc.levels[selected.trackId] : null;
     const lessons = session.nodes.filter((n) => n.kind === 'lesson' && n.trackId === selected.trackId);
+    const done = lessons.filter((n) => n.state === 'done').length;
     const track = skill?.tracks.find((t) => t.id === selected.trackId);
     const mission = view.workspace.missions.find((m) => m.trackId === selected.trackId);
     const stand = view.workspace.lernstand.filter((l) => l.trackId === selected.trackId);
@@ -300,6 +276,7 @@ export function NodePanel({
             </li>
           ))}
         </ul>
+        {track && <NextTopics key={track.id} trackId={track.id} onStart={onStart} onFocus={onFocus} />}
         {track?.custom && (
           <>
             <h3 className="small-head">{t('Quellen')}</h3>
@@ -333,7 +310,9 @@ export function NodePanel({
     );
   }
 
-  // Start node: profile
+  // Start node: the learner
+  const dccTracks = content?.skills.filter((s) => s.dccBased).flatMap((s) => s.tracks) ?? [];
+  const done = session.nodes.filter((n) => n.kind === 'lesson' && n.state === 'done').length;
   return (
     <div className="panel-inner">
       <BackLink onClick={() => onSelect(null)} />

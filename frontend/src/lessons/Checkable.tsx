@@ -6,6 +6,7 @@ import { useI18n } from '../lib/i18n.tsx';
 import { StepBar } from './Steps.tsx';
 
 type Mark = 'belegt' | 'erfunden';
+const MARK_LABEL: Record<Mark, string> = { belegt: 'Steht in der Notiz', erfunden: 'Erfunden' };
 
 interface Ctx {
   sessionId: string;

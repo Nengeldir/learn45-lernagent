@@ -15,6 +15,7 @@ const gear = (() => {
 
 const PATHS = {
   plus: <path d="M12 5v14M5 12h14" />,
+  check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   minus: <path d="M5 12h14" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   back: <path d="M19 12H5M11 18l-6-6 6-6" />,
@@ -26,7 +27,11 @@ const PATHS = {
   user: <><circle cx="12" cy="8" r="4" /><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" /></>,
   book: <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11" />,
   agent: <><rect x="4" y="8" width="16" height="12" rx="3" /><path d="M12 4v4M9 14h.01M15 14h.01" /></>,
+  headphones: <><path d="M4 15v-3a8 8 0 0 1 16 0v3" /><rect x="3" y="14" width="4.5" height="6.5" rx="1.5" /><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.5" /></>,
   map: <path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5zM9 4v13.5M15 6.5V20" />,
+  chat: <path d="M5 5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-8l-4 3.5V16H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" />,
+  globe: <><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17M12 3.5c2.5 2.6 3.5 5.4 3.5 8.5s-1 5.9-3.5 8.5c-2.5-2.6-3.5-5.4-3.5-8.5s1-5.9 3.5-8.5z" /></>,
+  chevron: <path d="M9 5l7 7-7 7" />,
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof PATHS;

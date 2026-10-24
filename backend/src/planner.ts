@@ -458,7 +458,7 @@ export async function runPlanner(st: Stored, ev: LearningEvent): Promise<void> {
       alternativeNodeId: plan.alternativeNodeId || undefined,
       observation: observation(ctx, plan.basedOn),
       reason: plan.reason,
-      why: 'Der Agent hat ein Ziel aus deiner Mission und deinen Lerneinträgen gewählt. Die Regeln haben den Plan geprüft: erreichbar, mit Alternative und Belegen.',
+      why: 'Der Lernagent hat diese Lektion nach deinem Ziel und deinen bisherigen Ergebnissen ausgewählt.',
       tags: ['model', 'rule'],
       status: 'open',
       basedOn: plan.basedOn,

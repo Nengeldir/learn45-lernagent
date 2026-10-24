@@ -2,7 +2,7 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Answer, ChatTurn, ContentBundle, VideoLesson } from '@l45/shared';
+import type { Answer, ChatTurn, ContentBundle, Lesson, PodcastLesson, VideoLesson } from '@l45/shared';
 import { content } from './content.ts';
 import { InputError, profileFromFile, profileFromManual } from './dcc.ts';
 import { modelStatus, providerName } from './provider.ts';
@@ -10,7 +10,9 @@ import {
   HttpError, addTracks, chat, clearCache, complete, createTrack, generatedPublic, get, hint, login, nextLesson, partialCheck, patch, publicLesson,
   setMission, startNode, view,
 } from './sessions.ts';
+import { PodcastService } from './podcast/service.ts';
 import { VideoService } from './video/service.ts';
+import { chooseTopic, getTopics, suggestTopic } from './nextTopics.ts';
 
 type Handler = (req: Request, res: Response) => unknown;
 const h = (fn: Handler) => (req: Request, res: Response, next: NextFunction) => {
@@ -27,6 +29,7 @@ function parseAnswer(body: unknown): Answer {
     case 'mock-site':
       return { type: a.type, marked: Array.isArray(a.marked) ? a.marked.map(String) : [], verdict: a.verdict === 'phishing' || a.verdict === 'echt' ? a.verdict : null };
     case 'video':
+    case 'podcast':
       return { type: a.type, answers: a.answers ?? {} };
     case 'ai-chat':
       return { type: a.type, turns: parseTurns(a.turns) };
@@ -42,7 +45,7 @@ function parseTurns(turns: unknown): ChatTurn[] {
     .map((t) => ({ role: t.role, text: String(t.text ?? '').slice(0, 2000), source: t.source }));
 }
 
-export function createApp(options: { videoService?: VideoService } = {}) {
+export function createApp(options: { videoService?: VideoService; podcastService?: PodcastService } = {}) {
   // A new app starts like a restarted server: nothing in memory, everything is read from disk.
   clearCache();
   const app = express();
@@ -50,6 +53,10 @@ export function createApp(options: { videoService?: VideoService } = {}) {
     output: process.env.VIDEO_CACHE_DIR ?? join(import.meta.dirname, '..', 'var', 'videos'),
     speechCache: process.env.VIDEO_SPEECH_CACHE_DIR ?? join(import.meta.dirname, '..', 'var', 'video-speech'),
     published: join(import.meta.dirname, '..', '..', 'frontend', 'public', 'videos'),
+  });
+  const podcasts = options.podcastService ?? new PodcastService({
+    output: process.env.PODCAST_CACHE_DIR ?? join(import.meta.dirname, '..', 'var', 'podcasts'),
+    speechCache: videos.options.speechCache,
   });
   app.use(express.json({ limit: '200kb' }));
 
@@ -95,6 +102,22 @@ export function createApp(options: { videoService?: VideoService } = {}) {
     res.json({ view: view(st), generated: generatedPublic(st) });
   }));
 
+  app.post('/api/sessions/:id/tracks/:track/topics', h(async (req, res) => {
+    const st = get(p(req, 'id'));
+    const choices = await getTopics(st, p(req, 'track'));
+    res.json({ choices, view: view(st) });
+  }));
+  app.post('/api/sessions/:id/topics/custom', h(async (req, res) => {
+    const st = get(p(req, 'id'));
+    const topic = await suggestTopic(st, req.body ?? {});
+    res.json({ topic, view: view(st) });
+  }));
+  app.post('/api/sessions/:id/topics/choose', h(async (req, res) => {
+    const st = get(p(req, 'id'));
+    const nodeId = await chooseTopic(st, req.body ?? {});
+    res.status(201).json({ nodeId, view: view(st), generated: generatedPublic(st) });
+  }));
+
   app.put('/api/sessions/:id/missions/:track', h((req, res) => {
     const st = get(p(req, 'id'));
     setMission(st, p(req, 'track'), req.body ?? {});
@@ -106,12 +129,21 @@ export function createApp(options: { videoService?: VideoService } = {}) {
     const r = startNode(st, p(req, 'node'));
     res.json({ ...r, view: view(st) });
   }));
-  const videoOf = (sessionId: string, nodeId: string): VideoLesson => {
+  const lessonOf = (sessionId: string, nodeId: string): Lesson => {
     const st = get(sessionId);
     const node = st.session.nodes.find(n => n.id === nodeId && n.kind === 'lesson');
     const lesson = [...content.lessons, ...st.session.generatedLessons].find(l => l.id === node?.lessonId);
     if (!lesson) throw new HttpError(404, 'Lektion nicht gefunden');
+    return lesson;
+  };
+  const videoOf = (sessionId: string, nodeId: string): VideoLesson => {
+    const lesson = lessonOf(sessionId, nodeId);
     if (lesson.type !== 'video') throw new HttpError(400, 'Diese Lektion ist kein Video.');
+    return lesson;
+  };
+  const podcastOf = (sessionId: string, nodeId: string): PodcastLesson => {
+    const lesson = lessonOf(sessionId, nodeId);
+    if (lesson.type !== 'podcast') throw new HttpError(400, 'Diese Lektion ist kein Podcast.');
     return lesson;
   };
   app.post('/api/sessions/:id/nodes/:node/video', h(async (req, res) => {
@@ -120,6 +152,14 @@ export function createApp(options: { videoService?: VideoService } = {}) {
   }));
   app.get('/api/sessions/:id/nodes/:node/video', h(async (req, res) => {
     res.json(await videos.status(videoOf(p(req, 'id'), p(req, 'node'))));
+  }));
+  // The audio of a podcast lesson is narrated the first time it is opened.
+  app.post('/api/sessions/:id/nodes/:node/podcast', h(async (req, res) => {
+    const result = await podcasts.prepare(podcastOf(p(req, 'id'), p(req, 'node')));
+    res.status(result.state === 'building' ? 202 : result.state === 'error' ? 503 : 200).json(result);
+  }));
+  app.get('/api/sessions/:id/nodes/:node/podcast', h(async (req, res) => {
+    res.json(await podcasts.status(podcastOf(p(req, 'id'), p(req, 'node'))));
   }));
   app.post('/api/sessions/:id/nodes/:node/check', h((req, res) => res.json(partialCheck(get(p(req, 'id')), p(req, 'node'), parseAnswer(req.body)))));
   app.post('/api/sessions/:id/nodes/:node/hint', h(async (req, res) => res.json(await hint(get(p(req, 'id')), p(req, 'node'), parseAnswer(req.body)))));
@@ -134,6 +174,8 @@ export function createApp(options: { videoService?: VideoService } = {}) {
   // Completed runtime videos and bundled videos share the same public asset URL shape.
   app.use('/videos', express.static(videos.options.output), express.static(videos.options.published));
   app.use('/videos', (_req, res) => res.status(404).json({ error: 'Video-Datei nicht gefunden' }));
+  app.use('/podcasts', express.static(podcasts.options.output));
+  app.use('/podcasts', (_req, res) => res.status(404).json({ error: 'Podcast-Datei nicht gefunden' }));
 
   // Built frontend
   const dist = process.env.FRONTEND_DIST ?? join(import.meta.dirname, '..', '..', 'frontend', 'dist');

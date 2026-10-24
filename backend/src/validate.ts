@@ -1,11 +1,11 @@
 // Schema check for every lesson type. The same check runs for data/lessons/*.json at startup
 // and for lessons the model generates. Returns a list of problems; empty = valid.
-import type { Lesson, Track } from '@l45/shared';
+import type { Lesson, PodcastQuestion, Track } from '@l45/shared';
 import { DCC_LEVELS } from '@l45/shared';
 
 export const MAX_LESSON_MIN = 5;
 
-const TYPES = ['video', 'ai-chat', 'mock-site', 'mark-evidence'];
+const TYPES = ['video', 'ai-chat', 'mock-site', 'mark-evidence', 'podcast'];
 const MODES = ['alone', 'ai', 'peer'];
 const VISUALS = ['next-word', 'invented-detail', 'secant-tangent', 'slope-zoom', 'steps', 'falling', 'url-parts'];
 /** Generated videos may only use the generic visuals; the others are hand-made animations for one topic. */
@@ -36,6 +36,29 @@ function strings(v: unknown, out: string[] = []): string[] {
   else if (Array.isArray(v)) v.forEach((x) => strings(x, out));
   else if (v && typeof v === 'object') Object.values(v).forEach((x) => strings(x, out));
   return out;
+}
+
+/** Quiz questions of videos and podcasts: 2 to 4 answers of equal length, the right one not always in the same place. */
+function quizErrors(questions: PodcastQuestion[], knownCrit: (id: unknown) => boolean, extra?: (q: PodcastQuestion, n: string) => string[]): string[] {
+  const e: string[] = [];
+  questions.forEach((q, i) => {
+    const n = `Frage ${i + 1}`;
+    if (!isStr(q?.prompt, 300)) e.push(`${n}: Frage fehlt`);
+    if (!Array.isArray(q?.options) || q.options.length < 2 || q.options.length > 4 || !q.options.every((o) => isStr(o, 120))) {
+      e.push(`${n}: 2 bis 4 Antworten nötig`);
+      return;
+    }
+    if (new Set(q.options.map((o) => o.trim().toLowerCase())).size !== q.options.length) e.push(`${n}: Antworten doppelt`);
+    const counts = q.options.map(words);
+    if (new Set(counts).size > 1) e.push(`${n}: alle Antworten brauchen gleich viele Wörter (jetzt ${counts.join('/')})`);
+    if (!Number.isInteger(q.correct) || q.correct < 0 || q.correct >= q.options.length) e.push(`${n}: richtige Antwort fehlt`);
+    e.push(...(extra?.(q, n) ?? []));
+    if (!isStr(q.explanation, 400)) e.push(`${n}: Erklärung fehlt`);
+    if (q.criterion !== undefined && !knownCrit(q.criterion)) e.push(`${n}: unbekanntes Kriterium ${q.criterion}`);
+  });
+  const positions = questions.map((q) => q?.correct);
+  if (questions.length >= 2 && new Set(positions).size === 1) e.push('Die richtige Antwort steht in jeder Frage an derselben Stelle');
+  return e;
 }
 
 /** Host names in a text: anything like name.tld, also after an @. */
@@ -92,24 +115,27 @@ export function validateLesson(input: unknown, opts: ValidateOpts = {}): string[
       }
       if (!Array.isArray(questions) || questions.length === 0) e.push('Video ohne Fragen');
       else {
-        questions.forEach((q, i) => {
-          const n = `Frage ${i + 1}`;
-          if (!isStr(q?.prompt, 300)) e.push(`${n}: Frage fehlt`);
-          if (!Array.isArray(q?.options) || q.options.length < 2 || q.options.length > 4 || !q.options.every((o) => isStr(o, 120))) {
-            e.push(`${n}: 2 bis 4 Antworten nötig`);
-            return;
-          }
-          if (new Set(q.options.map((o) => o.trim().toLowerCase())).size !== q.options.length) e.push(`${n}: Antworten doppelt`);
-          const counts = q.options.map(words);
-          if (new Set(counts).size > 1) e.push(`${n}: alle Antworten brauchen gleich viele Wörter (jetzt ${counts.join('/')})`);
-          if (!Number.isInteger(q.correct) || q.correct < 0 || q.correct >= q.options.length) e.push(`${n}: richtige Antwort fehlt`);
-          if (!Array.isArray(scenes) || !Number.isInteger(q.afterScene) || q.afterScene < 0 || q.afterScene >= scenes.length) e.push(`${n}: afterScene ausserhalb der Szenen`);
-          if (!isStr(q.explanation, 400)) e.push(`${n}: Erklärung fehlt`);
-          if (q.criterion !== undefined && !knownCrit(q.criterion)) e.push(`${n}: unbekanntes Kriterium ${q.criterion}`);
-        });
-        const positions = questions.map((q) => q?.correct);
-        if (questions.length >= 2 && new Set(positions).size === 1) e.push('Die richtige Antwort steht in jeder Frage an derselben Stelle');
+        e.push(...quizErrors(questions, knownCrit, (q, n) => {
+          const afterScene = (q as { afterScene?: unknown }).afterScene;
+          return !Array.isArray(scenes) || !Number.isInteger(afterScene) || (afterScene as number) < 0 || (afterScene as number) >= scenes.length ? [`${n}: afterScene ausserhalb der Szenen`] : [];
+        }));
       }
+      break;
+    }
+    case 'podcast': {
+      // Every line is paid speech: about two minutes at most, and both hosts speak.
+      const { lines, questions } = l.content;
+      if (!Array.isArray(lines) || lines.length < 6 || lines.length > 16) e.push('Podcast braucht 6 bis 16 Beiträge');
+      else {
+        lines.forEach((x, i) => {
+          if (x?.speaker !== 'a' && x?.speaker !== 'b') e.push(`Beitrag ${i + 1}: Sprecher muss a oder b sein`);
+          if (!isStr(x?.text, 400)) e.push(`Beitrag ${i + 1}: Text fehlt oder ist länger als 400 Zeichen`);
+        });
+        if (!lines.some((x) => x?.speaker === 'a') || !lines.some((x) => x?.speaker === 'b')) e.push('Im Podcast sprechen beide');
+        if (lines.reduce((n, x) => n + String(x?.text ?? '').length, 0) > 3000) e.push('Podcast ist länger als 3000 Zeichen');
+      }
+      if (!Array.isArray(questions) || questions.length === 0 || questions.length > 4) e.push('Podcast braucht 1 bis 4 Fragen');
+      else e.push(...quizErrors(questions, knownCrit));
       break;
     }
     case 'ai-chat': {

@@ -82,21 +82,29 @@ export function Login() {
           <img className="logo" src="/icons/owl.svg" alt="" width={46} height={46} />
           <span className="brand-name">Owl for <img className="learn45-mark" src="/icons/learn45.png" alt="Learn45" /></span>
         </h1>
-        <p className="lead">{t('Du wählst, was du lernen willst: ein eigenes Thema wie «Security+ Prüfung bestehen» oder einen vorbereiteten Bereich. Der Agent plant die Lektionen, schlägt den nächsten Schritt vor und sagt, warum.')}</p>
+        <p className="lead">{t('Lerne den Umgang mit dem Computer in kleinen Schritten. Du wählst ein Thema, der Lernagent zeigt dir immer, was als Nächstes kommt.')}</p>
         <MiniMap />
         <p className="small muted">{t('Prototyp für Learn45. Anmeldung ohne Passwort, nur erfundene Daten.')}</p>
       </section>
 
       <section className="login-card" aria-label={t('Anmelden')}>
-        <h2>{t('Anmelden')}</h2>
+        <h2>{t('Willkommen!')}</h2>
         <label className="field">
-          <span>{t('Dein Name')}</span>
-          <input type="text" value={name} onChange={(e) => { setName(e.target.value); setConflict(null); }} autoComplete="given-name" maxLength={40} />
+          <span>{t('Wie heisst du?')}</span>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => { setName(e.target.value); setConflict(null); }}
+            onKeyDown={(e) => e.key === 'Enter' && ready && !busy && !conflict && submit()}
+            autoComplete="given-name"
+            maxLength={40}
+          />
         </label>
 
-        <fieldset className="dcc-box">
-          <legend>{t('DCC-Profil (freiwillig)')}</legend>
-          <p className="small muted">{t('Nur für die vorbereiteten Bereiche der Digitalen Kompetenz. Für eigene Themen brauchst du es nicht.')}</p>
+        {/* Optional and only for the prepared Digitale-Kompetenz tracks, so it stays closed unless asked for. */}
+        <details className="dcc-box more">
+          <summary>{t('Ich habe ein DCC-Resultat (freiwillig)')}</summary>
+          <p className="small muted">{t('Nur nötig, wenn du einen DCC-Test gemacht hast. Sonst einfach weiter.')}</p>
           <div className="seg" role="tablist">
             <button role="tab" aria-selected={mode === 'file'} onClick={() => setMode('file')}>{t('Resultat laden')}</button>
             <button role="tab" aria-selected={mode === 'manual'} onClick={() => setMode('manual')}>{t('Stufen eingeben')}</button>
@@ -153,24 +161,24 @@ export function Login() {
             </table>
           )}
           <p className="small muted">{t('Die DCC-Werte bleiben unverändert. Lernen in der App stuft nichts hoch. «Nicht erhoben» heisst nicht geringe Kompetenz.')}</p>
-        </fieldset>
+        </details>
 
         {error && <p className="error" role="alert">{t(error)}</p>}
         {conflict ? (
           <div className="choice-card" role="alert">
             <p>
-              <strong>{t('Es gibt schon einen Verlauf für «{name}».', { name: conflict.name })}</strong>{' '}
-              {t('Seit {date}, {n} {lessons} erledigt.', { date: new Date(conflict.createdAt).toLocaleDateString(localeOf(lang)), n: conflict.lessonsDone, lessons: conflict.lessonsDone === 1 ? t('Lektion') : t('Lektionen') })}
+              <strong>{t('Willkommen zurück, {name}!', { name: conflict.name })}</strong>{' '}
+              {t('Du hast schon {n} {lessons} geschafft.', { n: conflict.lessonsDone, lessons: conflict.lessonsDone === 1 ? t('Lektion') : t('Lektionen') })}
             </p>
             <div className="row">
-              <button className="btn primary" disabled={busy} onClick={() => submit('continue')}>{t('Weitermachen')}</button>
-              <button className="btn secondary" disabled={busy} onClick={() => submit('new')}>{t('Neu beginnen')}</button>
+              <button className="btn primary big" disabled={busy} onClick={() => submit('continue')}>{t('Weitermachen')}</button>
+              <button className="btn secondary" disabled={busy} onClick={() => submit('new')}>{t('Neu anfangen')}</button>
             </div>
-            <p className="small muted">{t('Weitermachen: Karte, Lerneinträge und Missionen bleiben. Ein neues DCC-Resultat wird als neuer Stand gespeichert. Neu beginnen: eine neue Karte, der alte Verlauf wird nicht gelöscht.')}</p>
+            <p className="small muted">{t('Neu anfangen gibt dir eine leere Karte. Dein alter Stand bleibt gespeichert.')}</p>
           </div>
         ) : (
-          <button className="btn primary block" disabled={!ready || busy} onClick={() => submit()}>
-            {busy ? t('Lernkarte wird erstellt …') : t('Lernkarte erstellen')}
+          <button className="btn primary big block" disabled={!ready || busy} onClick={() => submit()}>
+            {busy ? t('Einen Moment …') : t("Los geht's")}
           </button>
         )}
       </section>

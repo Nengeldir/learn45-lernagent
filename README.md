@@ -2,11 +2,15 @@
 
 Prototyp für den Zentral Hack 2026 (Challenge CoreTeam AG). Eine PWA mit Frontend und Backend.
 
-Die Lernkarte ist eine Mindmap mit dir in der Mitte. Sie beginnt leer: Du wählst, was du lernen willst. Das kann ein eigenes Thema sein, zum Beispiel «Security+ Prüfung bestehen». Dann plant der Agent den Bereich mit der KI. Oder du nimmst einen vorbereiteten Bereich: die fünf DigComp-Bereiche, Mathematik oder Naturwissenschaften. Geplante Lektionen sind blass. Der Agent hebt den nächsten Schritt hervor, begründet ihn und bietet eine Alternative an. Während du lernst, wächst die Karte: Der Agent hängt neue Knoten an, wenn etwas zweimal schwierig war oder zu leicht ist.
+Die Startseite ist eine Liste: «Was möchtest du lernen?» mit den Bereichen (Digitale Kompetenz, Mathematik, Naturwissenschaften, Eigene Themen) und ihren Themen, etwa «Kommunikation und Zusammenarbeit». Ein Tipp auf ein Thema öffnet es; ein neues Thema kommt dabei dazu. Oben steht «Weiterlernen» mit dem zuletzt bearbeiteten Thema. Ein Thema ist eine gerade Linie: die geschafften Lektionen (in der Reihenfolge, in der sie geschafft wurden, `frontend/src/path/order.ts`), darunter «Wie geht es weiter?» mit der Themen- und Formatwahl (siehe «Nächstes Thema und Format wählen»).
+
+Unter «Alles als Karte ansehen» gibt es die ganze Lernkarte. Die Lernkarte ist eine Mindmap mit dir in der Mitte. Sie beginnt leer: Du wählst, was du lernen willst. Das kann ein eigenes Thema sein, zum Beispiel «Security+ Prüfung bestehen». Dann plant der Agent den Bereich mit der KI. Oder du nimmst einen vorbereiteten Bereich: die fünf DigComp-Bereiche, Mathematik oder Naturwissenschaften. Geplante Lektionen sind blass. Der Agent hebt den nächsten Schritt hervor, begründet ihn und bietet eine Alternative an. Während du lernst, wächst die Karte: Der Agent hängt neue Knoten an, wenn etwas zweimal schwierig war oder zu leicht ist.
 
 Mit KI arbeitet der Agent wie eine Lehrperson (nach dem Skill «teach» von mattpocock/skills). Pro Bereich kennt er deine Mission, schreibt Lerneinträge mit Belegen und erzeugt kurze Lektionen, die zu dir passen. Die Regeln bleiben als Prüfung und als Rückfall. Dein Fortschritt liegt auf der Festplatte und übersteht einen Neustart.
 
 Die Spielmechanik kommt später. Alle Daten sind synthetisch.
+
+Die Lernenden sind oft wenig vertraut mit Computern. Darum hat jede Ansicht eine klare Hauptaktion mit grossem Knopf, die Texte sind einfach und gross, und Fachbegriffe (DCC, Lernstand, Regeln, Lerneinträge) bleiben hinter «Mehr erfahren» oder unter «Mein Konto → Für Fachleute».
 
 ## Starten
 
@@ -33,7 +37,7 @@ npm run typecheck
 
 ### KI-Anbindung (optional)
 
-Ohne Schlüssel läuft alles mit vorbereiteten Inhalten. Diese sind in der App als «Vorbereitet» gekennzeichnet.
+Ohne Schlüssel läuft alles mit vorbereiteten Inhalten. Vorbereitete Antworten und Hinweise im Chat sind in der App als «Vorbereitet» gekennzeichnet.
 
 Für echte KI-Antworten `backend/.env.example` nach `backend/.env` kopieren und ausfüllen:
 
@@ -85,9 +89,9 @@ Das DCC ist die einzige Quelle für Stufen. Lernen in der App ändert das DCC-Pr
 
 ## Bereiche wählen
 
-Nach der Anmeldung ist die Karte leer. Mit «Bereich hinzufügen» kommt dazu:
+Nach der Anmeldung ist die Karte leer. Aus der Liste auf der Startseite kommt dazu:
 
-- **Eigenes Thema**: Thema, wofür du es brauchst (freiwillig) und dein Vorwissen. Der Agent plant den Bereich mit der KI: einen Namen, 3 bis 6 Kriterien mit Faustregeln, drei Missionsvorschläge, die passenden Lektionsarten und 2 bis 5 Quellen. Der Server prüft den Entwurf. Von den Quellen bleiben nur Adressen, die beim Anlegen antworten (404 und 410 fallen weg). Danach erzeugt der Generator den ersten Einstieg, auf der Stufe deines Vorwissens. Erst wenn Entwurf und Einstieg gültig sind, kommt der Bereich auf die Karte. Was du unter «Wofür» schreibst, wird deine Mission.
+- **Eigenes Thema**: Thema und dein Vorwissen. Der Agent plant den Bereich mit der KI: einen Namen, 3 bis 6 Kriterien mit Faustregeln, drei Missionsvorschläge, die passenden Lektionsarten und 2 bis 5 Quellen. Der Server prüft den Entwurf. Von den Quellen bleiben nur Adressen, die beim Anlegen antworten (404 und 410 fallen weg). Danach erzeugt der Generator den ersten Einstieg, auf der Stufe deines Vorwissens. Erst wenn Entwurf und Einstieg gültig sind, kommt der Bereich auf die Karte. Die Mission fragt die App beim ersten Start einer Lektion.
 - **Vorbereiteter Bereich**: aus `data/skills.json`, mit geprüften Quellen und vorbereiteten Lektionen. Das geht auch ohne KI. Mehrere auf einmal sind möglich, zum Beispiel alle fünf DigComp-Bereiche.
 
 Eigene Bereiche haben keine vorbereiteten Lektionen. Der Agent erzeugt jede weitere Lektion. Läuft er nicht oder scheitert er, nehmen die Regeln eine gültige Lektion, die der Agent im Lauf schon erzeugt hat. Gibt es keine, wählen sie selbst das Ziel: das zuletzt verpasste Kriterium, sonst eines ohne Belege. Fällige Wiederholungen werden beigemischt. Nach zwei glatten Lektionen geht es eine Stufe höher. Ist im Bereich nichts mehr offen, gibt es den Knopf «Neue Lektion in …».
@@ -107,7 +111,7 @@ Die Ableitungslektion liegt unter Mathematik → Ableitung auf der Lernkarte. Ab
 
 ### Videos für eigene Themen und vorbereitete Lektionen
 
-Unter **Bereich hinzufügen → Eigenes Thema** das Lernziel eingeben und **Ein Erklärvideo mit Fragen** wählen. Der Textanbieter plant den Bereich mit Quellen und schreibt eine neue Video-Lektion. Danach öffnet sich das Video; der Server erzeugt beim ersten Öffnen Sprache und Animation, zeigt den Fortschritt und speichert das Ergebnis. Die gleichen Fragenpausen, Untertitel, Spulfunktionen und die Bewertung funktionieren auch für diese Lektionen. Die KI liefert strukturierte Szenen und Beschriftungen, keinen ausführbaren Animationscode.
+Auf der Startseite **Eigenes Thema anlegen**, das Thema eingeben und **Los geht's** wählen. Der Textanbieter plant den Bereich mit Quellen. Danach wählt die Person Thema und Format der ersten Lektion, zum Beispiel ein Erklärvideo. Beim ersten Öffnen eines Videos erzeugt der Server erzeugt beim ersten Öffnen Sprache und Animation, zeigt den Fortschritt und speichert das Ergebnis. Die gleichen Fragenpausen, Untertitel, Spulfunktionen und die Bewertung funktionieren auch für diese Lektionen. Die KI liefert strukturierte Szenen und Beschriftungen, keinen ausführbaren Animationscode.
 
 Für **neue Inhalte** müssen `MODEL_PROVIDER=anthropic` mit `ANTHROPIC_API_KEY` oder `MODEL_PROVIDER=openai` mit `OPENAI_API_KEY` und `OPENAI_MODEL` eingerichtet sein. ElevenLabs erzeugt nur die Sprache und ersetzt das Textmodell nicht. Ohne Textmodell bleiben neue Themen gesperrt; alle mitgelieferten Video-Lektionen lassen sich abspielen. Fehlende oder ausgefallene Spracherzeugung bietet weiterhin das Storyboard an.
 
@@ -124,6 +128,12 @@ Die vorhandene Ableitungsanimation wird dabei beibehalten. Ihr eigener Befehl st
 Fertige Katalogvideos liegen in `frontend/public/videos/<lesson-id>/`. Neue Videos liegen unter `backend/var/videos/<content-hash>/`, fertige Sprachpassagen unter `backend/var/video-speech/`. `VIDEO_CACHE_DIR` und `VIDEO_SPEECH_CACHE_DIR` können diese Speicherorte ändern. Änderungen am Lektionsinhalt erzeugen eine neue Version; Fragenlösungen und die zufällige Reihenfolge der Antworten gehören nicht zum Sprachcache. Beim erneuten Öffnen, gleichzeitigem Öffnen oder nach einem Serverneustart wird fertige Sprache wiederverwendet.
 
 Ein fehlgeschlagener oder unklar beendeter kostenpflichtiger Sprachaufruf wird nicht automatisch wiederholt. Bereits fertige Passagen bleiben erhalten. Nach Prüfung des Fehlers kann ein gezielter neuer Versuch mit `npm run videos:build -- <lesson-id> --retry-failed` ausgelöst werden. Ein Manifest wird erst veröffentlicht, wenn alle Szenen vertont, kompiliert und als renderbar geprüft sind. Die API liefert keine Fragenlösungen aus.
+
+### Podcast als Lektion
+
+«Podcast» ist ein Format wie Video: Wer bei «Wie geht es weiter?» ein Thema wählt, kann es als Podcast lernen (mit KI-Verbindung, für jedes Thema). Die KI schreibt dazu ein kurzes Gespräch zwischen Mira und Jonas über genau dieses Thema, nur aus Kriterium, Faustregel und Quellen des Bereichs, und zwei bis drei Fragen dazu. Der Server prüft Länge (6 bis 16 Beiträge, höchstens 3000 Zeichen), beide Stimmen und die Fragen wie beim Video. Beim ersten Öffnen wird das Gespräch vertont; die Abschrift lässt sich mitlesen, ein Klick auf einen Beitrag springt an diese Stelle. Nach dem Gespräch kommen die Fragen; bewertet wird wie beim Video. Der Planer-Agent wählt Podcasts nicht von sich aus, nur die Person.
+
+Die Sprache kommt vom gleichen Anbieter wie bei den Videos, mit einer zweiten Stimme: `ELEVENLABS_SECOND_VOICE_ID` für ElevenLabs, `VIDEO_LOCAL_SECOND_VOICE` (Standard: Markus) für die lokale Stimme unter macOS. Fertige Vertonungen liegen unter `backend/var/podcasts/<hash>/`; `PODCAST_CACHE_DIR` ändert den Ort. Die gleichen Beiträge mit den gleichen Stimmen werden nur einmal vertont. Fällt die Vertonung aus, bleibt das Gespräch lesbar und die Fragen gehen trotzdem.
 
 ### Ableitungsvideo neu erzeugen
 
@@ -157,6 +167,20 @@ Das Drehbuch steht in `data/videos/derivative.json`, die Vorlagen in `scripts/vi
 `npm test` prüft zusätzlich die Szenen- und Audiodauer, Renderbarkeit, Fragenpausen, Spulen, Wiederabspielen und die Übergabe an den Lernverlauf. `npm run typecheck` prüft auch den Videogenerator.
 
 Lösungen bleiben im Backend. Der Browser bekommt die Lektionen ohne Lösungen.
+
+## Nächstes Thema und Format wählen
+
+Ein geöffnetes Thema (und auf der Lernkarte der Seitenbereich) bietet unter «Wie geht es weiter?» drei kurze Themenvorschläge (einen davon empfohlen) und «Etwas anderes vorschlagen». Auf der Karte erscheinen sie als mögliche Verzweigungen. Zuerst wird das Thema gewählt, danach eines der Formate, die der Themenplan dafür als passend nennt: Video, Mit der KI, Text prüfen oder Webseite prüfen; mit KI ist zusätzlich immer Podcast dabei. Ein Tipp auf das Format startet die Lektion; hat ein Thema nur ein Format, startet es gleich. Bei erzeugten Lektionen sind auch Formate verfügbar, für die der Bereich noch kein vorbereitetes Beispiel hat.
+
+Die Vorschläge sind reine Vorschauen. Erst «Lektion starten» erzeugt genau die gewählte Lektion im gewählten Format oder verwendet eine dazu passende vorhandene Lektion. Auch nach dem Abschliessen einer Lektion wird keine vollständige Folgelektion automatisch erzeugt. Neue eigene Bereiche werden in diesem Ablauf zuerst nur mit Lernzielen und Quellen geplant; die erste Lektion entsteht ebenfalls erst nach der Auswahl.
+
+Das zuletzt erfolgreich gewählte Format wird im Lernverlauf gespeichert und beim nächsten Mal vorausgewählt, sofern es verfügbar ist. Es bleibt über Serverneustarts und neue Sitzungen hinweg erhalten. Andere Themen zu wählen wird neutral als «andere Richtung gewählt» vermerkt. Vorschläge erzeugen weder Lektionsdateien noch dauerhafte Lernknoten.
+
+Ohne KI stehen nur vorhandene vorbereitete Lektionen mit ihrem jeweiligen Format zur Auswahl, gegebenenfalls weniger als drei. Eigene Themen benötigen eine KI-Verbindung und müssen zu den Lernzielen des Bereichs passen; für andere Ziele lässt sich ein neuer Bereich hinzufügen. Schlägt die Themenplanung fehl, bleiben drei Vorschläge nach Regeln verfügbar. Eine fehlgeschlagene Lektionsgenerierung lässt die Auswahl für einen erneuten Versuch bestehen.
+
+API: `POST /api/sessions/:id/tracks/:track/topics` liefert und speichert die Vorschauen, `POST /api/sessions/:id/topics/custom` prüft einen eigenen Themenwunsch, und `POST /api/sessions/:id/topics/choose` erzeugt die gewählte Lektion. Veraltete oder doppelte Auswahlen werden zurückgewiesen. Ältere API-Clients behalten ihren bisherigen Planungsablauf, bis sie erstmals die Themenauswahl abrufen; die neue Oberfläche verwendet immer die Themenauswahl.
+
+Die folgenden Beschreibungen des automatisch erzeugten Agenten-Plans gelten für diesen bisherigen API-Ablauf.
 
 ## Wie der Agent entscheidet
 
@@ -197,7 +221,7 @@ Bevor A1 gilt, prüfen die Regeln:
 - Es gibt eine erreichbare Alternative, sobald ausser der Empfehlung ein anderer Knoten erreichbar ist. Mit nur einem Bereich und einem neuen Knoten bleibt sie leer.
 - Die Begründung nennt mindestens einen Lerneintrag (`LR-…`) oder ein Ereignis (`ev-…`), und alle genannten IDs gibt es.
 
-Fällt eine Prüfung durch, gilt der Plan der Regeln. Das gilt auch, wenn das Modell ausfällt, die Zeit abläuft oder beide Versuche einer Lektion ungültig sind. Der Grund steht in den Einstellungen unter «Agent», «Läufe des Planer-Agenten». Hat die Person inzwischen schon eine Lektion gestartet, verwirft die App den Plan des Agenten.
+Fällt eine Prüfung durch, gilt der Plan der Regeln. Das gilt auch, wenn das Modell ausfällt, die Zeit abläuft oder beide Versuche einer Lektion ungültig sind. Der Grund steht unter «Mein Konto → Für Fachleute», «Läufe des Planer-Agenten». Hat die Person inzwischen schon eine Lektion gestartet, verwirft die App den Plan des Agenten.
 
 Grenzen: 1 Lauf pro abgeschlossene Lektion, höchstens 10 erzeugte Lektionen pro Sitzung.
 
@@ -220,7 +244,7 @@ Der Agent erfindet keine neuen Lektionsarten. Er füllt nur Inhalte in die vier 
 - Eine Primärquelle aus `data/resources/<trackId>.md`, bei eigenen Bereichen aus den Quellen des Bereichs.
 - Bei eigenen Bereichen nur die Lektionsarten, die der Bereich nennt.
 
-Ungültige Lektionen werden verworfen und protokolliert. In der App heissen erzeugte Lektionen «Von der KI erstellt», ihre Beispiele «Beispiel erfunden». Vorbereitete Lektionen heissen weiter «Vorbereitet».
+Ungültige Lektionen werden verworfen und protokolliert. In der App steht bei erzeugten Lektionen «Von der KI geschrieben. Die Beispiele sind erfunden.»
 
 `data/resources/<trackId>.md` listet geprüfte Quellen, zum Beispiel BACS, S-U-P-E-R.ch, «eBanking – aber sicher!» und DigComp 2.2. Jeder Link wurde am 24.10.2026 geöffnet. Was sich nicht prüfen liess, steht unter `## Gaps`.
 
@@ -264,22 +288,22 @@ notes.md                           Vorlieben, zum Beispiel «mag kurze Lektionen
 
 - **Anmelden mit einem bekannten Namen** (Gross- und Kleinschreibung egal): «Weitermachen» setzt die bestehende Person fort, «Neu beginnen» legt eine neue an. Nichts wird gelöscht.
 - **Neues DCC-Resultat**: Es kommt als neuer Stand dazu, wenn es sich vom letzten unterscheidet. Lerneinträge bleiben. Bereiche ohne erledigte Lektion bekommen einen neuen Plan.
-- **Mission**: Beim ersten Öffnen eines Bereichs fragt die App nach der Mission: drei Vorschläge oder eigene Worte. Überspringen geht auch, dann gilt ein Standard. Eine Änderung im Profil braucht eine Bestätigung und wird als `mission-shift` festgehalten.
+- **Mission**: Beim ersten Öffnen eines Bereichs fragt die App nach der Mission: drei Vorschläge oder eigene Worte. Überspringen geht auch, dann gilt ein Standard. Eine Änderung unter «Mein Konto» braucht eine Bestätigung und wird als `mission-shift` festgehalten.
 
 ## Datenschutz
 
 - Das Modell bekommt nie den Namen und nie die ID der Person.
 - Der Agent bekommt nur die DCC-Stufe des Bereichs, den er plant, nie das ganze Profil. Knoten anderer Bereiche sieht er nur als ID, ohne Titel.
-- An die KI gehen: die Übung, die Antworten der Person, die Mission und die Vorlieben aus `notes.md`. Bei einem eigenen Bereich ausserdem Thema, Wofür und Vorwissen. Die App sagt das bei der Mission, im Profil und beim Anlegen.
+- An die KI gehen: die Übung, die Antworten der Person, die Mission und die Vorlieben aus `notes.md`. Bei einem eigenen Bereich ausserdem Thema und Vorwissen. Die App sagt das bei der Mission, unter «Mein Konto» und beim Anlegen.
 - Eigene Bereiche gehören nur der Person, die sie angelegt hat. Andere Sitzungen können sie nicht ansprechen.
 - Kein Werkzeug und kein Code ändert DCC-Stufen. Lernen, Transfer und DCC bleiben getrennt.
 - Schlüssel liegen nur in `backend/.env`, nie im Frontend oder im Repo.
 
-Jede Empfehlung zeigt: was der Agent gesehen hat, den Vorschlag, warum das jetzt hilft und die Regel. Wer die Alternative startet, lehnt die Empfehlung ab. Das wird im Verlauf festgehalten und der Agent plant danach neu.
+Jede Empfehlung zeigt in einem Satz, warum sie jetzt hilft. Unter «Warum dieser Vorschlag?» steht, was der Agent gesehen hat, sein Vorschlag, worauf er sich stützt und die Regel. Wer die Alternative («Lieber etwas anderes») startet, lehnt die Empfehlung ab. Das wird im Verlauf festgehalten und der Agent plant danach neu.
 
 Hilfe innerhalb einer Lektion (Hinweis nach dem Prüfen) wird vermerkt. Eine Beobachtung wie «Termine und Fristen 2× übersehen» gilt erst als erledigt, wenn das Kriterium ohne Hilfe gelöst wurde.
 
-Die Einstellungen (Zahnrad oben rechts) haben vier Bereiche: «Allgemein» (KI-Verbindung für die Demo trennen, Konto, Abmelden), «Profil» (DCC-Profil nur lesen, Lernstand aus dem Lernen, kein DCC, Mission pro Bereich), «Lernen» (Lerneinträge aktiv und ersetzt, Merkblatt, Lernverlauf, Beobachtungen, Transfer-Hinweise für die eigene Arbeit) und «Agent» (Entscheidungen des Agenten mit seinen Läufen).
+«Mein Konto» (oben rechts) hat drei Bereiche: «Mein Konto» (Fortschritt, Ziel pro Thema, Abmelden), «Mein Lernen» (Merkblatt, Tipps für den Alltag, bisherige Lektionen) und «Für Fachleute» (KI-Verbindung für die Demo trennen, DCC-Profil nur lesen, Lernstand aus dem Lernen, Lerneinträge, Beobachtungen, Entscheidungen des Agenten mit seinen Läufen).
 
 ## Aufbau
 

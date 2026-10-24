@@ -1,4 +1,4 @@
-import type { Answer, ChatTurn, ContentBundle, DccLevel, Lesson, LessonResult, PartialCheck, SessionView, Source } from '@l45/shared';
+import type { Answer, ChatTurn, ContentBundle, DccLevel, Lesson, LessonResult, LessonType, NextTopic, TopicChoices, PartialCheck, PodcastStatus, SessionView, Source } from '@l45/shared';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public body: Record<string, unknown> = {}) {
@@ -42,10 +42,18 @@ export const api = {
   generated: (id: string) => call<Lesson[]>('GET', `${s(id)}/lessons`),
   patch: (id: string, body: Record<string, unknown>) => call<SessionView>('PATCH', s(id), body),
   addTracks: (id: string, trackIds: string[]) => call<{ view: SessionView; generated: Lesson[] }>('POST', `${s(id)}/tracks`, { trackIds }),
-  createTrack: (id: string, body: { topic: string; goal?: string; selfLevel: DccLevel; lessonType?: 'video' }) =>
+  createTrack: (id: string, body: { topic: string; goal?: string; selfLevel: DccLevel; lessonType?: 'video'; deferLesson?: boolean }) =>
     call<{ trackId: string; view: SessionView; generated: Lesson[] }>('POST', `${s(id)}/own-tracks`, body),
   nextLesson: (id: string, trackId: string) =>
     call<{ view: SessionView; generated: Lesson[] }>('POST', `${s(id)}/tracks/${encodeURIComponent(trackId)}/next`, {}),
+  /** Audio of a podcast lesson. POST narrates it if that has not happened yet, GET only reports where it stands. */
+  podcast: (id: string, node: string, method: 'GET' | 'POST') => call<PodcastStatus>(method, `${n(id, node)}/podcast`),
+  topics: (id: string, trackId: string) =>
+    call<{ choices: TopicChoices; view: SessionView }>('POST', `${s(id)}/tracks/${encodeURIComponent(trackId)}/topics`, {}),
+  suggestTopic: (id: string, body: { choiceSetId: string; topic: string }) =>
+    call<{ topic: NextTopic; view: SessionView }>('POST', `${s(id)}/topics/custom`, body),
+  chooseTopic: (id: string, body: { choiceSetId: string; topicId: string; format: LessonType }) =>
+    call<{ nodeId: string; view: SessionView; generated: Lesson[] }>('POST', `${s(id)}/topics/choose`, body),
   mission: (id: string, trackId: string, body: { text?: string; skip?: boolean; confirm?: boolean }) =>
     call<SessionView>('PUT', `${s(id)}/missions/${encodeURIComponent(trackId)}`, body),
   start: (id: string, node: string) => call<{ lesson: Lesson; switched?: string; view: SessionView }>('POST', `${n(id, node)}/start`, {}),

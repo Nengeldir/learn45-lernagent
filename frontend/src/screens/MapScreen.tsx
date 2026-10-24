@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import type { MapNode, Mode as LessonMode } from '@l45/shared';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import type { Mode } from '@l45/shared';
 import { LessonOverlay } from '../lessons/LessonOverlay.tsx';
 import { api } from '../lib/api.ts';
 import { LangSwitch, useI18n } from '../lib/i18n.tsx';
@@ -10,8 +10,28 @@ import { useStore } from '../lib/store.tsx';
 import { MindMap } from '../map/MindMap.tsx';
 import { NodePanel } from '../map/NodePanel.tsx';
 import { KnowledgeMap } from '../map/SubwayMap.tsx';
+import { Topics } from '../path/Topics.tsx';
+import { TrackView } from '../path/TrackView.tsx';
 import { AddTrack } from './AddTrack.tsx';
 import { Settings, STATUS } from './Settings.tsx';
+
+/** The list of topics (and one topic as a line of lessons) or the whole mind map. Remembered per browser; the list is the default. */
+type ViewMode = 'path' | 'map';
+const MODE_KEY = 'lernagent.view';
+const readMode = (): ViewMode => {
+  try {
+    return localStorage.getItem(MODE_KEY) === 'map' ? 'map' : 'path';
+  } catch {
+    return 'path';
+  }
+};
+const writeMode = (m: ViewMode) => {
+  try {
+    localStorage.setItem(MODE_KEY, m);
+  } catch {
+    /* storage unavailable: the choice lasts until reload */
+  }
+};
 
 const BOARD_KEY = 'lernagent.board';
 const storedBoard = (): 'knot' | 'lines' => {
@@ -36,18 +56,19 @@ function useWide() {
 
 export function MapScreen() {
   const { view, content, setView, lessonOf, logout, refresh } = useStore();
-  const { t, mode } = useI18n();
+  const { t, mode: lessonMode } = useI18n();
   const nav = useNavigate();
   const wide = useWide();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [lessonNode, setLessonNode] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
-  // The map starts empty: the first thing to do is to choose what to learn.
-  const [adding, setAdding] = useState(() => Boolean(view && !view.skills.length));
+  const [adding, setAdding] = useState(false);
+  /** The topic open in the list view; null shows all topics. */
+  const [openTrack, setOpenTrack] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
-  const [lens, setLens] = useState<Mode | 'all'>('all');
+  const [lens, setLens] = useState<LessonMode | 'all'>('all');
   const [lineBusy, setLineBusy] = useState(false);
   const [routeTrackId, setRouteTrackId] = useState<string | null>(null);
   const [board, setBoard] = useState<'knot' | 'lines'>(storedBoard);
@@ -61,6 +82,11 @@ export function MapScreen() {
   };
   // A mountain opened from a knowledge knot leads back to that knot.
   const [fromKnot, setFromKnot] = useState(false);
+  const [viewMode, setViewModeState] = useState<ViewMode>(readMode);
+  const setViewMode = (m: ViewMode) => {
+    setViewModeState(m);
+    writeMode(m);
+  };
 
   // While the planner agent works, ask the server every 1.5 s. When it is done, its plan replaces the provisional one.
   const planning = Boolean(view?.session.planning);
@@ -72,9 +98,10 @@ export function MapScreen() {
       const v = await refresh().catch(() => null);
       if (stop) return;
       if (v && !v.session.planning) {
-        if (v.recommendation?.ruleId === 'A1') {
-          setToast(t('Der Agent hat deinen Plan angepasst'));
-          if (!lessonNode) setFocusId(v.recommendation.nodeId);
+        // An open lesson shows the next step itself; the toast would only cover its buttons.
+        if (v.recommendation?.ruleId === 'A1' && !lessonNode) {
+          setToast(t('Deine nächste Lektion ist bereit'));
+          setFocusId(v.recommendation.nodeId);
         }
         return;
       }
@@ -86,6 +113,14 @@ export function MapScreen() {
       clearTimeout(timer);
     };
   }, [planning, refresh, lessonNode, t]);
+
+  useEffect(() => {
+    const choices = view?.session.topicChoices;
+    const recommended = choices?.topics.find((topic) => topic.recommended);
+    if (!lessonNode && choices && recommended && (!selectedId || selectedId === `t-${choices.trackId}`)) {
+      setFocusId(`preview-${recommended.id}`);
+    }
+  }, [view?.session.topicChoices?.id, lessonNode, selectedId]);
 
   useEffect(() => {
     if (!toast) return;
@@ -102,8 +137,26 @@ export function MapScreen() {
     }
   }, [view?.recommendation?.nodeId]);
 
+  // Topic previews show on the map as possible branches; the lessons they would reuse step back meanwhile.
+  const mapNodes = useMemo<MapNode[]>(() => {
+    if (!view) return [];
+    const choices = view.session.topicChoices;
+    if (!choices) return view.session.nodes;
+    const track = view.skills.flatMap((s) => s.tracks).find((tr) => tr.id === choices.trackId);
+    const previews: MapNode[] = choices.topics.map((topic) => ({
+      id: `preview-${topic.id}`, kind: 'lesson', parentId: choices.parentNodeId,
+      label: topic.title, topicId: topic.id, trackId: choices.trackId, skillId: track?.skillId,
+      state: topic.recommended ? 'recommended' : 'alternative',
+    }));
+    const previewedLessons = new Set(choices.topics.map((topic) => topic.lessonId).filter(Boolean));
+    const existing = view.session.nodes.filter((n) => !(n.kind === 'lesson' && n.state !== 'done' && previewedLessons.has(n.lessonId) && !view.session.nodes.some((child) => child.parentId === n.id)));
+    return [...existing.map((n) => n.state === 'recommended' || n.state === 'alternative' ? { ...n, state: 'planned' as const } : n), ...previews];
+  }, [view]);
+
   if (!view || !content) return <Navigate to="/" replace />;
-  const selected = view.session.nodes.find((n) => n.id === selectedId) ?? null;
+  const selected = mapNodes.find((n) => n.id === selectedId) ?? null;
+
+  const back = viewMode === 'map' ? () => setViewMode('path') : openTrack ? () => setOpenTrack(null) : null;
 
   const select = (id: string | null) => {
     setSelectedId(id);
@@ -151,109 +204,119 @@ export function MapScreen() {
   return (
     <div className="mapscreen">
       <header className="topbar">
-        <BrandMark />
-        <span className="who">
-          <span className="avatar" aria-hidden="true">{view.session.userName.slice(0, 1).toUpperCase()}</span>
-          <span className="name">{view.session.userName}</span>
-        </span>
+        {back
+          ? <button className="btn secondary small" onClick={back}><Icon name="back" size={18} />{t('Alle Themen')}</button>
+          : <BrandMark />}
         <span className="spacer" />
-        <div className="lens-switch" role="group" aria-label={t('Ansicht der Lernkarte')}>
-          <button type="button" className="btn quiet small" aria-pressed={board === 'knot'} onClick={() => chooseBoard('knot')}>{t('Wissensknoten')}</button>
-          <button type="button" className="btn quiet small" aria-pressed={board === 'lines'} onClick={() => chooseBoard('lines')}>{t('Bergwege')}</button>
-        </div>
-        <div className="lens-switch" role="group" aria-label={t('Lernform')}>
-          <button type="button" className="btn quiet small" aria-pressed={lens === 'all'} onClick={() => setLens('all')}>{t('Alle')}</button>
-          {(['alone', 'ai', 'peer'] as const).map((m) => (
-            <button key={m} type="button" className="btn quiet small" aria-pressed={lens === m} onClick={() => setLens(m)}>{mode(m)}</button>
-          ))}
-        </div>
+        {viewMode === 'map' && (
+          <>
+            <div className="lens-switch" role="group" aria-label={t('Ansicht der Lernkarte')}>
+              <button type="button" className="btn quiet small" aria-pressed={board === 'knot'} onClick={() => chooseBoard('knot')}>{t('Wissensknoten')}</button>
+              <button type="button" className="btn quiet small" aria-pressed={board === 'lines'} onClick={() => chooseBoard('lines')}>{t('Bergwege')}</button>
+            </div>
+            <div className="lens-switch" role="group" aria-label={t('Lernform')}>
+              <button type="button" className="btn quiet small" aria-pressed={lens === 'all'} onClick={() => setLens('all')}>{t('Alle')}</button>
+              {(['alone', 'ai', 'peer'] as const).map((m) => (
+                <button key={m} type="button" className="btn quiet small" aria-pressed={lens === m} onClick={() => setLens(m)}>{lessonMode(m)}</button>
+              ))}
+            </div>
+          </>
+        )}
         <ThemeSwitch />
         <LangSwitch />
         {view.session.planning && <span className="status planning" role="status">{t('Agent plant …')}</span>}
         <span className={`status ${view.modelStatus}`} title={t('Ohne KI kommen Gesprächsantworten und Hinweise aus vorbereiteten Texten.')}>{t(STATUS[view.modelStatus] ?? '')}</span>
-        <button className="btn primary small" onClick={() => setAdding(true)} aria-label={t('Bereich hinzufügen')}>
-          <Icon name="plus" size={16} /><span className="label-wide">{t('Bereich hinzufügen')}</span>
-        </button>
-        <button className="icon-btn" onClick={() => setSettings(true)} aria-label={t('Einstellungen')} title={t('Einstellungen')}>
-          <Icon name="settings" size={20} />
+        <button className="btn quiet small who" onClick={() => setSettings(true)} aria-label={t('Mein Konto ({name})', { name: view.session.userName })}>
+          <span className="avatar" aria-hidden="true">{view.session.userName.slice(0, 1).toUpperCase()}</span>
+          <span className="name">{t('Mein Konto')}</span>
         </button>
       </header>
 
-      <main className="map-area">
-        {board === 'knot' ? (
-          <MindMap
-            nodes={view.session.nodes}
-            skills={view.skills}
-            dcc={view.dcc}
-            lessonOf={lessonOf}
-            selectedId={selectedId}
-            focusId={focusId}
-            lens={lens}
-            onSelect={select}
-            onOpenMountain={(trackId) => openMountain(trackId)}
-            rightInset={wide ? 400 : 0}
-          />
-        ) : (
-          <KnowledgeMap
-            nodes={view.session.nodes}
-            skills={view.skills.length ? view.skills : content.skills}
-            dcc={view.dcc}
-            lessonOf={lessonOf}
-            selectedId={selectedId}
-            focusId={focusId}
-            lens={lens}
-            wide={wide}
-            routeTrackId={routeTrackId}
-            backLabel={fromKnot ? t('Zurück zu den Wissensknoten') : undefined}
-            onSelect={select}
-            onOpenRoute={openRoute}
-          />
-        )}
-        <aside className={`side${wide ? '' : ' sheet'}${!wide && !sheetOpen ? ' collapsed' : ''}`} aria-label={t('Details')}>
-          {!wide && (
-            <button className="sheet-handle" onClick={() => setSheetOpen(!sheetOpen)} aria-expanded={sheetOpen}>
-              {sheetOpen ? t('Einklappen') : t('Nächster Schritt')}
-            </button>
-          )}
-          {(wide || sheetOpen) && (
-            <NodePanel
-              view={view}
-              selected={selected}
-              onSelect={(id) => {
-                select(id);
-                if (id) {
-                  setFocusId(id);
-                  const trackId = view.session.nodes.find((n) => n.id === id)?.trackId;
-                  if (trackId && routeTrackId) setRouteTrackId(trackId);
-                }
-              }}
-              onStart={(id) => setLessonNode(id)}
-              onShowMountain={onMountain ? undefined : openMountain}
-              onShowKnot={board === 'lines' ? showKnot : undefined}
-              onAddTrack={() => setAdding(true)}
-              onFocus={(id) => {
-                setSelectedId(null);
-                setFocusId(null);
-                if (id) requestAnimationFrame(() => setFocusId(id));
-              }}
+      {viewMode === 'path' ? (
+        <main className="path-area" key={openTrack ?? 'topics'}>
+          {openTrack
+            ? <TrackView view={view} trackId={openTrack} onStart={setLessonNode} />
+            : <Topics view={view} onOpen={setOpenTrack} onOwnTopic={() => setAdding(true)} onShowMap={() => setViewMode('map')} />}
+        </main>
+      ) : (
+        <main className="map-area">
+          {board === 'knot' ? (
+            <MindMap
+              nodes={mapNodes}
+              skills={view.skills}
+              dcc={view.dcc}
+              lessonOf={lessonOf}
+              selectedId={selectedId}
+              focusId={focusId}
+              lens={lens}
+              onSelect={select}
+              onOpenMountain={(trackId) => openMountain(trackId)}
+              rightInset={wide ? 400 : 0}
+              bottomCoverage={!wide && sheetOpen ? 0.6 : 0}
+            />
+          ) : (
+            <KnowledgeMap
+              nodes={view.session.nodes}
+              skills={view.skills.length ? view.skills : content.skills}
+              dcc={view.dcc}
+              lessonOf={lessonOf}
+              selectedId={selectedId}
+              focusId={focusId}
+              lens={lens}
+              wide={wide}
+              routeTrackId={routeTrackId}
+              backLabel={fromKnot ? t('Zurück zu den Wissensknoten') : undefined}
+              onSelect={select}
+              onOpenRoute={openRoute}
             />
           )}
-        </aside>
-      </main>
+          <aside className={`side${wide ? '' : ' sheet'}${!wide && !sheetOpen ? ' collapsed' : ''}`} aria-label={t('Details')}>
+            {!wide && (
+              <button className="sheet-handle" onClick={() => setSheetOpen(!sheetOpen)} aria-expanded={sheetOpen}>
+                {sheetOpen ? t('Nach unten klappen') : t('Als Nächstes')}
+              </button>
+            )}
+            {(wide || sheetOpen) && !lessonNode && (
+              <NodePanel
+                view={view}
+                selected={selected}
+                onSelect={(id) => {
+                  select(id);
+                  if (id) {
+                    setFocusId(id);
+                    const trackId = view.session.nodes.find((n) => n.id === id)?.trackId;
+                    if (trackId && routeTrackId) setRouteTrackId(trackId);
+                  }
+                }}
+                onStart={(id) => setLessonNode(id)}
+                onShowMountain={onMountain ? undefined : openMountain}
+                onShowKnot={board === 'lines' ? showKnot : undefined}
+                onAddTrack={() => setAdding(true)}
+                onFocus={(id) => {
+                  setSelectedId(null);
+                  setFocusId(null);
+                  if (id) requestAnimationFrame(() => setFocusId(id));
+                }}
+              />
+            )}
+          </aside>
+        </main>
+      )}
 
       {toast && <div className="toast" role="status" aria-live="polite"><Icon name="sparkle" />{toast}</div>}
-      {lessonNode && <LessonOverlay nodeId={lessonNode} onClose={closeLesson} />}
+      {lessonNode && <LessonOverlay key={lessonNode} nodeId={lessonNode} onClose={closeLesson} />}
       {settings && <Settings onClose={() => setSettings(false)} onLogout={() => { logout(); nav('/'); }} />}
       {adding && (
         <AddTrack
           onClose={() => setAdding(false)}
-          onAdded={(nodeId, openVideo) => {
+          onAdded={(nodeId) => {
             setAdding(false);
-            setSelectedId(null);
+            if (viewMode === 'path' && nodeId?.startsWith('t-')) return setOpenTrack(nodeId.slice(2));
+            setSelectedId(nodeId?.startsWith('t-') ? nodeId : null);
             setSheetOpen(true);
             setFocusId(null);
-            if (nodeId) requestAnimationFrame(() => setFocusId(nodeId));
-            if (nodeId && openVideo) setLessonNode(nodeId);
+            // After the first topic the whole map stays in view; later ones move to the new lesson.
+            if (nodeId && view.skills.length) requestAnimationFrame(() => setFocusId(nodeId));
           }}
         />
       )}

@@ -85,7 +85,7 @@ export interface Criterion {
   ruleOfThumb: string;
 }
 
-export type LessonType = 'video' | 'ai-chat' | 'mock-site' | 'mark-evidence';
+export type LessonType = 'video' | 'ai-chat' | 'mock-site' | 'mark-evidence' | 'podcast';
 
 interface LessonBase {
   id: string;
@@ -159,6 +159,41 @@ export interface NarratedVideoManifest {
   }[];
 }
 
+// --- Podcast: two hosts talk about one topic, then a few questions ---
+export type PodcastSpeaker = 'a' | 'b';
+export interface PodcastLine { speaker: PodcastSpeaker; text: string }
+export interface PodcastQuestion {
+  prompt: string;
+  options: string[];
+  correct: number;
+  explanation: string;
+  criterion?: string;
+}
+export interface PodcastLesson extends LessonBase {
+  type: 'podcast';
+  content: { lines: PodcastLine[]; questions: PodcastQuestion[] };
+}
+
+/** The narrated audio of a podcast lesson. Times are seconds in the one audio file. */
+export interface PodcastManifest {
+  schemaVersion: 2;
+  lessonId: string;
+  title: string;
+  locale: 'de-CH';
+  hosts: Record<PodcastSpeaker, string>;
+  narration: { provider: 'local' | 'elevenlabs'; voices: Record<PodcastSpeaker, string>; model?: string };
+  duration: number;
+  audioUrl: string;
+  lines: (PodcastLine & { start: number; end: number })[];
+}
+
+export type PodcastStatus =
+  | { state: 'idle' }
+  | { state: 'building'; completed: number; total: number }
+  | { state: 'ready'; manifestUrl: string }
+  /** The script is part of the lesson, so the learner can still read it when narration fails. */
+  | { state: 'error'; message: string };
+
 // --- Chat with the AI ---
 export interface ChatCriterion {
   id: string;
@@ -224,7 +259,7 @@ export interface MarkEvidenceLesson extends LessonBase {
   content: { noteTitle: string; note: string[]; summary: SummarySentence[] };
 }
 
-export type Lesson = VideoLesson | AiChatLesson | MockSiteLesson | MarkEvidenceLesson;
+export type Lesson = VideoLesson | AiChatLesson | MockSiteLesson | MarkEvidenceLesson | PodcastLesson;
 
 // ---------------------------------------------------------------------------
 // Answers and results
@@ -238,6 +273,7 @@ export interface ChatTurn {
 
 export type Answer =
   | { type: 'video'; answers: Record<number, number> }
+  | { type: 'podcast'; answers: Record<number, number> }
   | { type: 'ai-chat'; turns: ChatTurn[] }
   | { type: 'mock-site'; marked: string[]; verdict: 'phishing' | 'echt' | null }
   | { type: 'mark-evidence'; marks: Record<string, 'belegt' | 'erfunden'> };
@@ -277,6 +313,8 @@ export interface MapNode {
   skillId?: string;
   trackId?: string;
   lessonId?: string;
+  /** Display-only topic preview; never a completed lesson. */
+  topicId?: string;
   state?: NodeState;
   /** Added by the agent after a result (the map grows) */
   addedByAgent?: boolean;
@@ -303,7 +341,9 @@ export interface Recommendation {
   /** Didactic justification: why this step and mode help now */
   why: string;
   tags: Source[];
-  status: 'open' | 'accepted' | 'declined';
+  status: 'open' | 'accepted' | 'declined' | 'chosen';
+  /** A learner chose another direction, without rejecting the recommendation. */
+  chosenNodeId?: string;
   /** Rule plan shown while the planner agent still works on it */
   provisional?: boolean;
   /** Learning record and event ids the recommendation cites (A1) */
@@ -337,7 +377,7 @@ export interface LearningEvent {
 
 export interface ModelCall {
   at: string;
-  purpose: 'chat' | 'judge' | 'hint' | 'generate' | 'plan' | 'design';
+  purpose: 'chat' | 'judge' | 'hint' | 'generate' | 'plan' | 'design' | 'podcast';
   ok: boolean;
   fallback: boolean;
   ms: number;
@@ -445,6 +485,30 @@ export interface PlannerRun {
   tools: string[];
 }
 
+/** A topic preview, with only the existing lesson formats. No lesson content is generated yet. */
+export interface NextTopic {
+  id: string;
+  title: string;
+  reason: string;
+  criterion: string;
+  formats: LessonType[];
+  level: DccLevel;
+  recommended: boolean;
+  /** An existing lesson can be reused if the learner chooses its format. */
+  lessonId?: string;
+}
+
+export interface TopicChoices {
+  id: string;
+  trackId: string;
+  parentNodeId: string;
+  revision: string;
+  topics: NextTopic[];
+  customTopic?: NextTopic;
+  canSuggestOwn: boolean;
+  source: 'rule' | 'model';
+}
+
 export interface Session {
   id: string;
   learnerId: string;
@@ -463,6 +527,11 @@ export interface Session {
   checks: Record<string, number>;
   modelCalls: ModelCall[];
   generatedLessons: Lesson[];
+  /** Enabled when the client requests topic previews; legacy clients keep their original flow. */
+  topicChoiceFlow?: boolean;
+  topicChoices?: TopicChoices;
+  /** Saved in the learner workspace, retained across server restarts and new sessions. */
+  preferredLessonType?: LessonType;
   reviewQueue: ReviewItem[];
   missionChanges: MissionChange[];
   plannerRuns: PlannerRun[];
@@ -515,10 +584,11 @@ export const RECORD_KIND_LABEL: Record<RecordKind, string> = {
   misconception: 'Fehlvorstellung korrigiert',
   'mission-shift': 'Mission geändert',
 };
-export const LERNSTAND_LABEL: Record<LernstandState, string> = { unbekannt: 'unbekannt', 'am-ueben': 'am Üben', sicher: 'sicher' };
+export const LERNSTAND_LABEL: Record<LernstandState, string> = { unbekannt: 'noch offen', 'am-ueben': 'am Üben', sicher: 'kann ich' };
 export const TYPE_LABEL: Record<LessonType, string> = {
   video: 'Video',
   'ai-chat': 'Mit der KI',
   'mock-site': 'Webseite prüfen',
   'mark-evidence': 'Text prüfen',
+  podcast: 'Podcast',
 };

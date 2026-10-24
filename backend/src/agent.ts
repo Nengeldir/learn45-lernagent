@@ -181,8 +181,8 @@ export function decide(input: AgentInput): Decision {
       observation: fresh ? `«${t.name}» ist neu auf deiner Karte.` : `Neue Lektion in «${t.name}» angefordert.`,
       reason: fresh ? `Du hast «${t.name}» eben hinzugefügt. Der Einstieg zeigt, wo du anfängst.` : `Weiter in «${t.name}» mit dem, was als Nächstes dran ist.`,
       why: fresh
-        ? 'Ein kurzer Einstieg sammelt erste Belege. Danach plant der Agent die nächsten Schritte nach deinen Ergebnissen.'
-        : 'Die Regeln haben das Ziel aus deinen letzten Ergebnissen gewählt: was zuletzt gefehlt hat, sonst etwas ohne Belege.',
+        ? 'Ein kurzer Einstieg zeigt, was du schon kannst. Danach passen sich die nächsten Lektionen an dich an.'
+        : 'Diese Lektion übt, was zuletzt noch gefehlt hat, oder etwas Neues.',
       tags: ['rule'],
     };
   }
@@ -196,7 +196,7 @@ export function decide(input: AgentInput): Decision {
         ...base, ruleId: 'R7', ruleName: RULE_NAME.R7, tags: ['rule'],
         observation: 'Noch kein Bereich auf der Karte.',
         reason: 'Füge einen Bereich hinzu: ein eigenes Thema oder einen vorbereiteten Bereich.',
-        why: 'Der Agent plant nur für Bereiche, die du gewählt hast.',
+        why: 'Du bestimmst, welche Themen du lernst.',
       };
     }
     const node = frontier(input, first)[0];
@@ -211,7 +211,7 @@ export function decide(input: AgentInput): Decision {
         alternativeNodeId: alt?.id,
         observation: `«${t.name}» hat keine DCC-Position.`,
         reason: `Start mit dem Einstieg in «${t.name}».`,
-        why: 'Ein kurzer Einstieg sammelt erste Belege. Danach plant der Agent nach deinen Ergebnissen.',
+        why: 'Ein kurzer Einstieg zeigt, was du schon kannst. Danach passen sich die nächsten Lektionen an dich an.',
         tags: ['rule'],
       };
     }
@@ -226,8 +226,8 @@ export function decide(input: AgentInput): Decision {
       observation: notAssessed ? `Für «${t.name}» gibt es kein DCC-Resultat.` : `DCC-Profil: ${level} in «${t.name}».`,
       reason: notAssessed ? `Für «${t.name}» fehlt ein DCC-Resultat. Ein kurzer Einstieg zeigt, wo du anfängst.` : `Laut DCC-Profil liegt in «${t.name}» dein grösster Entwicklungsbedarf.`,
       why: notAssessed
-        ? 'Fehlende Werte heissen nicht geringe Kompetenz. Deshalb ein kurzer Einstieg statt eines ganzen Grundkurses.'
-        : 'Die Lektionen passen zu deiner DCC-Stufe. Die DCC-Position selbst ändert sich durch das Lernen hier nicht.',
+        ? 'Ein fehlender Testwert heisst nicht geringe Kompetenz. Deshalb zuerst ein kurzer Einstieg statt eines ganzen Kurses.'
+        : 'Die Lektion passt zu deinem Stand.',
       tags: ['rule'],
     };
   }
@@ -256,7 +256,7 @@ export function decide(input: AgentInput): Decision {
       alternativeNodeId: altNode?.id,
       observation: repeated.text,
       reason: `Du hast «${label(input, T, repeated.criterion)}» ${repeated.count}× übersehen.`,
-      why: 'Wenn derselbe Fehler wiederholt auftritt, fehlt meist ein Begriff, nicht Übung. Ein kurzes Gespräch mit Rückfragen klärt, woran man es erkennt. Danach übst du wieder alleine.',
+      why: 'Wenn derselbe Fehler mehrmals passiert, hilft ein kurzes Gespräch, die Sache zu verstehen. Danach übst du wieder alleine.',
       tags: ['rule', 'model'],
     };
   }
@@ -282,7 +282,7 @@ export function decide(input: AgentInput): Decision {
         alternativeNodeId: alt?.id,
         observation: `Die letzten zwei Lektionen in «${track.name}» ohne Hilfe gelöst.`,
         reason: `Das klappt schon gut. Der Agent fügt eine anspruchsvollere Lektion (${harder.level}) hinzu.`,
-        why: 'Aufgaben, die zu leicht sind, bringen wenig. Eine Stufe höher bleibt es lehrreich. Die DCC-Stufe ändert sich dadurch nicht.',
+        why: 'Das war leicht für dich. Etwas Schwierigeres bringt dir mehr.',
         tags: ['rule'],
       };
     }
@@ -343,11 +343,11 @@ export function decide(input: AgentInput): Decision {
       alternativeNodeId: second ? frontier(input, second)[0]?.id : undefined,
       observation: `Alle geplanten Lektionen in «${track.name}» erledigt.`,
       reason: `Weiter mit «${t2.name}», dem nächsten Bereich nach deinem DCC-Profil.`,
-      why: 'Die Reihenfolge folgt deinem DCC-Profil: zuerst die Bereiche mit dem grössten Bedarf.',
+      why: 'Zuerst kommt das Thema, bei dem du am meisten dazulernen kannst.',
       tags: ['rule'],
     };
   }
-  return { ...base, ruleId: 'R7', ruleName: RULE_NAME.R7, observation: 'Alle geplanten Lektionen erledigt.', reason: 'Du hast alles auf deiner Karte erledigt.', why: 'Füge einen neuen Bereich hinzu, oder lass in einem eigenen Bereich eine neue Lektion erzeugen.', tags: ['rule'] };
+  return { ...base, ruleId: 'R7', ruleName: RULE_NAME.R7, observation: 'Alle geplanten Lektionen erledigt.', reason: 'Du hast alles auf deiner Karte erledigt.', why: 'Wähle ein neues Thema oder lass dir eine weitere Lektion erstellen.', tags: ['rule'] };
 }
 
 // --- Observations ---------------------------------------------------------------------------
