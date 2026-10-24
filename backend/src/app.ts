@@ -14,6 +14,7 @@ import {
 import { PodcastService } from './podcast/service.ts';
 import { VideoService } from './video/service.ts';
 import { chooseTopic, getTopics, suggestTopic } from './nextTopics.ts';
+import { askOwl, owlMessages } from './owlChat.ts';
 
 type Handler = (req: Request, res: Response) => unknown;
 const h = (fn: Handler) => (req: Request, res: Response, next: NextFunction) => {
@@ -62,6 +63,10 @@ export function createApp(options: { videoService?: VideoService; podcastService
   app.use(express.json({ limit: '200kb' }));
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, provider: providerName(), modelStatus: modelStatus(false) }));
+
+  app.post('/api/owl', h(async (req, res) => {
+    res.json({ text: await askOwl(owlMessages(req.body)) });
+  }));
 
   app.get('/api/content', (_req, res) => {
     const bundle: ContentBundle = { skills: content.skills, lessons: content.lessons.map(publicLesson) };
