@@ -7,7 +7,6 @@ import { api } from '../lib/api.ts';
 import { localeOf, useI18n } from '../lib/i18n.tsx';
 import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
-import { buildLines, climbStops, routeOf } from './subwayLayout.ts';
 
 type T = (de: string, vars?: Record<string, string | number>) => string;
 const same: T = (de) => de;
@@ -120,33 +119,8 @@ function Reason({ rec, view }: { rec: Recommendation; view: SessionView }) {
   );
 }
 
-/** Links between the two views: a knot opens its mountain, a station shows its knot. */
-function ViewLinks({
-  node, onShowMountain, onShowKnot,
-}: {
-  node: MapNode;
-  onShowMountain?: (trackId: string, nodeId?: string) => void;
-  onShowKnot?: (nodeId: string) => void;
-}) {
-  const { view, lessonOf } = useStore();
-  const { t } = useI18n();
-  if (!node.trackId || !view) return null;
-  const line = buildLines(view.session.nodes, view.skills, view.dcc, lessonOf).find((l) => l.trackId === node.trackId);
-  if (!line || (!onShowMountain && !onShowKnot)) return null;
-  return (
-    <div className="row view-links">
-      {onShowMountain && (
-        <button className="btn secondary small" onClick={() => onShowMountain(node.trackId!, node.kind === 'lesson' ? node.id : undefined)}>
-          {'▲ '}{node.kind === 'lesson' ? t('Auf dem Berg {name} zeigen', { name: line.mountain.name }) : t('Berg {name} öffnen', { name: line.mountain.name })}
-        </button>
-      )}
-      {onShowKnot && <button className="btn quiet small" onClick={() => onShowKnot(node.id)}>{t('Im Wissensknoten zeigen')}</button>}
-    </div>
-  );
-}
-
 export function NodePanel({
-  view, selected, onSelect, onStart, onAddTrack, onFocus, onShowMountain, onShowKnot,
+  view, selected, onSelect, onStart, onAddTrack, onFocus,
 }: {
   view: SessionView;
   selected: MapNode | null;
@@ -155,8 +129,6 @@ export function NodePanel({
   onAddTrack: () => void;
   /** Move the map to a node, e.g. a lesson that was just made */
   onFocus: (nodeId: string | null) => void;
-  onShowMountain?: (trackId: string, nodeId?: string) => void;
-  onShowKnot?: (nodeId: string) => void;
 }) {
   const { lessonOf, content } = useStore();
   const { t, lang, level, lessonTitle, trackName: trackLabel, skillName } = useI18n();
@@ -192,7 +164,6 @@ export function NodePanel({
     return (
       <div className="panel-inner">
         <NextTopics key={`${nextTrackId}:${selected?.topicId ?? 'next'}`} trackId={nextTrackId} initialTopicId={selected?.topicId} onStart={onStart} onFocus={onFocus} />
-        {recNode && <ViewLinks node={recNode} onShowMountain={onShowMountain} onShowKnot={onShowKnot} />}
         <button className="btn secondary block" onClick={onAddTrack}><Icon name="plus" size={16} />{t('Bereich hinzufügen')}</button>
       </div>
     );
@@ -229,7 +200,6 @@ export function NodePanel({
           </button>
           {isRec && altNode && <button className="btn secondary" onClick={() => onSelect(altNode.id)}>{t('Lieber etwas anderes')}</button>}
         </div>
-        <ViewLinks node={selected} onShowMountain={onShowMountain} onShowKnot={onShowKnot} />
         {isRec && rec && <><PlanStatus view={view} /><Reason rec={rec} view={view} /></>}
       </div>
     );
@@ -254,7 +224,6 @@ export function NodePanel({
             <>{t('Eigenes Thema: «{topic}». Vorwissen nach deiner Angabe: {level}.', { topic: track.custom.topic, level: t(LEVEL_TEXT[track.custom.selfLevel]) })} <span className="muted small">{t('Kriterien und Quellen hat die KI vorgeschlagen.')}</span></>
           ) : t('Kein DCC-Bereich. Der Agent plant hier nur aus deinem Lernverlauf.')}
         </p>
-        <ViewLinks node={selected} onShowMountain={onShowMountain} onShowKnot={onShowKnot} />
         <p className="small"><strong>{t('Mission:')}</strong> {mission ? mission.text : <span className="muted">{t('noch offen, wird beim ersten Start gefragt')}</span>}</p>
         <h3 className="small-head">{t('Lernstand (aus dem Lernen, kein DCC)')}</h3>
         <ul className="lernstand">
@@ -343,30 +312,17 @@ function stateLabel(n: MapNode, t: T) {
 }
 
 function LessonFacts({ node }: { node: MapNode }) {
-  const { lessonOf, view } = useStore();
+  const { lessonOf } = useStore();
   const { t, type, mode, level } = useI18n();
   const l = lessonOf(node.lessonId);
   if (!l) return null;
-  const route = view ? routeOf(view.session.nodes, view.skills, view.dcc, lessonOf, node.id) : undefined;
-  const pitch = route ? climbStops(route.line.stops, route.line.mountain.metres).find((s) => s.node.id === node.id) : undefined;
   return (
-    <>
-      <p className="facts">
-        <span className="pill">{type(l.type)}</span>
-        <span>{mode(l.mode)}</span>
-        <span>{l.durationMin} {t('Min.')}</span>
-        <span>{level(l.level)}</span>
-      </p>
-      {route && pitch && (
-        <p className="small">
-          {t('{mountain} · {metres} m · {level}. Die Meter sind dieser Übungsweg. Sie ändern das DCC nicht.', {
-            mountain: route.line.mountain.name,
-            metres: pitch.metres,
-            level: level(pitch.level),
-          })}
-        </p>
-      )}
-    </>
+    <p className="facts">
+      <span className="pill">{type(l.type)}</span>
+      <span>{mode(l.mode)}</span>
+      <span>{l.durationMin} {t('Min.')}</span>
+      <span>{level(l.level)}</span>
+    </p>
   );
 }
 

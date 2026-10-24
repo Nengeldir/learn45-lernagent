@@ -1,16 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from 'react';
-import type { DccProfile, Lesson, MapNode, Mode, Skill } from '@l45/shared';
+import type { DccProfile, Lesson, MapNode, Skill } from '@l45/shared';
 import { useI18n } from '../lib/i18n.tsx';
 import { Icon } from '../lib/icons.tsx';
 import { bounds, edgePath, layout, trackColors, wrap, type Placed } from './layout.ts';
-import { buildLines, climbStops } from './subwayLayout.ts';
-
-/** Where the learner stands on the mountain of one track. */
-interface Climb {
-  name: string;
-  summit: number;
-  here: number;
-}
 
 interface Cam {
   x: number;
@@ -22,7 +14,7 @@ const reduced = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').ma
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 export function MindMap({
-  nodes, skills, dcc, lessonOf, selectedId, focusId, onSelect, onOpenMountain, rightInset = 0, lens = 'all', bottomCoverage = 0,
+  nodes, skills, dcc, lessonOf, selectedId, focusId, onSelect, rightInset = 0, bottomCoverage = 0,
 }: {
   nodes: MapNode[];
   /** The learner's skills and tracks */
@@ -33,11 +25,8 @@ export function MindMap({
   /** Node the camera should move to (changes trigger a smooth pan) */
   focusId: string | null;
   onSelect: (id: string | null) => void;
-  /** Opens the mountain of a track (Bergwege) */
-  onOpenMountain?: (trackId: string) => void;
   /** Space covered by the side panel on the right (desktop) */
   rightInset?: number;
-  lens?: Mode | 'all';
   /** Fraction covered by the mobile bottom sheet. */
   bottomCoverage?: number;
 }) {
@@ -51,15 +40,6 @@ export function MindMap({
   const fitted = useRef(false);
   const seen = useRef<Set<string>>(new Set());
   const [fresh, setFresh] = useState<Set<string>>(new Set());
-  const climbs = useMemo(() => {
-    const out = new Map<string, Climb>();
-    for (const line of buildLines(nodes, skills, dcc, lessonOf)) {
-      const summit = line.mountain.metres > 0 ? line.mountain.metres : 1000;
-      const done = climbStops(line.stops, summit).filter((s) => s.node.state === 'done');
-      out.set(line.trackId, { name: line.mountain.name, summit, here: Math.max(0, ...done.map((s) => s.metres)) });
-    }
-    return out;
-  }, [nodes, skills, dcc, lessonOf]);
 
   // Track size
   useEffect(() => {
@@ -185,10 +165,6 @@ export function MindMap({
     if (moved.current > 6) return;
     onSelect(id);
   };
-  const openPeak = (trackId: string) => {
-    if (moved.current > 6) return;
-    onOpenMountain?.(trackId);
-  };
 
   // --- Render -----------------------------------------------------------------------------------
   const edges = [...placed.values()].filter((p) => p.node.parentId);
@@ -238,11 +214,8 @@ export function MindMap({
                 color={colors.get(p.node.trackId ?? '') ?? 'var(--ink)'}
                 selected={selectedId === p.node.id}
                 fresh={fresh.has(p.node.id)}
-                dim={lens !== 'all' && p.node.kind === 'lesson' && lesson?.mode !== lens}
                 dccText={p.node.kind === 'track' ? trackDcc(p.node.trackId) : undefined}
-                climb={p.node.kind === 'track' && onOpenMountain ? climbs.get(p.node.trackId ?? '') : undefined}
                 onSelect={click}
-                onOpenMountain={openPeak}
               />
             );
           })}
@@ -254,7 +227,6 @@ export function MindMap({
         <span className="sep" aria-hidden="true" />
         <button className="icon-btn fit" onClick={fit}><Icon name="fit" size={16} />{t('Ganze Karte')}</button>
       </div>
-      <p className="knot-note">{t('Der Wissensknoten. In der Mitte stehst du, aussen die Bereiche. Ein Klick öffnet den Schritt. Bergwege ist die andere Ansicht.')}</p>
     </div>
   );
 }
@@ -278,7 +250,7 @@ function Edge({ from, to, color: trackColor }: { from: Placed; to: Placed; color
 }
 
 function Node({
-  p, lesson, label, color, selected, fresh, dim, dccText, climb, onSelect, onOpenMountain,
+  p, lesson, label, color, selected, fresh, dccText, onSelect,
 }: {
   p: Placed;
   lesson?: Lesson;
@@ -286,11 +258,8 @@ function Node({
   color: string;
   selected: boolean;
   fresh: boolean;
-  dim: boolean;
   dccText?: string;
-  climb?: Climb;
   onSelect: (id: string) => void;
-  onOpenMountain: (trackId: string) => void;
 }) {
   const { t, type } = useI18n();
   const n = p.node;
@@ -301,7 +270,7 @@ function Node({
     }
   };
   const common = {
-    className: `node ${n.kind}${n.topicId ? ' topic-preview' : ''} ${n.state ?? ''}${selected ? ' selected' : ''}${fresh ? ' fresh' : ''}${dim ? ' dim' : ''}`,
+    className: `node ${n.kind}${n.topicId ? ' topic-preview' : ''} ${n.state ?? ''}${selected ? ' selected' : ''}${fresh ? ' fresh' : ''}`,
     transform: `translate(${p.x} ${p.y})`,
     tabIndex: 0,
     role: 'button',
@@ -346,28 +315,6 @@ function Node({
           <text key={i} y={38 + i * 18} textAnchor="middle" className="track-label">{line}</text>
         ))}
         <text y={38 + lines.length * 18} textAnchor="middle" className="track-dcc">{dccText}</text>
-        {climb && (
-          <g
-            className="track-peak"
-            role="link"
-            tabIndex={0}
-            aria-label={t('Berg {name} öffnen, {here} von {summit} m', { name: climb.name, here: climb.here, summit: climb.summit })}
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenMountain(n.trackId!);
-            }}
-            onKeyDown={(e) => {
-              if (e.key !== 'Enter' && e.key !== ' ') return;
-              e.preventDefault();
-              e.stopPropagation();
-              onOpenMountain(n.trackId!);
-            }}
-          >
-            <text y={38 + lines.length * 18 + 20} textAnchor="middle" className="track-peak-label">
-              {'▲ '}{t('{name} · {here} / {summit} m', { name: climb.name, here: climb.here, summit: climb.summit })}
-            </text>
-          </g>
-        )}
       </g>
     );
   }

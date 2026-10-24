@@ -6,13 +6,14 @@ import { LERNSTAND_LABEL, RECORD_KIND_LABEL, SOURCE_LABEL } from '@l45/shared';
 import { MISSION_PRIVACY } from '../lessons/MissionCard.tsx';
 import { api } from '../lib/api.ts';
 import { Icon, type IconName } from '../lib/icons.tsx';
-import { localeOf, useI18n } from '../lib/i18n.tsx';
+import { LangSwitch, localeOf, useI18n } from '../lib/i18n.tsx';
 import { useStore } from '../lib/store.tsx';
+import { ThemeSwitch } from '../lib/theme.tsx';
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString(localeOf(), { hour: '2-digit', minute: '2-digit' });
 const date = (iso: string) => new Date(iso).toLocaleDateString(localeOf());
 
-export const STATUS: Record<string, string> = { online: 'KI an', offline: 'Ohne KI', simulation: 'KI simuliert aus' };
+const STATUS: Record<string, string> = { online: 'KI an', offline: 'Ohne KI', simulation: 'KI simuliert aus' };
 
 type Tab = 'general' | 'profile' | 'learning' | 'agent';
 const TABS: { id: Tab; label: string; icon: IconName; intro: string }[] = [
@@ -194,6 +195,18 @@ export function Settings({ onClose, onLogout }: { onClose: () => void; onLogout:
 
           {tab === 'general' && (
             <>
+              <section>
+                <div className="setting-group has-menu">
+                  <div className="setting-row">
+                    <strong>{t('Sprache')}</strong>
+                    <LangSwitch />
+                  </div>
+                  <div className="setting-row">
+                    <strong>{t('Erscheinungsbild')}</strong>
+                    <ThemeSwitch />
+                  </div>
+                </div>
+              </section>
               <section>
                 <h4>{t('KI')}</h4>
                 <div className="setting-group">
