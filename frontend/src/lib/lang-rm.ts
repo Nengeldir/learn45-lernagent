@@ -572,4 +572,12 @@ export const RM: Record<string, string> = {
   "Alles von diesem Berg in einer Lektion": "Tut da questa muntogna en ina lecziun",
   "Fünf Schritte sind geschafft. Die Gipfelprüfung mischt, was du auf diesem Berg geübt hast.": "Tschintg pass èn fatgs. L’examen dal piz maschaida quai che ti has exercità sin questa muntogna.",
   "Als Letztes: die Gipfelprüfung": "Sco ultim: l’examen dal piz",
+  "Gipfel!": "Piz!",
+  "Geschafft!": "Fatg!",
+  "Dein Freund": "Tes ami",
+  "Du und {friend} in der Seilbahn.": "Ti e {friend} en la pendiculara.",
+  "Du kletterst den Weg hinauf.": "Ti raiveschas ensi la senda.",
+  "Mit Freund lernen": "Emprender cun in ami",
+  "Lernpartner": "Partenari d’emprender",
+  "Aufstieg nochmals zeigen": "Mussar anc ina giada la muntada",
 };

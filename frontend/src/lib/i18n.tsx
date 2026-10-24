@@ -654,6 +654,14 @@ const EN: Record<string, string> = {
   'Alles von diesem Berg in einer Lektion': 'Everything from this mountain in one lesson',
   'Fünf Schritte sind geschafft. Die Gipfelprüfung mischt, was du auf diesem Berg geübt hast.': 'Five steps are done. The peak exam mixes what you practised on this mountain.',
   'Als Letztes: die Gipfelprüfung': 'Last step: the peak exam',
+  'Gipfel!': 'Summit!',
+  'Geschafft!': 'Done!',
+  'Dein Freund': 'Your friend',
+  'Du und {friend} in der Seilbahn.': 'You and {friend} in the cable car.',
+  'Du kletterst den Weg hinauf.': 'You climb up the trail.',
+  'Mit Freund lernen': 'Learn with a friend',
+  'Lernpartner': 'Learning partner',
+  'Aufstieg nochmals zeigen': 'Replay the climb',
 };
 
 function fill(s: string, vars?: Record<string, string | number>) {

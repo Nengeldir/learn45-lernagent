@@ -1,6 +1,6 @@
 // One topic as a climb: the mountain being climbed with its finished lessons and "Wie geht es weiter?" as the next
 // step, then the mountains already topped, each named after what its lessons covered.
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { MapNode, SessionView } from '@l45/shared';
 import { TopicLevel } from '../rewards/Rewards.tsx';
 import { LearnMore } from '../lessons/LearnMore.tsx';
@@ -9,15 +9,18 @@ import { useI18n } from '../lib/i18n.tsx';
 import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
 import { trackColors } from '../map/layout.ts';
+import { CableCar, Cheer, Hiker, cableAt, pointAt, useClimb, type Point } from './Climber.tsx';
 import { mountainsOf, STEPS_PER_MOUNTAIN } from './mountains.ts';
 import { pathOf } from './order.ts';
 import { ReviewCard } from '../reviews/Reviews.tsx';
 
-export function TrackView({ view, trackId, onStart, onReview }: {
+export function TrackView({ view, trackId, onStart, onReview, paused = false }: {
   view: SessionView;
   trackId: string;
   onStart: (nodeId: string) => void;
   onReview: () => void;
+  /** While a lesson is open, the climber waits and walks up once the learner is back on this page. */
+  paused?: boolean;
 }) {
   const { lessonOf } = useStore();
   const { t, trackName } = useI18n();
@@ -47,7 +50,7 @@ export function TrackView({ view, trackId, onStart, onReview }: {
             <h2 id="climb-title">{t('Berg {n}', { n: current.number })}</h2>
             <span className="muted">{left === 1 ? (view.canCreateTracks ? t('Als Letztes: die Gipfelprüfung') : t('Noch 1 Lektion bis zum Gipfel')) : t('Noch {n} Lektionen bis zum Gipfel', { n: left })}</span>
           </div>
-          <MountainArt steps={current.lessons.length} highlight={hover} label={t('{done} von {total} Lektionen', { done: current.lessons.length, total: STEPS_PER_MOUNTAIN })} />
+          <Climb key={track.id} steps={current.lessons.length} mountain={current.number} done={done.length} paused={paused} highlight={hover} />
         </div>
         <ol className="line">
           {current.lessons.map((n, i) => <DoneStep key={n.id} node={n} onStart={onStart} onPoint={(on) => setHover(on ? i : null)} />)}
@@ -125,7 +128,7 @@ const STOPS = [
 
 /** The mountain with its six steps. Finished steps carry a check, the next one is red like the next-step card,
  *  the rest show their number and the peak a flag. */
-function MountainArt({ steps, small = false, highlight = null, label }: { steps: number; small?: boolean; highlight?: number | null; label?: string }) {
+function MountainArt({ steps, small = false, highlight = null, label, children }: { steps: number; small?: boolean; highlight?: number | null; label?: string; children?: ReactNode }) {
   const points = (list: { x: number; y: number }[]) => list.map((p) => `${p.x},${p.y}`).join(' ');
   const climbed = points(STOPS.slice(0, steps));
   return (
@@ -161,6 +164,91 @@ function MountainArt({ steps, small = false, highlight = null, label }: { steps:
           </g>
         );
       })}
+      {children}
     </svg>
+  );
+}
+
+const TOGETHER_KEY = 'lernagent.together';
+const FRIEND_KEY = 'lernagent.friend';
+const stored = (key: string) => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+const store = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* storage unavailable: the choice lives only in memory */
+  }
+};
+/** The trail starts at the trailhead below the first stop. */
+const TRAIL: Point[] = [{ x: 78, y: 204 }, ...STOPS];
+
+/** The mountain with the climber on it. Alone you walk the trail, with a friend you ride the cable car. Each
+ *  finished lesson moves the figure one stop up and cheers; topping the sixth stop cheers big. */
+function Climb({ steps, mountain, done, paused, highlight }: { steps: number; mountain: number; done: number; paused: boolean; highlight: number | null }) {
+  const { t } = useI18n();
+  const [together, setTogether] = useState(() => stored(TOGETHER_KEY) === '1');
+  const [friend, setFriend] = useState(() => stored(FRIEND_KEY) || 'Sam');
+  const [replay, setReplay] = useState(0);
+  const [cheer, setCheer] = useState<{ at: Point; label: string; big: boolean; key: number } | null>(null);
+  // Hold the last shown state while a lesson is open, so the walk happens in view.
+  const shown = useRef({ steps, mountain, done });
+  if (!paused) shown.current = { steps, mountain, done };
+  const view = shown.current;
+  const pos = useClimb(view.steps, replay + view.mountain * 1000);
+  const me = pointAt(TRAIL, pos);
+  const moving = pos !== view.steps;
+  const cabin = cableAt(me.y);
+
+  // Cheer once each time a lesson is finished while this page is open. The first walk up is only the intro.
+  const seen = useRef(view.done);
+  useEffect(() => {
+    if (moving || view.done <= seen.current) return;
+    seen.current = view.done;
+    const peak = view.steps === 0;
+    const at = peak ? STOPS[STOPS.length - 1] : together ? cabin : me;
+    setCheer({ at, label: peak ? t('Gipfel!') : t('Geschafft!'), big: peak, key: Date.now() });
+  }, [moving, view.done]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!cheer) return;
+    const id = window.setTimeout(() => setCheer(null), 1800);
+    return () => window.clearTimeout(id);
+  }, [cheer]);
+
+  const toggle = () => {
+    store(TOGETHER_KEY, together ? '0' : '1');
+    setTogether(!together);
+  };
+  const name = friend.trim() || t('Dein Freund');
+  return (
+    <>
+      <MountainArt
+        steps={view.steps}
+        highlight={highlight}
+        label={`${t('{done} von {total} Lektionen', { done: view.steps, total: STEPS_PER_MOUNTAIN })}. ${together ? t('Du und {friend} in der Seilbahn.', { friend: name }) : t('Du kletterst den Weg hinauf.')}`}
+      >
+        {together ? <CableCar at={cabin} moving={moving} names={`${t('Du')} + ${name}`} /> : <Hiker at={me} walking={moving} />}
+        {cheer && <Cheer key={cheer.key} at={cheer.at} label={cheer.label} big={cheer.big} />}
+      </MountainArt>
+      <div className="climb-tools">
+        <button type="button" className="btn quiet small" aria-pressed={together} onClick={toggle}>
+          <span aria-hidden="true">🚠</span> {t('Mit Freund lernen')}
+        </button>
+        {together && (
+          <label className="friend-name">
+            <span>{t('Lernpartner')}</span>
+            <input value={friend} maxLength={20} onChange={(e) => { setFriend(e.target.value); store(FRIEND_KEY, e.target.value); }} />
+          </label>
+        )}
+        <button type="button" className="btn quiet small" onClick={() => setReplay(replay + 1)} disabled={view.steps === 0}>
+          {t('Aufstieg nochmals zeigen')}
+        </button>
+      </div>
+    </>
   );
 }
