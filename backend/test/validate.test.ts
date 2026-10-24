@@ -50,8 +50,14 @@ describe('Validator', () => {
 
   it('lehnt Quizfragen mit ungleich langen Antworten ab', () => {
     const l = pool('sich-v1') as VideoLesson;
-    l.content.questions[0].options = ['Kurz', 'Eine viel längere Antwort', 'Mittel lang'];
-    expect(validateLesson(l, { track: sicherheit }).join()).toMatch(/gleich viele Wörter \(jetzt 1\/4\/2\)/);
+    l.content.questions[0].options = ['Kurz', 'Eine viel längere Antwort als die anderen', 'Mittel lang'];
+    expect(validateLesson(l, { track: sicherheit }).join()).toMatch(/höchstens 2 Wörter unterscheiden \(jetzt 1\/7\/2\)/);
+  });
+
+  it('lässt Antworten zu, die sich um bis zu 2 Wörter unterscheiden', () => {
+    const l = pool('sich-v1') as VideoLesson;
+    l.content.questions[0].options = ['Eins zwei drei', 'Eins zwei drei vier', 'Eins zwei drei vier fünf'];
+    expect(validateLesson(l, { track: sicherheit }).join()).not.toMatch(/Wörter/);
   });
 
   it('lehnt die richtige Antwort immer an derselben Stelle ab', () => {

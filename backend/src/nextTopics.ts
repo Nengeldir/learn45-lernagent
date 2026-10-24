@@ -209,15 +209,18 @@ export async function chooseTopic(st: Stored, body: { choiceSetId?: unknown; top
     let lesson = existing;
     if (!lesson) {
       const due = dueReviews(st, track.id).map(q => q.criterion).filter(c => c !== topic.criterion).slice(0, 2);
-      const result = await generateLesson({
+      const attempt = (previousErrors?: string[]) => generateLesson({
         type: format, track, criterion: topic.criterion, level: topic.level,
         contextHint: `Die Person hat ausdrücklich das Thema «${topic.title}» im Format «${TYPE_LABEL[format]}» gewählt. ${topic.reason} Bleibe bei diesem Thema.`,
         reviewOf: due.length ? due : undefined,
         mission: missionOf(st, track.id)?.text ?? defaultMission(st, track.id),
         preferences: [...st.notes, `Gewähltes Format für diese Lektion: ${TYPE_LABEL[format]}`],
         basedOn: s.events.filter(e => e.trackId === track.id).slice(-1).map(e => e.id),
-        sessionNo: s.sessionNo, timeoutMs: Number(process.env.GENERATE_TIMEOUT_MS ?? 30_000),
+        sessionNo: s.sessionNo, timeoutMs: Number(process.env.GENERATE_TIMEOUT_MS ?? 30_000), previousErrors,
       }, c => s.modelCalls.push(c));
+      // The validator is strict and the model misses it now and then. One more try with its errors usually passes.
+      let result = await attempt();
+      if (!result.ok && result.rejected) result = await attempt(result.errors);
       if (!result.ok) {
         save(st);
         throw new HttpError(502, 'Die gewählte Lektion konnte gerade nicht erstellt werden. Deine Themenauswahl bleibt erhalten. Bitte versuche es erneut oder wähle ein anderes Format.');
