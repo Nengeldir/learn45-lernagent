@@ -46,40 +46,61 @@ export function reviewOverview(st: Stored): ReviewOverview {
 }
 
 type QuestionContent = Pick<ReviewChallenge, 'prompt' | 'options' | 'correctOption' | 'explanation' | 'context'>;
+type ReviewCandidate = QuestionContent & { sourceQuestionId: string };
 
-function fromLesson(lesson: Lesson, q: ReviewItem): QuestionContent | undefined {
+function fromLesson(lesson: Lesson, q: ReviewItem): ReviewCandidate[] {
   if (lesson.type === 'video' || lesson.type === 'podcast') {
-    const questions = lesson.content.questions.filter((x) => (x.criterion ?? lesson.targets[0]) === q.criterion);
-    const question = questions[((q.streak ?? 0) + (q.lapses ?? 0)) % questions.length];
-    if (question) return { prompt: question.prompt, options: question.options, correctOption: question.correct, explanation: question.explanation };
+    return lesson.content.questions.flatMap((question, index) => (question.criterion ?? lesson.targets[0]) === q.criterion ? [{
+      sourceQuestionId: JSON.stringify([lesson.id, 'quiz', index]),
+      prompt: question.prompt, options: question.options, correctOption: question.correct, explanation: question.explanation,
+    }] : []);
   }
   if (lesson.type === 'mark-evidence') {
-    const items = lesson.content.summary.filter((x) => x.criterion === q.criterion);
-    const item = items[((q.streak ?? 0) + (q.lapses ?? 0)) % items.length];
-    if (item) return { prompt: `Ist diese Aussage durch die Notiz belegt? «${item.text}»`, context: lesson.content.note, options: ['Belegt', 'Erfunden'], correctOption: item.verdict === 'belegt' ? 0 : 1, explanation: item.explanation };
+    return lesson.content.summary.flatMap((item) => (item.criterion ?? (item.verdict === 'erfunden' ? 'quelle' : lesson.targets[0])) === q.criterion ? [{
+      sourceQuestionId: JSON.stringify([lesson.id, 'statement', item.id]),
+      prompt: `Ist diese Aussage durch die Notiz belegt? «${item.text}»`, context: lesson.content.note,
+      options: ['Belegt', 'Erfunden'], correctOption: item.verdict === 'belegt' ? 0 : 1, explanation: item.explanation,
+    }] : []);
   }
-  return undefined;
+  if (lesson.type === 'mock-site') {
+    const parts = [...(lesson.content.mail ?? []), ...lesson.content.site];
+    return parts.flatMap((part) => part.signal?.criterion === q.criterion ? [{
+      sourceQuestionId: JSON.stringify([lesson.id, 'signal', part.id]),
+      prompt: 'Welches Warnzeichen erkennst du hier?', context: [part.text, ...(part.linkTarget ? [`Linkziel: ${part.linkTarget}`] : [])],
+      options: [part.signal.explanation, ...new Set(parts.filter((p) => p.signal && p.signal.criterion !== q.criterion && p.signal.explanation !== part.signal!.explanation).map((p) => p.signal!.explanation))].slice(0, 3).concat('Hier ist kein Warnzeichen zu erkennen.'),
+      correctOption: 0, explanation: part.signal.explanation,
+    }] : []);
+  }
+  return [];
 }
 
-/** Reuse only questions from lessons the learner actually completed. No teaching or model call. */
-function questionContent(st: Stored, q: ReviewItem): QuestionContent {
-  const lessons = allLessons(st.session);
-  const learned = [...new Set([...st.session.events].reverse().filter((ev) => ev.trackId === q.trackId && ev.result.criteria.some((c) => c.key === q.criterion)).map((ev) => ev.lessonId))];
-  for (const id of learned) {
-    const lesson = lessons.find((l) => l.id === id && l.trackId === q.trackId);
-    const question = lesson && fromLesson(lesson, q);
-    if (question) return question;
-  }
+/** Include every matching question from every completed lesson, irrespective of the original answer. */
+function questionBank(st: Stored, q: ReviewItem): ReviewCandidate[] {
+  const lessons = new Map(allLessons(st.session).map((lesson) => [lesson.id, lesson]));
+  const learned = [...new Set(st.session.events.filter((ev) => ev.trackId === q.trackId).map((ev) => ev.lessonId))];
+  const questions = learned.flatMap((id) => {
+    const lesson = lessons.get(id);
+    return lesson?.trackId === q.trackId ? fromLesson(lesson, q) : [];
+  });
+  if (questions.length) return questions;
   const track = trackIn(st, q.trackId)!;
   const criterion = track.criteria.find((c) => c.id === q.criterion)!;
   const options = [criterion.ruleOfThumb, ...track.criteria.filter((c) => c.id !== q.criterion && c.ruleOfThumb !== criterion.ruleOfThumb).map((c) => c.ruleOfThumb).slice(0, 3)];
   // Custom tracks have at least three criteria; keep a meaningful binary fallback for legacy tracks.
   if (options.length < 2) options.push('Das muss ich nicht prüfen.');
-  return { prompt: `Was solltest du bei «${criterion.label}» beachten?`, options, correctOption: 0, explanation: criterion.ruleOfThumb };
+  return [{ sourceQuestionId: JSON.stringify([q.trackId, 'rule', q.criterion]), prompt: `Was solltest du bei «${criterion.label}» beachten?`, options, correctOption: 0, explanation: criterion.ruleOfThumb }];
+}
+
+/** Unseen questions first, then the least recently answered. Opening a card never consumes it. */
+function questionContent(st: Stored, q: ReviewItem): ReviewCandidate {
+  const questions = questionBank(st, q);
+  const history = new Map((q.questionHistory ?? []).map((id, index) => [id, index]));
+  const rank = (question: ReviewCandidate) => history.get(question.sourceQuestionId) ?? -1;
+  return questions.reduce((next, question) => rank(question) < rank(next) ? question : next);
 }
 
 function publicQuestion(challenge: ReviewChallenge): ReviewQuestion {
-  const { correctOption: _c, explanation: _e, answeredOption: _a, feedback: _f, ...question } = challenge;
+  const { sourceQuestionId: _s, correctOption: _c, explanation: _e, answeredOption: _a, feedback: _f, ...question } = challenge;
   return question;
 }
 
@@ -118,6 +139,15 @@ export function answerReview(st: Stored, reviewId: string, input: { challengeId?
   }
   // A normal lesson can reschedule a review while an old browser tab is open.
   if (!isDue(st, q)) throw new HttpError(409, 'Diese Wiederholung wurde bereits erledigt.');
+  const bank = questionBank(st, q);
+  // An outstanding card from before rotation was added has no source identity yet.
+  const sourceId = challenge.sourceQuestionId ?? [...bank].reverse().find((question) => question.prompt === challenge.prompt
+    && question.options[question.correctOption] === challenge.options[challenge.correctOption]
+    && JSON.stringify(question.context) === JSON.stringify(challenge.context))?.sourceQuestionId;
+  const validIds = new Set(bank.map((question) => question.sourceQuestionId));
+  if (sourceId && validIds.has(sourceId)) {
+    q.questionHistory = [...(q.questionHistory ?? []).filter((id) => validIds.has(id) && id !== sourceId), sourceId];
+  }
   const correct = option === challenge.correctOption;
   scheduleReview(q, correct, new Date(), 'recall');
   challenge.answeredOption = option;

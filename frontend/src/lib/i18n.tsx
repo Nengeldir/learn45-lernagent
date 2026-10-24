@@ -44,7 +44,7 @@ const EN: Record<string, string> = {
   'Antwort wird geprüft …': 'Checking your answer …',
   'Richtig erinnert!': 'You remembered!',
   'Das üben wir bald wieder.': 'We will practise this again soon.',
-  'In 10 Minuten kommt diese Frage wieder.': 'This question returns in 10 minutes.',
+  'Dieses Thema wiederholen wir in 10 Minuten.': 'We will review this concept again in 10 minutes.',
   'Runde abschliessen': 'Finish this round',
   'Nächste Frage': 'Next question',
   '{n} von {total} richtig erinnert.': 'You remembered {n} of {total} correctly.',
