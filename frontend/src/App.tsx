@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { LangProvider, useI18n } from './lib/i18n.tsx';
 import { StoreProvider, useStore } from './lib/store.tsx';
+import { OwlChat } from './owl/OwlChat.tsx';
 import { Login } from './screens/Login.tsx';
 import { MapScreen } from './screens/MapScreen.tsx';
 
@@ -31,6 +32,7 @@ export function App() {
       <StoreProvider>
         <BrowserRouter>
           <Routed />
+          <OwlChat />
         </BrowserRouter>
       </StoreProvider>
     </LangProvider>
