@@ -654,6 +654,8 @@ const EN: Record<string, string> = {
   'Alles von diesem Berg in einer Lektion': 'Everything from this mountain in one lesson',
   'Fünf Schritte sind geschafft. Die Gipfelprüfung mischt, was du auf diesem Berg geübt hast.': 'Five steps are done. The peak exam mixes what you practised on this mountain.',
   'Als Letztes: die Gipfelprüfung': 'Last step: the peak exam',
+  'Grösser anzeigen': 'Show bigger',
+  'Originalgrösse': 'Original size',
   'Gipfel!': 'Summit!',
   'Geschafft!': 'Done!',
   'Dein Freund': 'Your friend',

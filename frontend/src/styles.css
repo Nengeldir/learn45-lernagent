@@ -1451,3 +1451,17 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) { --surface-3: #332e2f; --ink-3: #8a807d; --line-strong: #4a4244; --on-ink: #141213; --trail: var(--red); --trail-dark: var(--red-dark); --trail-soft: var(--red-soft); }
 }
+
+/* Mountain size toggle: a bigger mountain, and back to the original size. It sits in the sky, top right. Below
+   900px the mountain already spans the screen, so the toggle is only offered on wide screens. */
+.climb-size { position: absolute; top: 60px; right: 14px; z-index: 1; display: inline-grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface); color: var(--ink-2); cursor: pointer; box-shadow: var(--shadow-md); }
+.climb-size:hover { color: var(--red); border-color: var(--red); }
+.climb-size[aria-pressed='true'] { background: var(--red); border-color: var(--red); color: #fff; }
+.climb-size:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+@media (max-width: 899px) {
+  .climb-size { display: none; }
+}
+@media (min-width: 900px) {
+  .climb.is-big { grid-template-columns: minmax(0, 1fr); }
+  .climb.is-big .climb-visual { position: relative; top: auto; width: 100%; max-width: 820px; justify-self: center; }
+}

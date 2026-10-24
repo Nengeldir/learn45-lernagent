@@ -26,6 +26,8 @@ export function TrackView({ view, trackId, onStart, onReview, paused = false }: 
   const { t, trackName } = useI18n();
   /** The step of the list the pointer or focus is on, highlighted on the mountain. */
   const [hover, setHover] = useState<number | null>(null);
+  const [big, setBig] = useState(() => stored(BIG_KEY) === '1');
+  const toggleBig = () => { store(BIG_KEY, big ? '0' : '1'); setBig(!big); };
   const { session } = view;
   const track = view.skills.flatMap((s) => s.tracks).find((tr) => tr.id === trackId);
   if (!track) return null;
@@ -44,11 +46,15 @@ export function TrackView({ view, trackId, onStart, onReview, paused = false }: 
       </header>
       <ReviewCard view={view} trackId={trackId} onStart={onReview} />
 
-      <section className="climb" aria-labelledby="climb-title">
+      <section className={`climb${big ? ' is-big' : ''}`} aria-labelledby="climb-title">
         <div className="climb-visual">
           <div className="climb-head">
             <h2 id="climb-title">{t('Berg {n}', { n: current.number })}</h2>
             <span className="muted">{left === 1 ? (view.canCreateTracks ? t('Als Letztes: die Gipfelprüfung') : t('Noch 1 Lektion bis zum Gipfel')) : t('Noch {n} Lektionen bis zum Gipfel', { n: left })}</span>
+            <button type="button" className="climb-size" aria-pressed={big} onClick={toggleBig} title={big ? t('Originalgrösse') : t('Grösser anzeigen')}>
+              <Icon name={big ? 'shrink' : 'fit'} size={18} />
+              <span className="sr-only">{big ? t('Originalgrösse') : t('Grösser anzeigen')}</span>
+            </button>
           </div>
           <Climb key={track.id} steps={current.lessons.length} mountain={current.number} done={done.length} paused={paused} highlight={hover} />
         </div>
@@ -170,6 +176,7 @@ function MountainArt({ steps, small = false, highlight = null, label, children }
 }
 
 const TOGETHER_KEY = 'lernagent.together';
+const BIG_KEY = 'lernagent.mountainBig';
 const FRIEND_KEY = 'lernagent.friend';
 const stored = (key: string) => {
   try {

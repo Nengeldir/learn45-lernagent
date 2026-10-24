@@ -26,6 +26,7 @@ const PATHS = {
   back: <path d="M19 12H5M11 18l-6-6 6-6" />,
   play: <path d="M8 5.5v13l10.5-6.5z" fill="currentColor" />,
   fit: <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />,
+  shrink: <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />,
   logout: <path d="M9 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3M16 17l5-5-5-5M21 12H9" />,
   sparkle: <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" />,
   settings: <><path d={gear} /><circle cx="12" cy="12" r="3" /></>,
