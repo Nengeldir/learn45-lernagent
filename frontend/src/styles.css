@@ -1279,3 +1279,54 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 @media (max-width: 760px) {
   .lesson-shell:has(.lesson-video) { max-width: 100%; height: 100dvh; }
 }
+
+/* Eule: a small owl you can talk to */
+.owl-chat { position: fixed; right: 22px; bottom: 22px; z-index: 70; }
+.owl-fab {
+  width: 72px; height: 72px; padding: 0; border: 0; border-radius: 22px; cursor: pointer;
+  background: transparent; filter: drop-shadow(0 10px 18px rgb(0 0 0 / 0.28));
+  animation: owl-bob 2.8s ease-in-out infinite;
+}
+.owl-fab:hover, .owl-chat.open .owl-fab { animation-play-state: paused; transform: translateY(-2px) rotate(-4deg); }
+.owl-fab.mood-think { animation: owl-think 0.7s ease-in-out infinite; }
+.owl-fab.mood-happy { animation: owl-hop 0.55s ease; }
+.owl-face { width: 100%; height: 100%; display: block; overflow: visible; }
+.owl-face .pupils { transition: transform 0.08s linear; }
+.owl-face .lids { transform-origin: center; transform: scaleY(0); }
+.owl-face { animation: owl-blink 5.5s infinite; }
+.owl-face.mood-think .ear { transform-origin: 50% 100%; animation: owl-ear 0.8s ease-in-out infinite; }
+@keyframes owl-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes owl-think { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes owl-hop { 0% { transform: translateY(0); } 40% { transform: translateY(-10px); } 100% { transform: translateY(0); } }
+@keyframes owl-blink { 0%, 42%, 48%, 100% { } 45% { } }
+.owl-face .lids { animation: owl-lid 5.5s infinite; }
+@keyframes owl-lid { 0%, 42%, 48%, 100% { transform: scaleY(0); } 45% { transform: scaleY(1); } }
+@keyframes owl-ear { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-6deg); } }
+.owl-peek {
+  position: absolute; right: 78px; bottom: 18px; margin: 0; width: max-content; max-width: 180px;
+  padding: 8px 12px; border-radius: 14px 14px 4px 14px; background: var(--surface); color: var(--ink);
+  box-shadow: var(--shadow-md); font-weight: 600;
+}
+.owl-panel {
+  position: fixed; right: 22px; bottom: 108px; width: min(360px, calc(100vw - 44px));
+  display: grid; grid-template-rows: auto 1fr auto auto; max-height: min(520px, calc(100vh - 130px));
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 22px;
+  box-shadow: var(--shadow-lg); overflow: hidden;
+}
+.owl-panel header { display: flex; align-items: center; gap: 10px; padding: 12px 12px 8px; }
+.owl-panel header .owl-face { width: 48px; height: 48px; flex: none; }
+.owl-panel header strong { display: block; font-size: 18px; }
+.owl-panel header span { color: var(--ink-2); font-size: 13px; }
+.owl-x { margin-left: auto; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--ink); font-size: 22px; cursor: pointer; }
+.owl-log { overflow: auto; display: grid; gap: 8px; align-content: start; padding: 4px 12px 8px; min-height: 180px; }
+.owl-bubble { margin: 0; max-width: 85%; padding: 10px 12px; border-radius: 16px; line-height: 1.35; }
+.owl-bubble.owl { justify-self: start; background: var(--surface-2); border-bottom-left-radius: 6px; }
+.owl-bubble.user { justify-self: end; background: #E23B2F; color: #fff; border-bottom-right-radius: 6px; }
+.owl-bubble.typing { width: 52px; letter-spacing: 3px; font-weight: 700; animation: owl-bob 1s ease-in-out infinite; }
+.owl-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 8px; }
+.owl-chips button { border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 10px; cursor: pointer; font: inherit; font-size: 13px; }
+.owl-chips button:hover:not(:disabled) { border-color: #E23B2F; }
+.owl-panel form { display: flex; gap: 8px; padding: 8px 12px 12px; }
+.owl-panel input { flex: 1; min-width: 0; border: 1px solid var(--line-strong); background: var(--paper); color: var(--ink); border-radius: 999px; padding: 10px 14px; font: inherit; }
+.owl-panel form button { width: 42px; height: 42px; border: 0; border-radius: 50%; background: #E23B2F; color: #fff; font-size: 20px; cursor: pointer; }
+.owl-panel form button:disabled, .owl-chips button:disabled { opacity: 0.5; cursor: default; }

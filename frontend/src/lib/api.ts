@@ -36,6 +36,8 @@ export interface LoginBody {
 
 export const api = {
   health: () => call<{ ok: boolean; provider: string }>('GET', '/api/health'),
+  owlChat: (body: { messages: { role: 'user' | 'assistant'; text: string }[]; lang: string; where: string }) =>
+    call<{ text: string }>('POST', '/api/owl', body),
   content: () => call<ContentBundle>('GET', '/api/content'),
   login: (body: LoginBody) => call<SessionView>('POST', '/api/login', body),
   session: (id: string) => call<SessionView>('GET', s(id)),
