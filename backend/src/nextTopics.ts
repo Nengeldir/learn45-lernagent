@@ -11,6 +11,7 @@ import { HttpError, openRecommendation, save } from './sessions.ts';
 import { defaultMission, missionOf, skillIn, trackIn } from './tracks.ts';
 import { extractJson, newId } from './util.ts';
 import { storeLesson, type Stored } from './workspace.ts';
+import { speechUnavailable } from './video/speech.ts';
 
 const online = (st: Stored) => !st.session.simulation && providerName() !== 'none';
 const clean = (v: unknown) => typeof v === 'string' ? v.replace(/ß/g, 'ss').replace(/\s+/g, ' ').trim() : '';
@@ -19,7 +20,8 @@ const choosing = new WeakSet<Stored>();
 
 /** Changes whenever a previous plan must no longer be submitted. */
 export const topicRevision = (st: Stored) => JSON.stringify([
-  2, // Topic plan schema: generated formats may go beyond the prepared catalog.
+  3, // Include service availability so cached choices cannot submit a disabled format.
+  speechUnavailable('video'), speechUnavailable('podcast'),
   st.session.id, st.session.events.at(-1)?.id, st.session.events.length,
   openRecommendation(st.session)?.id, st.session.simulation, providerName(),
   st.missions.map(m => m.updatedAt), st.session.nodes.length,
@@ -42,7 +44,24 @@ function formatsOf(st: Stored, track: Track): LessonType[] {
 /** The model picks the formats that fit a topic. A podcast fits every topic, so it is always offered with them. */
 function topicFormats(raw: unknown, allowed: LessonType[]): LessonType[] {
   const picked = Array.isArray(raw) ? allowed.filter(t => raw.includes(t)) : [...allowed];
+  // An audio-only suggestion must still leave a usable format when speech is unavailable.
+  if (picked.length && picked.every(t => speechUnavailable(t))) {
+    const usable = allowed.find(t => !speechUnavailable(t));
+    if (usable) picked.push(usable);
+  }
   return picked.length && allowed.includes('podcast') && !picked.includes('podcast') ? [...picked, 'podcast'] : picked;
+}
+
+function availability(st: Stored, topic: NextTopic): NextTopic {
+  const existing = allLessons(st.session).find(l => l.id === topic.lessonId);
+  const unavailableFormats: Partial<Record<LessonType, string>> = {};
+  for (const type of topic.formats) {
+    // Prepared videos contain their own media or storyboard and remain usable without generating speech.
+    if (existing?.type === type && existing.type === 'video' && (existing.source === 'prepared' || existing.content.narrated || existing.content.videoUrl)) continue;
+    const reason = speechUnavailable(type);
+    if (reason) unavailableFormats[type] = reason;
+  }
+  return { ...topic, unavailableFormats };
 }
 
 function levelOf(st: Stored, track: Track): DccLevel {
@@ -167,6 +186,7 @@ async function planTopics(st: Stored, track: Track): Promise<TopicChoices> {
     }
   }
   if (choices.revision !== topicRevision(st)) throw new HttpError(409, 'Dein Lernstand hat sich geändert. Bitte lade die Themen neu.');
+  choices.topics = choices.topics.map(t => availability(st, t));
   st.session.topicChoices = choices;
   save(st);
   return choices;
@@ -220,9 +240,9 @@ export async function suggestTopic(st: Stored, body: { choiceSetId?: unknown; to
     id: newId('own-topic'), title, reason: clean(raw.reason).slice(0, 240) || 'Dein eigener nächster Schwerpunkt.',
     criterion: String(raw.criterion), formats: topicFormats(raw.formats, formatsOf(st, track)), level: levelOf(st, track), recommended: false,
   };
-  choices.customTopic = topic;
+  choices.customTopic = availability(st, topic);
   save(st);
-  return topic;
+  return choices.customTopic;
 }
 
 export async function chooseTopic(st: Stored, body: { choiceSetId?: unknown; topicId?: unknown; format?: unknown }): Promise<string> {
@@ -232,6 +252,8 @@ export async function chooseTopic(st: Stored, body: { choiceSetId?: unknown; top
   if (!topic) throw new HttpError(400, 'Bitte wähle eines der vorgeschlagenen Themen oder schlage ein eigenes vor.');
   const format = body.format as LessonType;
   if (!topic.formats.includes(format)) throw new HttpError(400, 'Dieses Format ist für das gewählte Thema nicht verfügbar.');
+  const unavailable = availability(st, topic).unavailableFormats?.[format];
+  if (unavailable) throw new HttpError(409, unavailable);
   const track = trackOf(st, choices.trackId);
   const s = st.session;
   const existing = allLessons(s).find(l => l.id === topic.lessonId && l.type === format);

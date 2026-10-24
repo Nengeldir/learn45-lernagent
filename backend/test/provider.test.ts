@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { callAgent, callModel, plannerModelName, type AgentMessage } from '../src/provider.ts';
+import { FREE_AI_ENDPOINT, FREE_AI_MODEL } from '../src/freeAi.ts';
+import { callAgent, callModel, plannerModelName, providerName, type AgentMessage } from '../src/provider.ts';
 
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
@@ -16,6 +17,7 @@ function setup(provider = 'openai') {
   const bodies: Record<string, any>[] = [];
   const replies: unknown[] = [];
   const fetch = vi.fn(async (_url, init) => {
+    if (String(_url) === FREE_AI_ENDPOINT) return Response.json({}, { status: 503 });
     bodies.push(JSON.parse(init.body));
     return Response.json(replies.shift());
   });
@@ -58,18 +60,21 @@ it('replays Sol reasoning and tool calls exactly once, with matching tool output
 it('rejects incomplete or refused OpenAI output instead of accepting partial lessons', async () => {
   const { replies } = setup();
   replies.push({ ...text('{"partial":'), status: 'incomplete' }, { status: 'completed', output: [{ type: 'message', content: [{ type: 'refusal', refusal: 'No' }] }] });
-  expect(await callModel(request)).toMatchObject({ ok: false, error: 'openai response incomplete' });
+  expect(await callModel(request)).toMatchObject({ ok: false, error: expect.stringContaining('openai response incomplete') });
   expect(await callModel(request)).toMatchObject({ ok: false, error: 'refusal' });
 });
 
-it('reports a safe quota error code without exposing provider messages or retrying paid calls', async () => {
+it('reports safe errors when both providers fail, without retrying paid calls', async () => {
   setup();
-  const fetch = vi.fn(async () => Response.json({ error: { code: 'credit_balance_exhausted', message: 'private provider detail' } }, { status: 429 }));
+  const fetch = vi.fn(async (url) => String(url) === FREE_AI_ENDPOINT
+    ? Response.json({}, { status: 503 })
+    : Response.json({ error: { code: 'credit_balance_exhausted', message: 'private provider detail' } }, { status: 429 }));
   vi.stubGlobal('fetch', fetch);
   const result = await callModel(request);
-  expect(result).toMatchObject({ ok: false, error: 'openai 429 (credit_balance_exhausted)' });
+  expect(result).toMatchObject({ ok: false, error: 'openai 429 (credit_balance_exhausted); free AI 503' });
   expect(JSON.stringify(result)).not.toContain('private provider detail');
-  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(fetch).toHaveBeenCalledTimes(2);
+  expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/responses'))).toHaveLength(1);
 });
 
 it('allows separate reasoning levels while falling back to the ordinary model when no planner model is set', async () => {
@@ -103,7 +108,7 @@ it('gives Anthropic chat calls low effort and room to think, so a reply is never
   const { bodies, replies } = setup('anthropic');
   const chat = { purpose: 'chat' as const, system: 'Role play', messages: [{ role: 'user' as const, content: 'Hallo' }], maxTokens: 250 };
   replies.push({ content: [{ type: 'thinking', thinking: '', signature: 'sig' }], stop_reason: 'max_tokens' }, { content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: 'Was ist passiert?' }] });
-  expect(await callModel(chat)).toMatchObject({ ok: false, error: 'no text in reply (stop_reason max_tokens)' });
+  expect(await callModel(chat)).toMatchObject({ ok: false, error: expect.stringContaining('no text in reply (stop_reason max_tokens)') });
   expect(await callModel(chat)).toMatchObject({ ok: true, text: 'Was ist passiert?' });
   expect(bodies.every(b => b.model === 'claude-haiku-5-5' && b.output_config.effort === 'low' && b.max_tokens === 2250)).toBe(true);
 });
@@ -112,6 +117,51 @@ it('reports the Anthropic error type without exposing provider messages', async 
   setup('anthropic');
   vi.stubGlobal('fetch', vi.fn(async () => Response.json({ type: 'error', error: { type: 'invalid_request_error', message: 'private provider detail' } }, { status: 400 })));
   const result = await callModel(request);
-  expect(result).toMatchObject({ ok: false, error: 'anthropic 400 (invalid_request_error)' });
+  expect(result).toMatchObject({ ok: false, error: expect.stringContaining('anthropic 400 (invalid_request_error)') });
   expect(JSON.stringify(result)).not.toContain('private provider detail');
+});
+
+
+it.each(['openai', 'anthropic'])('retries invalid %s credentials on the same free AI as Eule, with correct provenance', async provider => {
+  const { fetch, bodies } = setup(provider);
+  fetch.mockImplementation(async (url, init) => {
+    bodies.push(JSON.parse(init.body));
+    return String(url) === FREE_AI_ENDPOINT
+      ? Response.json({ choices: [{ message: { content: '{"content":{}}' }, finish_reason: 'stop' }] })
+      : Response.json({ error: { type: 'authentication_error', code: 'invalid_api_key', message: 'private' } }, { status: 401 });
+  });
+  const result = await callModel({ ...request, planner: true });
+  expect(result).toMatchObject({ ok: true, model: FREE_AI_MODEL, text: '{"content":{}}' });
+  expect(fetch).toHaveBeenCalledTimes(2);
+  expect(bodies[1]).toMatchObject({ model: FREE_AI_MODEL, max_tokens: 3000, messages: [{ role: 'system', content: request.system }, ...request.messages] });
+  expect(fetch.mock.calls[1][1].headers).toEqual({ 'content-type': 'application/json' });
+  expect(JSON.stringify(bodies[1])).not.toContain('test-key');
+});
+
+it.each(['', 'free', 'openai', 'anthropic'])('uses free AI when provider %s has no usable configuration', async provider => {
+  setup(provider);
+  vi.stubEnv('OPENAI_API_KEY', ''); vi.stubEnv('ANTHROPIC_API_KEY', '');
+  expect(providerName()).toBe('free');
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json({ choices: [{ message: { content: 'lesson' } }] })));
+  expect(await callModel(request)).toMatchObject({ ok: true, text: 'lesson', model: FREE_AI_MODEL });
+});
+
+it('defaults to free AI without a provider setting, while none remains an explicit offline switch', async () => {
+  setup(); vi.stubEnv('MODEL_PROVIDER', undefined);
+  expect(providerName()).toBe('free');
+  vi.stubEnv('MODEL_PROVIDER', 'none');
+  const fetch = vi.fn(); vi.stubGlobal('fetch', fetch);
+  expect(await callModel(request)).toMatchObject({ ok: false });
+  expect(fetch).not.toHaveBeenCalled();
+});
+
+it('falls back after a paid request times out and rejects truncated free replies', async () => {
+  setup();
+  const fetch = vi.fn(async (url) => {
+    if (String(url) !== FREE_AI_ENDPOINT) throw new Error('timeout');
+    return Response.json({ choices: [{ message: { content: '{"content":{}}' }, finish_reason: 'length' }] });
+  });
+  vi.stubGlobal('fetch', fetch);
+  expect(await callModel(request)).toMatchObject({ ok: false, error: 'timeout; free AI reply truncated' });
+  expect(fetch).toHaveBeenCalledTimes(2);
 });

@@ -1,5 +1,10 @@
 // Italian display layer. Keys are the German source strings.
 export const IT: Record<string, string> = {
+  "Spracherzeugung ist nicht eingerichtet.": "La sintesi vocale non è configurata.",
+  "Lokale Spracherzeugung ist auf diesem Server nicht verfügbar.": "La sintesi vocale locale non è disponibile su questo server.",
+  "Podcast ist ohne Spracherzeugung nicht verfügbar.": "I podcast non sono disponibili senza sintesi vocale.",
+  "Video ist ohne Spracherzeugung nicht verfügbar.": "I video non sono disponibili senza sintesi vocale.",
+  "Der Sprachdienst ist gerade nicht verfügbar. Wähle ein anderes Format.": "Il servizio vocale non è disponibile. Scegli un altro formato.",
   'Kurz wiederholen': 'Ripasso rapido',
   'Nächste Wiederholung: {at}': 'Prossimo ripasso: {at}',
   '{n} kurze Fragen zu dem, was du gelernt hast.': '{n} brevi domande su ciò che hai imparato.',

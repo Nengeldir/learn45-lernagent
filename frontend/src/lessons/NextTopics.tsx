@@ -88,7 +88,7 @@ export function NextTopics({ trackId, initialTopicId, onStart, onFocus }: {
   };
   const pick = (t: NextTopic) => {
     setError(null);
-    if (t.formats.length === 1) void start(t, t.formats[0]);
+    if (t.formats.length === 1 && !t.unavailableFormats?.[t.formats[0]]) void start(t, t.formats[0]);
     else setSelected(t);
   };
   const suggest = async () => {
@@ -119,11 +119,11 @@ export function NextTopics({ trackId, initialTopicId, onStart, onFocus }: {
           <p><strong>{selected.title}</strong></p>
           <div className="format-options">
             {formats.map((t) => (
-              <button key={t} className="format-option" disabled={busy || stale} onClick={() => void start(selected, t)}>
+              <button key={t} className="format-option" disabled={busy || stale || Boolean(selected.unavailableFormats?.[t])} title={selected.unavailableFormats?.[t] ? ui(selected.unavailableFormats[t]!) : undefined} onClick={() => void start(selected, t)}>
                 <span className="format-icon" aria-hidden="true"><Icon name={FORMAT_ICON[t]} size={24} /></span>
                 <span className="format-text">
                   <strong>{ui(TYPE_LABEL[t])}{preferred === t && <span className="format-preferred">{ui("Zuletzt gewählt")}</span>}</strong>
-                  <span className="small muted">{ui(FORMAT_HELP[t])}</span>
+                  <span className="small muted">{ui(selected.unavailableFormats?.[t] ?? FORMAT_HELP[t])}</span>
                 </span>
               </button>
             ))}

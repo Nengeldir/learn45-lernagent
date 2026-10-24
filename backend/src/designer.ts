@@ -140,6 +140,7 @@ export async function designTrack(input: DesignInput, onCall: (c: ModelCall) => 
   }
   // Models invent addresses. Only sources that answer are kept.
   const custom = track.custom!;
+  custom.model = reply.model;
   const ok = await Promise.all(custom.sources.map((s) => checkSource(s.url)));
   custom.sources = custom.sources.filter((_, i) => ok[i]);
   if (!custom.sources.length) return { ok: false, errors: ['Keine der vorgeschlagenen Quellen war erreichbar'] };

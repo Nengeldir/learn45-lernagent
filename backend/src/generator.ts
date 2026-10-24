@@ -5,7 +5,8 @@ import type { DccLevel, Lesson, LessonType, ModelCall, Track } from '@l45/shared
 import { DCC_LEVELS } from '@l45/shared';
 import { keywordPatterns } from './agent.ts';
 import { slug } from './md.ts';
-import { callModel, plannerModelName } from './provider.ts';
+import { callModel } from './provider.ts';
+import { speechUnavailable } from './video/speech.ts';
 import { sourcesOf } from './resources.ts';
 import { extractJson, nowIso } from './util.ts';
 import { validateLesson } from './validate.ts';
@@ -13,7 +14,11 @@ import { validateLesson } from './validate.ts';
 export const LESSON_TYPES: LessonType[] = ['video', 'mark-evidence', 'mock-site', 'ai-chat'];
 /** Types a learner can choose for any topic. A podcast needs only criteria and sources, so it fits every track;
  *  the planner keeps to LESSON_TYPES and the track's own types, so only learners ask for podcasts. */
-export const typesFor = (track: Track): LessonType[] => [...new Set([...(track.custom?.lessonTypes ?? LESSON_TYPES), 'podcast' as const])];
+export const typesFor = (track: Track): LessonType[] => {
+  const types = track.custom?.lessonTypes ?? LESSON_TYPES;
+  // Older own tracks may only offer audio. Keep a conversation available without a speech service.
+  return [...new Set([...types, ...(types.every(t => speechUnavailable(t)) ? ['ai-chat' as const] : []), 'podcast' as const])];
+};
 /** At most this many lessons per session come from the model (agent, rules and new tracks together). */
 export const GENERATED_PER_SESSION = 10;
 
@@ -96,6 +101,8 @@ export function shuffleQuiz<Q extends { options: string[]; correct: number }>(qu
 
 export async function generateLesson(input: GenerateInput, onCall: (c: ModelCall) => void): Promise<GenerateResult> {
   const { track } = input;
+  const unavailable = speechUnavailable(input.type);
+  if (unavailable) return { ok: false, errors: [unavailable] };
   const types = typesFor(track);
   if (!types.includes(input.type)) return { ok: false, errors: [`Typ muss in diesem Bereich einer von ${types.join(', ')} sein`] };
   if (!DCC_LEVELS.includes(input.level)) return { ok: false, errors: ['level muss Grundstufe, Mittelstufe oder Fortgeschritten sein'] };
@@ -137,6 +144,7 @@ export async function generateLesson(input: GenerateInput, onCall: (c: ModelCall
     '{"title":"höchstens 60 Zeichen","intro":"Ein Satz: was die Person tut","durationMin":3,"transfer":"Ein Satz für die Arbeit","primarySourceUrl":"<url aus der Liste>","content":<siehe unten>}',
     'content für diese Lektionsart:',
     SCHEMAS[input.type],
+    `Kriterium-IDs genau übernehmen, nie übersetzen oder umbenennen: ${targets.join(', ')}.`,
     input.previousErrors?.length ? `\nDein letzter Entwurf wurde abgelehnt. Behebe genau diese Punkte:\n${input.previousErrors.map((e) => `- ${e}`).join('\n')}` : '',
   ].filter(Boolean).join('\n');
 
@@ -159,12 +167,15 @@ export async function generateLesson(input: GenerateInput, onCall: (c: ModelCall
     content = { lines: content.lines, questions: shuffleQuiz(content.questions as { options: string[]; correct: number }[]) };
   }
   if (input.type === 'ai-chat' && Array.isArray(content.criteria)) {
-    // Keyword patterns for judging without a model come from the track, not from the model.
-    content = {
+    // The app owns assessment IDs, labels and keyword patterns. Free models sometimes translate IDs
+    // (e.g. "offen" to "openPoints"); this must not discard an otherwise usable conversation.
+    const drafts = (content.criteria as { id?: string; hint?: string }[]).filter(c => c && typeof c === 'object');
+    if (drafts.length) content = {
       ...content,
-      criteria: (content.criteria as { id: string; label?: string; hint?: string }[]).map((c) => {
-        const tc = track.criteria.find((x) => x.id === c.id);
-        return { id: c.id, label: c.label ?? tc?.label ?? c.id, hint: c.hint ?? tc?.ruleOfThumb ?? '', patterns: keywordPatterns(`${tc?.label ?? ''} ${tc?.ruleOfThumb ?? ''}`) };
+      criteria: targets.map(id => {
+        const tc = track.criteria.find(c => c.id === id)!;
+        const draft = drafts.find(c => c.id === id) ?? (targets.length === 1 && drafts.length === 1 ? drafts[0] : undefined);
+        return { id, label: tc.label, hint: typeof draft?.hint === 'string' ? draft.hint : tc.ruleOfThumb, patterns: keywordPatterns(`${tc.label} ${tc.ruleOfThumb}`) };
       }),
     };
   }
@@ -183,7 +194,7 @@ export async function generateLesson(input: GenerateInput, onCall: (c: ModelCall
     primarySource: source ? { title: source.title, url: source.url } : { title: 'unbekannt', url: String(raw.primarySourceUrl ?? '') },
     provenance: {
       by: 'model',
-      model: plannerModelName(),
+      model: reply.model,
       at: nowIso(),
       basedOn: input.basedOn,
       sessionNo: input.sessionNo,

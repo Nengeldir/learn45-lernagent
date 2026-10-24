@@ -558,6 +558,8 @@ export interface NextTopic {
   reason: string;
   criterion: string;
   formats: LessonType[];
+  /** Formats remain visible, with a reason when a required service is unavailable. */
+  unavailableFormats?: Partial<Record<LessonType, string>>;
   level: DccLevel;
   recommended: boolean;
   /** An existing lesson can be reused if the learner chooses its format. */
@@ -626,7 +628,7 @@ export interface SessionView {
   dcc: DccProfile;
   recommendation: Recommendation | null;
   modelStatus: ModelStatus;
-  /** Whether a planner agent can run (Anthropic or mock, not simulated offline) */
+  /** Whether a tool-using planner can run (Anthropic, OpenAI or mock, not simulated offline) */
   agentAvailable: boolean;
   /** Whether the learner can create tracks from own topics (needs a model) */
   canCreateTracks: boolean;

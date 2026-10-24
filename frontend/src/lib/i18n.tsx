@@ -33,6 +33,11 @@ const stored = (): Lang => {
 export const localeOf = (lang: Lang = stored()) => LANGS.find((l) => l.code === lang)?.locale ?? 'de-CH';
 
 const EN: Record<string, string> = {
+  "Spracherzeugung ist nicht eingerichtet.": "Speech generation is not configured.",
+  "Lokale Spracherzeugung ist auf diesem Server nicht verfügbar.": "Local speech generation is not available on this server.",
+  "Podcast ist ohne Spracherzeugung nicht verfügbar.": "Podcasts are unavailable without speech generation.",
+  "Video ist ohne Spracherzeugung nicht verfügbar.": "Videos are unavailable without speech generation.",
+  "Der Sprachdienst ist gerade nicht verfügbar. Wähle ein anderes Format.": "The speech service is currently unavailable. Choose another format.",
   'Kurz wiederholen': 'Quick review',
   'Nächste Wiederholung: {at}': 'Next review: {at}',
   '{n} kurze Fragen zu dem, was du gelernt hast.': '{n} short questions about what you have learned.',

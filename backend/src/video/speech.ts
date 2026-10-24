@@ -1,4 +1,7 @@
 import { createHash } from 'node:crypto';
+import { accessSync, constants } from 'node:fs';
+import { delimiter, isAbsolute } from 'node:path';
+import type { LessonType } from '@l45/shared';
 import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -8,14 +11,38 @@ export const AUDIO_RATE = 24000;
 export const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
 export interface SpeechConfig { provider: 'local' | 'elevenlabs'; voice: string; model: string }
 export function speechConfig(): SpeechConfig {
-  const provider = process.env.VIDEO_SPEECH_PROVIDER ?? (process.env.ELEVENLABS_API_KEY ? 'elevenlabs' : 'local');
+  const provider = process.env.VIDEO_SPEECH_PROVIDER?.trim() || (process.env.ELEVENLABS_API_KEY?.trim() ? 'elevenlabs' : 'local');
   if (provider !== 'local' && provider !== 'elevenlabs') throw new Error('Unbekannter Sprachdienst.');
   return { provider, voice: provider === 'local' ? process.env.VIDEO_LOCAL_VOICE ?? 'Anna' : process.env.ELEVENLABS_VOICE_ID ?? '', model: process.env.ELEVENLABS_MODEL_ID ?? 'eleven_multilingual_v2' };
 }
-/** The second podcast host: same provider, another voice. */
+/** A distinct second voice is optional; otherwise both podcast hosts use the configured voice. */
 export function secondSpeechConfig(): SpeechConfig {
   const first = speechConfig();
-  return { ...first, voice: first.provider === 'local' ? process.env.VIDEO_LOCAL_SECOND_VOICE ?? 'Markus' : process.env.ELEVENLABS_SECOND_VOICE_ID ?? '' };
+  return { ...first, voice: first.provider === 'local' ? process.env.VIDEO_LOCAL_SECOND_VOICE ?? 'Markus' : process.env.ELEVENLABS_SECOND_VOICE_ID?.trim() || first.voice };
+}
+
+const speechFailures = new Set<string>();
+const speechIdentity = (config: SpeechConfig) => hash(JSON.stringify([config, process.env.ELEVENLABS_API_KEY]));
+const executable = (path: string) => { try { accessSync(path, constants.X_OK); return true; } catch { return false; } };
+
+/** A reason for disabling a new audio lesson; existing published media need no speech service. */
+export function speechUnavailable(type: LessonType): string | undefined {
+  if (type !== 'video' && type !== 'podcast') return;
+  let configs: SpeechConfig[];
+  try { configs = type === 'podcast' ? [speechConfig(), secondSpeechConfig()] : [speechConfig()]; }
+  catch { return 'Spracherzeugung ist nicht eingerichtet.'; }
+  if (configs[0].provider === 'local') {
+    if (process.env.VIDEO_SPEECH_PROVIDER !== 'local') return 'Spracherzeugung ist nicht eingerichtet.';
+    if (process.platform !== 'darwin' || !executable('/usr/bin/say')) return 'Lokale Spracherzeugung ist auf diesem Server nicht verfügbar.';
+    const ffmpeg = process.env.FFMPEG_PATH ?? 'ffmpeg';
+    const paths = isAbsolute(ffmpeg) ? [ffmpeg] : (process.env.PATH ?? '').split(delimiter).map(p => join(p, ffmpeg));
+    if (!paths.some(executable)) return 'Lokale Spracherzeugung ist auf diesem Server nicht verfügbar.';
+  } else {
+    if (!process.env.ELEVENLABS_API_KEY?.trim() || configs.some(c => !c.voice.trim())) return type === 'podcast'
+      ? 'Podcast ist ohne Spracherzeugung nicht verfügbar.'
+      : 'Video ist ohne Spracherzeugung nicht verfügbar.';
+    if (configs.some(c => speechFailures.has(speechIdentity(c)))) return 'Der Sprachdienst ist gerade nicht verfügbar. Wähle ein anderes Format.';
+  }
 }
 
 export function wav(pcm: Buffer): Buffer {
@@ -72,7 +99,10 @@ export class Speech {
         headers: { 'xi-api-key': process.env.ELEVENLABS_API_KEY!, 'content-type': 'application/json' },
         body: JSON.stringify({ text, model_id: this.config.model, language_code: 'de' }),
       });
-      if (!response.ok) throw new Error(`Spracherzeugung fehlgeschlagen (HTTP ${response.status}).`);
+      if (!response.ok) {
+        if ([401, 403, 429].includes(response.status)) speechFailures.add(speechIdentity(this.config));
+        throw new Error(`Spracherzeugung fehlgeschlagen (HTTP ${response.status}).`);
+      }
       return Buffer.from(await response.arrayBuffer());
     }
     const scratch = await mkdtemp(join(tmpdir(), 'l45-speech-'));

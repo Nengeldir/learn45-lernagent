@@ -1,6 +1,11 @@
 // Romansh (Rumantsch Grischun) display layer. Keys are the German source strings.
 // Drafted without a native speaker: have it reviewed before real use.
 export const RM: Record<string, string> = {
+  "Spracherzeugung ist nicht eingerichtet.": "La sintesa da vusch n’è betg configurada.",
+  "Lokale Spracherzeugung ist auf diesem Server nicht verfügbar.": "La sintesa da vusch locala n’è betg disponibla sin quest server.",
+  "Podcast ist ohne Spracherzeugung nicht verfügbar.": "Podcasts n’èn betg disponibels senza sintesa da vusch.",
+  "Video ist ohne Spracherzeugung nicht verfügbar.": "Videos n’èn betg disponibels senza sintesa da vusch.",
+  "Der Sprachdienst ist gerade nicht verfügbar. Wähle ein anderes Format.": "Il servetsch da vusch n’è betg disponibel. Tscherna in auter format.",
   'Kurz wiederholen': 'Repetiziun curta',
   'Nächste Wiederholung: {at}': 'Proxima repetiziun: {at}',
   '{n} kurze Fragen zu dem, was du gelernt hast.': '{n} dumondas curtas davart quai che ti has emprendì.',
