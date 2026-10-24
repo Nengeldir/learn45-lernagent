@@ -572,6 +572,8 @@ export const RM: Record<string, string> = {
   "Alles von diesem Berg in einer Lektion": "Tut da questa muntogna en ina lecziun",
   "Fünf Schritte sind geschafft. Die Gipfelprüfung mischt, was du auf diesem Berg geübt hast.": "Tschintg pass èn fatgs. L’examen dal piz maschaida quai che ti has exercità sin questa muntogna.",
   "Als Letztes: die Gipfelprüfung": "Sco ultim: l’examen dal piz",
+  "Grösser anzeigen": "Mussar pli grond",
+  "Originalgrösse": "Grondezza originala",
   "Gipfel!": "Piz!",
   "Geschafft!": "Fatg!",
   "Dein Freund": "Tes ami",
