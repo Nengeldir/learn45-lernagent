@@ -316,10 +316,11 @@ function Node({
   const stateText =
     n.state === 'recommended' ? 'Nächster Schritt' : n.state === 'alternative' ? 'Alternative' : n.state === 'done' ? 'erledigt' : 'geplant';
   return (
-    <g {...common} aria-label={`${n.label}. ${meta}. ${stateText}${result ? `, ${result}` : ''}`}>
+    // --tc sits on the group: the type glyphs are siblings of the disc and need the track colour too.
+    <g {...common} style={{ ['--tc' as string]: color }} aria-label={`${n.label}. ${meta}. ${stateText}${result ? `, ${result}` : ''}`}>
       {n.state === 'recommended' && <circle r={24} className="halo" />}
       <circle r={19} className="ring" />
-      <circle r={13} className="lesson-disc" style={{ ['--tc' as string]: color }} />
+      <circle r={13} className="lesson-disc" />
       {n.state === 'done' && <path d="M-5 0 l3.5 4 l7 -8" className="check" />}
       {lesson?.type === 'video' && n.state !== 'done' && <path d="M-3.5 -5 L5 0 L-3.5 5 Z" className="glyph" />}
       {lesson?.type === 'ai-chat' && n.state !== 'done' && <path d="M-6 -4 h12 v7 h-7 l-3 3 v-3 h-2 z" className="glyph" />}
