@@ -90,7 +90,7 @@ function Subway({
                     </button>
                   );
                 })}
-                {line.stops.length === 0 && <span className="rail-empty">{t('noch keine Übung')}</span>}
+                {line.stops.length === 0 && <span className="rail-empty">{line.onMap ? t('noch keine Übung') : t('noch nicht auf der Karte')}</span>}
               </div>
             </section>
           </div>
@@ -420,12 +420,15 @@ export function KnowledgeMap({
   const route = lineByTrack(lines, routeTrackId);
   const { t, mode } = useI18n();
   const lensHits = lens === 'all' || lines.some((line) => line.stops.some((s) => lessonOf(s.node.lessonId)?.mode === lens));
+  const waiting = lines.length > 0 && lines.every((line) => line.stops.length === 0);
   return (
     <div className={`kb${wide ? ' is-wide' : ''}`}>
       <p className="kb-note">
         {route
           ? t('{mountain}, {metres} m. Der Weg führt nach oben. Die Meter gehören zur Übung, nicht zur DCC-Stufe.', { mountain: route.mountain.name, metres: route.mountain.metres })
-          : `${t('Jede Linie ist ein Wissensbereich. Ein Klick öffnet den Bergweg. Die Tiefe dort folgt der Schwierigkeit der Übung, nicht der DCC-Stufe.')}${lens !== 'all' && !lensHits ? ` ${t('Auf diesem Netz gibt es noch keinen Schritt «{mode}».', { mode: mode(lens) })}` : ''}`}
+          : waiting
+            ? t('Die Linien sind die Wissensbereiche. Ein Klick legt den Bereich auf deine Karte und öffnet den Berg.')
+            : `${t('Jede Linie ist ein Wissensbereich. Ein Klick öffnet den Bergweg. Die Tiefe dort folgt der Schwierigkeit der Übung, nicht der DCC-Stufe.')}${lens !== 'all' && !lensHits ? ` ${t('Auf diesem Netz gibt es noch keinen Schritt «{mode}». Die anderen Schritte bleiben auf der Linie.', { mode: mode(lens) })}` : ''}`}
       </p>
       {route ? (
         <Mountain

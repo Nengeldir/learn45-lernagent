@@ -41,6 +41,8 @@ export interface Line {
   dccBased: boolean;
   dcc: DccLevel | null;
   mountain: { name: string; metres: number };
+  /** False while this area is only shown as a line and is not on the learner's map yet. */
+  onMap: boolean;
   stops: Stop[];
 }
 
@@ -73,6 +75,7 @@ export function buildLines(nodes: MapNode[], skills: Skill[], dcc: DccProfile, l
         dccBased: skill.dccBased,
         dcc: skill.dccBased ? (dcc.levels[track.id] ?? null) : null,
         mountain: MOUNTAIN[track.id] ?? { name: track.name, metres: 1000 },
+        onMap: Boolean(trackNode),
         stops,
       });
     }

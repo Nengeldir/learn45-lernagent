@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import type { Mode } from '@l45/shared';
 import { LessonOverlay } from '../lessons/LessonOverlay.tsx';
+import { api } from '../lib/api.ts';
 import { LangSwitch, useI18n } from '../lib/i18n.tsx';
 import { ThemeSwitch } from '../lib/theme.tsx';
 import { Icon } from '../lib/icons.tsx';
@@ -34,7 +35,7 @@ function useWide() {
 }
 
 export function MapScreen() {
-  const { view, content, lessonOf, logout, refresh } = useStore();
+  const { view, content, setView, lessonOf, logout, refresh } = useStore();
   const { t, mode } = useI18n();
   const nav = useNavigate();
   const wide = useWide();
@@ -47,6 +48,7 @@ export function MapScreen() {
   const [sheetOpen, setSheetOpen] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const [lens, setLens] = useState<Mode | 'all'>('all');
+  const [lineBusy, setLineBusy] = useState(false);
   const [routeTrackId, setRouteTrackId] = useState<string | null>(null);
   const [board, setBoard] = useState<'knot' | 'lines'>(storedBoard);
   const chooseBoard = (next: 'knot' | 'lines') => {
@@ -128,6 +130,19 @@ export function MapScreen() {
       if (knot) showKnot(knot.id);
       return;
     }
+    if (trackId && !view.session.nodes.some((n) => n.kind === 'track' && n.trackId === trackId)) {
+      if (lineBusy) return;
+      setLineBusy(true);
+      setToast(null);
+      void api.addTracks(view.session.id, [trackId]).then((r) => {
+        setView(r.view, r.generated);
+        setFromKnot(false);
+        setRouteTrackId(trackId);
+      }).catch((e) => {
+        setToast(e instanceof Error ? e.message : String(e));
+      }).finally(() => setLineBusy(false));
+      return;
+    }
     setFromKnot(false);
     setRouteTrackId(trackId);
   };
@@ -181,7 +196,7 @@ export function MapScreen() {
         ) : (
           <KnowledgeMap
             nodes={view.session.nodes}
-            skills={view.skills}
+            skills={view.skills.length ? view.skills : content.skills}
             dcc={view.dcc}
             lessonOf={lessonOf}
             selectedId={selectedId}
