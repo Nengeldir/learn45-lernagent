@@ -159,6 +159,32 @@ export interface NarratedVideoManifest {
   }[];
 }
 
+// --- Podcast: two hosts talk through one track, like an audio overview ---
+export type PodcastSpeaker = 'a' | 'b';
+export interface PodcastLine { speaker: PodcastSpeaker; text: string }
+
+/** Times are seconds in the one audio file. */
+export interface PodcastManifest {
+  schemaVersion: 1;
+  trackId: string;
+  title: string;
+  locale: 'de-CH';
+  /** model: written by the model; rule: put together from the track without a model */
+  scriptBy: 'model' | 'rule';
+  hosts: Record<PodcastSpeaker, string>;
+  narration: { provider: 'local' | 'elevenlabs'; voices: Record<PodcastSpeaker, string>; model?: string };
+  duration: number;
+  audioUrl: string;
+  lines: (PodcastLine & { start: number; end: number })[];
+}
+
+export type PodcastStatus =
+  | { state: 'idle' }
+  | { state: 'building'; step: 'script' | 'speech'; completed: number; total: number }
+  | { state: 'ready'; manifestUrl: string }
+  /** The script survives a failed narration, so the learner can still read it. */
+  | { state: 'error'; message: string; script?: { hosts: Record<PodcastSpeaker, string>; lines: PodcastLine[] } };
+
 // --- Chat with the AI ---
 export interface ChatCriterion {
   id: string;
@@ -337,7 +363,7 @@ export interface LearningEvent {
 
 export interface ModelCall {
   at: string;
-  purpose: 'chat' | 'judge' | 'hint' | 'generate' | 'plan' | 'design';
+  purpose: 'chat' | 'judge' | 'hint' | 'generate' | 'plan' | 'design' | 'podcast';
   ok: boolean;
   fallback: boolean;
   ms: number;

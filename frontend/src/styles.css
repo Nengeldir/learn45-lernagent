@@ -303,6 +303,23 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .result.gap { background: var(--warn-soft); }
 .result.gap strong, .result.gap h3 { color: var(--warn); }
 .result p:last-of-type { margin-bottom: 4px; }
+/* Podcast in the track panel */
+.podcast { display: grid; gap: 10px; padding: 14px; border-radius: var(--radius); background: var(--surface-2); }
+.podcast p { margin: 0; }
+.podcast-head { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 15px; }
+.podcast audio { width: 100%; }
+.podcast-progress { display: grid; gap: 8px; }
+.podcast-progress progress { width: 100%; accent-color: var(--trail); }
+.podcast-transcript summary { cursor: pointer; color: var(--c-info); font-weight: 500; font-size: 14px; }
+.podcast-transcript ol { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; font-size: 14px; }
+.podcast-transcript li > button, .podcast-transcript li > p { all: unset; box-sizing: border-box; display: block; width: 100%; padding: 6px 8px; border-radius: 8px; }
+.podcast-transcript li > button { cursor: pointer; }
+.podcast-transcript li > button:hover { background: var(--surface-3); }
+.podcast-transcript li > button:focus-visible { outline: 2px solid var(--c-info); }
+.podcast-transcript li.current > * { background: var(--trail-soft); }
+.podcast-transcript .host { font-weight: 600; }
+.podcast-transcript .host.a { color: var(--c-info); }
+.podcast-transcript .host.b { color: var(--ok); }
 .empty-hero { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; background: var(--trail-soft); color: var(--trail-dark); }
 
 /* --- Overlays: lesson, add track, settings --- */

@@ -125,6 +125,12 @@ Fertige Katalogvideos liegen in `frontend/public/videos/<lesson-id>/`. Neue Vide
 
 Ein fehlgeschlagener oder unklar beendeter kostenpflichtiger Sprachaufruf wird nicht automatisch wiederholt. Bereits fertige Passagen bleiben erhalten. Nach Prüfung des Fehlers kann ein gezielter neuer Versuch mit `npm run videos:build -- <lesson-id> --retry-failed` ausgelöst werden. Ein Manifest wird erst veröffentlicht, wenn alle Szenen vertont, kompiliert und als renderbar geprüft sind. Die API liefert keine Fragenlösungen aus.
 
+### Podcast zu einem Bereich
+
+Einen Bereich auf der Karte anklicken und **Podcast erstellen** wählen. Zwei Stimmen, Mira und Jonas, sprechen etwa drei Minuten über die Faustregeln des Bereichs, die Mission und die Lektionen auf der eigenen Karte. Mit Textmodell schreibt die KI das Gespräch nur aus Kriterien, Faustregeln, Quellen und Lektionen, ohne Lösungen der Lektionen. Ohne Textmodell oder wenn die Antwort nicht passt, stellen die Regeln ein einfacheres Gespräch aus denselben Angaben zusammen. Die Abschrift lässt sich mitlesen; ein Klick auf einen Beitrag springt an diese Stelle.
+
+Die Sprache kommt vom gleichen Anbieter wie bei den Videos, mit einer zweiten Stimme: `ELEVENLABS_SECOND_VOICE_ID` für ElevenLabs, `VIDEO_LOCAL_SECOND_VOICE` (Standard: Markus) für die lokale Stimme unter macOS. Fertige Podcasts liegen unter `backend/var/podcasts/<hash>/`, die Gesprächsskripte unter `backend/var/podcasts/scripts/`; `PODCAST_CACHE_DIR` ändert den Ort. Ein neues Skript entsteht nur, wenn sich der Inhalt des Bereichs ändert. Andere Stimmen vertonen das gespeicherte Skript neu, ohne die KI erneut zu fragen. Fällt die Vertonung aus, bleibt das Gespräch als Text lesbar.
+
 ### Ableitungsvideo neu erzeugen
 
 Die mitgelieferte Lektion enthält deutsche ElevenLabs-Sprachausgabe (Lily, `eleven_multilingual_v2`) und läuft ohne API-Schlüssel. Die Ableitung nutzt ein geprüftes Drehbuch. Weitere vorbereitete und von der KI erstellte Video-Lektionen werden aus ihren Szenentexten und kurzen Bildbeschriftungen vertont. Die Darstellung verwendet eine eigenständige, versionierte Kopie der animlib aus OwlYouNeed in `packages/animlib`. Das andere Repository wird weder zur Laufzeit benötigt noch verändert.

@@ -12,6 +12,11 @@ export function speechConfig(): SpeechConfig {
   if (provider !== 'local' && provider !== 'elevenlabs') throw new Error('Unbekannter Sprachdienst.');
   return { provider, voice: provider === 'local' ? process.env.VIDEO_LOCAL_VOICE ?? 'Anna' : process.env.ELEVENLABS_VOICE_ID ?? '', model: process.env.ELEVENLABS_MODEL_ID ?? 'eleven_multilingual_v2' };
 }
+/** The second podcast host: same provider, another voice. */
+export function secondSpeechConfig(): SpeechConfig {
+  const first = speechConfig();
+  return { ...first, voice: first.provider === 'local' ? process.env.VIDEO_LOCAL_SECOND_VOICE ?? 'Markus' : process.env.ELEVENLABS_SECOND_VOICE_ID ?? '' };
+}
 
 export function wav(pcm: Buffer): Buffer {
   const header = Buffer.alloc(44);
