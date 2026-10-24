@@ -1,9 +1,9 @@
 // A lesson opens over the topic. After finishing, feedback is shown here; the learner then chooses what comes next.
 import { useEffect, useRef, useState } from 'react';
 import type { Answer, Lesson, LessonResult } from '@l45/shared';
+import { TYPE_LABEL } from '@l45/shared';
 import { api } from '../lib/api.ts';
 import { Icon } from '../lib/icons.tsx';
-import { useI18n } from '../lib/i18n.tsx';
 import { useStore } from '../lib/store.tsx';
 import { LessonSource } from '../map/NodePanel.tsx';
 import { AiChat } from './AiChat.tsx';
@@ -14,7 +14,6 @@ import { Video } from './Video.tsx';
 
 export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (showNext: boolean) => void }) {
   const { view, setView } = useStore();
-  const { t, lang, type, mode, level, trackName, lessonTitle } = useI18n();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<LessonResult | null>(null);
@@ -62,34 +61,24 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
   const missed = result?.criteria.filter((c) => c.status === 'missed').map((c) => track?.criteria.find((x) => x.id === c.key)).filter(Boolean) ?? [];
 
   return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-label={lesson ? lessonTitle(lesson.id, lesson.title) : t('Lektion')}>
-      <div className="overlay-panel lesson-panel" ref={ref} tabIndex={-1}>
+    <div className="overlay" role="dialog" aria-modal="true" aria-label={lesson?.title ?? 'Lektion'}>
+      <div className="overlay-panel" ref={ref} tabIndex={-1}>
         <header className="overlay-head">
           <div>
             {lesson && (
-              <div className="meta">
-                <span className="pill">{type(lesson.type)}</span>
-                <span>{mode(lesson.mode)}</span>
-                <span>{lesson.durationMin} {t('Min.')}</span>
-                <span>{track ? trackName(track.id, track.name) : ''}</span>
-                <span>{level(lesson.level)}</span>
-                <LessonSource lesson={lesson} />
-              </div>
-            )}
-            <h2>{lesson ? lessonTitle(lesson.id, lesson.title) : ready ? t('Lektion wird geladen …') : missionTrack ? trackName(missionTrack.id, missionTrack.name) : ''}</h2>
-            {lesson && !result && (
-              <p className="lesson-intro">
-                {lesson.intro}
-                {lang !== 'de' && <span className="small muted"> {t('Die Aufgabe bleibt auf Deutsch. Die Prüfung erkennt die deutschen Formulierungen.')}</span>}
+              <p className="meta">
+                <span className="pill">{TYPE_LABEL[lesson.type]}</span>
+                <span>etwa {lesson.durationMin} {lesson.durationMin === 1 ? 'Minute' : 'Minuten'}</span>
               </p>
             )}
+            <h2>{lesson?.title ?? (ready ? 'Lektion wird geladen …' : missionTrack?.name)}</h2>
+            {lesson && !result && <p>{lesson.intro}</p>}
+            {lesson && !result && <LessonSource lesson={lesson} />}
           </div>
-          {result
-            ? <button className="btn secondary" onClick={() => onClose(true)}><Icon name="map" size={16} />{t('Zur Karte')}</button>
-            : <button className="icon-btn" onClick={() => onClose(false)} aria-label={t('Schliessen')} title={t('Schliessen')}><Icon name="close" size={20} /></button>}
+          <button className="btn quiet small" onClick={() => onClose(Boolean(result))}><Icon name="close" size={18} />Schliessen</button>
         </header>
 
-        {error && <p className="error" role="alert">{t(error)}</p>}
+        {error && <p className="error" role="alert">{error}</p>}
         {!ready && missionTrack && <MissionCard track={missionTrack} onDone={() => setMissionDone(true)} />}
         {notice && !result && <p className="note">{notice}</p>}
 
@@ -106,17 +95,8 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
         {result && lesson && (
           <div className="feedback" aria-live="polite">
             <div className={`result ${result.allMet ? 'ok' : 'gap'}`}>
-              <div className="result-head">
-                <span className="result-icon" aria-hidden="true">{result.allMet ? '✓' : '!'}</span>
-                <h3>{result.allMet ? t('Gelöst') : t('Noch nicht ganz')}</h3>
-                {result.items.length > 0 && (
-                  <span className="result-score">{t('{n} von {total} richtig', { n: result.items.filter((it) => it.correct).length, total: result.items.length })}</span>
-                )}
-              </div>
+              <h3>{result.allMet ? 'Geschafft!' : 'Noch nicht ganz. Das ist normal beim Lernen.'}</h3>
               <p>{result.summary}</p>
-              <span className={`tag ${result.judgedBy === 'model' ? 'model' : result.judgedBy === 'keywords' ? 'prepared' : 'rule'}`}>
-                {t('Geprüft durch: {by}', { by: result.judgedBy === 'model' ? t('KI') : result.judgedBy === 'keywords' ? t('Stichwörter (ohne KI)') : t('Regel') })}
-              </span>
             </div>
             <ul className="items">
               {result.items.map((it, i) => (
@@ -127,13 +107,13 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
               ))}
             </ul>
             {missed.length > 0 && (
-              <div className="note"><strong>{t('Merksatz:')}</strong> {missed.map((m) => m!.ruleOfThumb).join(' ')}</div>
+              <div className="note"><strong>Merke dir:</strong> {missed.map((m) => m!.ruleOfThumb).join(' ')}</div>
             )}
-            {lesson.transfer && <div className="transfer"><strong>{t('Im Alltag:')}</strong> {lesson.transfer}</div>}
+            {lesson.transfer && <div className="transfer"><strong>Im Alltag:</strong> {lesson.transfer}</div>}
             <div className="next-card">
-              <p className="eyebrow next">{t('Wie geht es weiter?')}</p>
-              <h3>{t('Du wählst, was du als Nächstes lernst.')}</h3>
-              <button className="btn primary big" onClick={() => onClose(true)}><Icon name="play" size={20} />{t('Weiter')}</button>
+              <p className="eyebrow next">Wie geht es weiter?</p>
+              <h3>Du wählst, was du als Nächstes lernst.</h3>
+              <button className="btn primary big" onClick={() => onClose(true)}><Icon name="play" size={20} />Weiter</button>
             </div>
           </div>
         )}
