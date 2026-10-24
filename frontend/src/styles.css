@@ -855,6 +855,32 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .line-text strong { font-size: 18px; font-weight: 600; }
 .line-card { flex: 1; min-width: 0; padding: 18px 20px; border: 2px solid var(--trail); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-md); }
 .line-card .next-topics h2 { margin: 0; }
+/* The climb: six lessons to a peak, then the next mountain. Topped mountains fold out below. */
+.climb { display: grid; gap: 14px; }
+.climb-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.climb-head h2 { margin: 0; font-size: 24px; }
+.mountain { display: block; width: 100%; max-width: 420px; height: auto; justify-self: center; }
+.mountain.small { width: 72px; flex: none; }
+.mountain-back { fill: color-mix(in srgb, var(--tc) 12%, var(--surface)); }
+.mountain-body { fill: color-mix(in srgb, var(--tc) 26%, var(--surface)); }
+.mountain-trail { fill: none; stroke: var(--line-strong); stroke-width: 3; stroke-dasharray: 1 8; stroke-linecap: round; stroke-linejoin: round; }
+.mountain-climbed { fill: none; stroke: var(--tc); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.mountain-stop circle { stroke-width: 3; }
+.mountain-stop.done circle { fill: var(--tc); stroke: var(--surface); }
+.mountain-stop.done path { fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.mountain-stop.next circle { fill: var(--surface); stroke: var(--trail); stroke-width: 4; }
+.mountain-stop.open circle { fill: var(--surface); stroke: var(--line-strong); }
+.range { display: grid; gap: 10px; }
+.range h2 { margin: 0; font-size: 22px; }
+.range-item { border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); }
+.range-item summary { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px; cursor: pointer; list-style: none; }
+.range-item summary::-webkit-details-marker { display: none; }
+.range-item summary > .icon { color: var(--ink-3); transition: transform .15s; }
+.range-item[open] summary > .icon { transform: rotate(90deg); }
+.range-text { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.range-text strong { font-size: 18px; font-weight: 600; }
+.range-item .line { padding: 4px 16px 16px; }
+.range-item .line-step:last-child::after { display: none; }
 .podcast-questions { display: grid; gap: 14px; }
 .podcast-questions h3 { margin: 0; }
 .podcast-question { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
