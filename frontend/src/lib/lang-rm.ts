@@ -272,4 +272,8 @@ export const RM: Record<string, string> = {
   "Text prüfen": "Controllar in text",
   "Vorbereitet": "Preparà",
   "Simulation": "Simulaziun",
+  "Erscheinungsbild": "Parita",
+  "Automatisch": "Automatic (sco il sistem)",
+  "Hell": "Cler",
+  "Dunkel": "Stgir",
 };

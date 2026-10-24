@@ -4,6 +4,7 @@ import type { DccLevel, DccResultFile, LoginConflict } from '@l45/shared';
 import { DCC_LEVELS } from '@l45/shared';
 import { api, ApiError } from '../lib/api.ts';
 import { LangSwitch, localeOf, useI18n } from '../lib/i18n.tsx';
+import { ThemeSwitch } from '../lib/theme.tsx';
 import { useStore } from '../lib/store.tsx';
 
 const SAMPLES = [
@@ -73,6 +74,7 @@ export function Login() {
   return (
     <div className="login">
       <div className="lang-float">
+        <ThemeSwitch />
         <LangSwitch />
       </div>
       <section className="login-intro">
@@ -181,8 +183,8 @@ function MiniMap() {
   const top = 118;
   return (
     <svg viewBox="0 0 320 220" className="minimap" aria-hidden="true">
-      <path d="M0 210 L70 150 L110 168 L222 44 L268 108 L296 92 L320 108 V220 H0 Z" fill="var(--surface-2)" />
-      <path d="M222 44 L240 69 L230 64 L221 72 L211 63 L204 66 Z" fill="var(--surface)" />
+      <path d="M0 210 L70 150 L110 168 L222 44 L268 108 L296 92 L320 108 V220 H0 Z" fill="var(--mountain)" />
+      <path d="M222 44 L240 69 L230 64 L221 72 L211 63 L204 66 Z" fill="var(--mountain-snow)" />
       <path d="M222 44 V24" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" />
       <path d="M222 24 L238 29 L222 34 Z" fill="var(--trail)" />
       {lines.map(([c, reach], i) => {

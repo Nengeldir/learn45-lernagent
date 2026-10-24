@@ -3,6 +3,7 @@ import { StrictMode, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { DccProfile, Lesson, MapNode, Skill } from '@l45/shared';
 import { LangProvider, LangSwitch, useI18n } from '../src/lib/i18n.tsx';
+import { ThemeSwitch } from '../src/lib/theme.tsx';
 import { KnowledgeMap } from '../src/map/SubwayMap.tsx';
 import { buildLines, climbStops } from '../src/map/subwayLayout.ts';
 import data from './data.json';
@@ -74,6 +75,7 @@ function Demo() {
         <strong className="brand">{t('Lernagent')}</strong>
         <span className="demo-tag">{t('Demo mit Beispieldaten')}</span>
         <span className="spacer" />
+        <ThemeSwitch />
         <LangSwitch />
       </header>
       {line && (

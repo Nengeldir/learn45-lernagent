@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import type { Mode } from '@l45/shared';
 import { LessonOverlay } from '../lessons/LessonOverlay.tsx';
 import { LangSwitch, useI18n } from '../lib/i18n.tsx';
+import { ThemeSwitch } from '../lib/theme.tsx';
 import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
 import { MindMap } from '../map/MindMap.tsx';
@@ -151,6 +152,7 @@ export function MapScreen() {
             <button key={m} type="button" className="btn quiet small" aria-pressed={lens === m} onClick={() => setLens(m)}>{mode(m)}</button>
           ))}
         </div>
+        <ThemeSwitch />
         <LangSwitch />
         {view.session.planning && <span className="status planning" role="status">{t('Agent plant …')}</span>}
         <span className={`status ${view.modelStatus}`} title={t('Ohne KI kommen Gesprächsantworten und Hinweise aus vorbereiteten Texten.')}>{t(STATUS[view.modelStatus] ?? '')}</span>

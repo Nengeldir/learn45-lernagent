@@ -32,6 +32,10 @@ const stored = (): Lang => {
 export const localeOf = (lang: Lang = stored()) => LANGS.find((l) => l.code === lang)?.locale ?? 'de-CH';
 
 const EN: Record<string, string> = {
+  Erscheinungsbild: 'Appearance',
+  Hell: 'Light',
+  Dunkel: 'Dark',
+  Automatisch: 'Automatic (follows the system)',
   'Wird geladen …': 'Loading …',
   'Neu laden': 'Reload',
   Lernagent: 'Learning agent',

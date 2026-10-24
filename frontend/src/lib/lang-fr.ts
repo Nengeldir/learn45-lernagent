@@ -271,4 +271,8 @@ export const FR: Record<string, string> = {
   "Text prüfen": "Vérifier un texte",
   "Vorbereitet": "Préparé",
   "Simulation": "Simulation",
+  "Erscheinungsbild": "Apparence",
+  "Automatisch": "Automatique (comme le système)",
+  "Hell": "Clair",
+  "Dunkel": "Sombre",
 };
