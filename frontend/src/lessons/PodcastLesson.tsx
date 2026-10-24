@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Answer, PodcastLesson as Lesson, PodcastManifest, PodcastStatus } from '@l45/shared';
 import { ApiError, api } from '../lib/api.ts';
+import { useI18n } from '../lib/i18n.tsx';
 import { Icon } from '../lib/icons.tsx';
 
 const HOSTS = { a: 'Mira', b: 'Jonas' } as const;
@@ -14,6 +15,7 @@ export function PodcastLesson({ lesson, sessionId, nodeId, onComplete }: {
   nodeId: string;
   onComplete: (a: Answer) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [status, setStatus] = useState<PodcastStatus | null>(null);
   const [manifest, setManifest] = useState<PodcastManifest>();
   const [failed, setFailed] = useState(false);
@@ -69,19 +71,19 @@ export function PodcastLesson({ lesson, sessionId, nodeId, onComplete }: {
   return (
     <>
       <div className="podcast">
-        <p className="podcast-head"><Icon name="headphones" size={20} />{HOSTS.a} und {HOSTS.b} im Gespräch</p>
+        <p className="podcast-head"><Icon name="headphones" size={20} />{t('{a} und {b} im Gespräch', { a: HOSTS.a, b: HOSTS.b })}</p>
         {failed ? (
-          <p className="note small" role="alert">{unavailable}</p>
+          <p className="note small" role="alert">{t(unavailable)}</p>
         ) : !manifest ? (
           <div role="status" className="podcast-progress">
-            <p className="small">Das Gespräch wird vorbereitet{status?.state === 'building' && status.total ? ` (${status.completed} von ${status.total})` : ''} …</p>
+            <p className="small">{status?.state === 'building' && status.total ? t('Das Gespräch wird vorbereitet ({n} von {total}) …', { n: status.completed, total: status.total }) : t('Das Gespräch wird vorbereitet …')}</p>
             <progress max={status?.state === 'building' ? status.total : undefined} value={status?.state === 'building' ? status.completed : undefined} />
           </div>
         ) : (
           <audio ref={audio} controls preload="metadata" src={manifest.audioUrl} onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)} onEnded={() => setAsking(true)} />
         )}
         <details className="podcast-transcript" open={failed}>
-          <summary>Gespräch mitlesen</summary>
+          <summary>{t('Gespräch mitlesen')}</summary>
           <ol>
             {lesson.content.lines.map((line, i) => {
               const body = <><strong className={`host ${line.speaker}`}>{HOSTS[line.speaker]}</strong> {line.text}</>;
@@ -98,7 +100,7 @@ export function PodcastLesson({ lesson, sessionId, nodeId, onComplete }: {
 
       {asking || failed ? (
         <div className="podcast-questions">
-          <h3>Fragen zum Gespräch</h3>
+          <h3>{t('Fragen zum Gespräch')}</h3>
           {questions.map((q, i) => (
             <fieldset key={i} className="podcast-question">
               <legend>{q.prompt}</legend>
@@ -110,7 +112,7 @@ export function PodcastLesson({ lesson, sessionId, nodeId, onComplete }: {
             </fieldset>
           ))}
           <div className="actions">
-            {!ready && <span className="small muted">Wähle bei jeder Frage eine Antwort.</span>}
+            {!ready && <span className="small muted">{t('Wähle bei jeder Frage eine Antwort.')}</span>}
             <button
               className="btn primary"
               disabled={busy || !ready}
@@ -123,14 +125,14 @@ export function PodcastLesson({ lesson, sessionId, nodeId, onComplete }: {
                 }
               }}
             >
-              Fertig
+              {t('Fertig')}
             </button>
           </div>
         </div>
       ) : (
         <div className="actions">
-          <span className="small muted">Nach dem Gespräch kommen {questions.length} kurze Fragen.</span>
-          <button className="btn quiet" onClick={() => setAsking(true)}>Direkt zu den Fragen</button>
+          <span className="small muted">{t('Nach dem Gespräch kommen {n} kurze Fragen.', { n: questions.length })}</span>
+          <button className="btn quiet" onClick={() => setAsking(true)}>{t('Direkt zu den Fragen')}</button>
         </div>
       )}
     </>

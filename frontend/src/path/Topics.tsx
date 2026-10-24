@@ -4,6 +4,7 @@ import { useState, type CSSProperties } from 'react';
 import type { SessionView, Skill } from '@l45/shared';
 import { CUSTOM_SKILL } from '@l45/shared';
 import { api } from '../lib/api.ts';
+import { useI18n } from '../lib/i18n.tsx';
 import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
 import { TRACK_COLOR, trackColors } from '../map/layout.ts';
@@ -15,16 +16,17 @@ export function Topics({ view, onOpen, onOwnTopic, onShowMap }: {
   onShowMap: () => void;
 }) {
   const { content, setView } = useStore();
+  const { t, skillName, trackName } = useI18n();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   if (!content) return null;
   const { session } = view;
-  const mine = new Set(view.skills.flatMap((s) => s.tracks.map((t) => t.id)));
+  const mine = new Set(view.skills.flatMap((s) => s.tracks.map((tr) => tr.id)));
   const colors = trackColors(session.nodes);
   const own = view.skills.find((s) => s.id === CUSTOM_SKILL.id);
   const sections: Skill[] = [...content.skills, { ...CUSTOM_SKILL, tracks: own?.tracks ?? [] } as Skill];
   const doneIn = (trackId: string) => session.nodes.filter((n) => n.kind === 'lesson' && n.trackId === trackId && n.state === 'done').length;
-  const lastTrack = view.skills.flatMap((s) => s.tracks).find((t) => t.id === session.events.at(-1)?.trackId);
+  const lastTrack = view.skills.flatMap((s) => s.tracks).find((tr) => tr.id === session.events.at(-1)?.trackId);
 
   const open = async (trackId: string) => {
     if (mine.has(trackId)) return onOpen(trackId);
@@ -43,39 +45,39 @@ export function Topics({ view, onOpen, onOwnTopic, onShowMap }: {
 
   return (
     <div className="home">
-      <h1 className="home-title">Was möchtest du lernen?</h1>
+      <h1 className="home-title">{t('Was möchtest du lernen?')}</h1>
       {lastTrack && (
         <button className="continue-card" style={{ ['--tc' as string]: colors.get(lastTrack.id) } as CSSProperties} onClick={() => onOpen(lastTrack.id)}>
           <span className="continue-icon" aria-hidden="true"><Icon name="play" size={24} /></span>
           <span className="topic-row-text">
-            <span className="eyebrow next">Weiterlernen</span>
-            <strong>{lastTrack.name}</strong>
+            <span className="eyebrow next">{t('Weiterlernen')}</span>
+            <strong>{trackName(lastTrack.id, lastTrack.name)}</strong>
           </span>
           <Icon name="chevron" size={22} />
         </button>
       )}
-      {error && <p className="error" role="alert">{error}</p>}
+      {error && <p className="error" role="alert">{t(error)}</p>}
 
       {sections.map((skill) => (
         <section key={skill.id} className="area" aria-labelledby={`area-${skill.id}`}>
-          <h2 id={`area-${skill.id}`} className="area-title">{skill.name}</h2>
+          <h2 id={`area-${skill.id}`} className="area-title">{skillName(skill.id, skill.name)}</h2>
           <ul className="topic-list">
-            {skill.tracks.map((t) => {
-              const done = doneIn(t.id);
+            {skill.tracks.map((tr) => {
+              const done = doneIn(tr.id);
               return (
-                <li key={t.id}>
+                <li key={tr.id}>
                   <button
                     className="topic-row"
-                    style={{ ['--tc' as string]: colors.get(t.id) ?? TRACK_COLOR[t.id] ?? 'var(--ink-3)' } as CSSProperties}
+                    style={{ ['--tc' as string]: colors.get(tr.id) ?? TRACK_COLOR[tr.id] ?? 'var(--ink-3)' } as CSSProperties}
                     disabled={Boolean(busy)}
-                    onClick={() => void open(t.id)}
+                    onClick={() => void open(tr.id)}
                   >
                     <span className="topic-dot" aria-hidden="true" />
                     <span className="topic-row-text">
-                      <strong>{t.name}</strong>
-                      {busy === t.id
-                        ? <span className="small muted">Wird vorbereitet …</span>
-                        : mine.has(t.id) && <span className="small muted">{done ? `${done} ${done === 1 ? 'Lektion' : 'Lektionen'} geschafft` : 'Angefangen'}</span>}
+                      <strong>{trackName(tr.id, tr.name)}</strong>
+                      {busy === tr.id
+                        ? <span className="small muted">{t('Wird vorbereitet …')}</span>
+                        : mine.has(tr.id) && <span className="small muted">{done === 1 ? t('1 Lektion geschafft') : done ? t('{n} Lektionen geschafft', { n: done }) : t('Angefangen')}</span>}
                     </span>
                     <Icon name="chevron" size={22} />
                   </button>
@@ -87,8 +89,8 @@ export function Topics({ view, onOpen, onOwnTopic, onShowMap }: {
                 <button className="topic-row new" disabled={Boolean(busy) || !view.canCreateTracks} onClick={onOwnTopic}>
                   <span className="topic-plus" aria-hidden="true"><Icon name="plus" size={20} /></span>
                   <span className="topic-row-text">
-                    <strong>Eigenes Thema anlegen</strong>
-                    <span className="small muted">{view.canCreateTracks ? 'Du sagst, was du lernen willst. Die KI plant es für dich.' : 'Geht nur, wenn die KI verbunden ist.'}</span>
+                    <strong>{t('Eigenes Thema anlegen')}</strong>
+                    <span className="small muted">{view.canCreateTracks ? t('Du sagst, was du lernen willst. Die KI plant es für dich.') : t('Geht nur, wenn die KI verbunden ist.')}</span>
                   </span>
                 </button>
               </li>
@@ -97,7 +99,7 @@ export function Topics({ view, onOpen, onOwnTopic, onShowMap }: {
         </section>
       ))}
 
-      <button className="linkbtn path-map" onClick={onShowMap}><Icon name="map" size={18} />Alles als Karte ansehen</button>
+      <button className="linkbtn path-map" onClick={onShowMap}><Icon name="map" size={18} />{t('Alles als Karte ansehen')}</button>
     </div>
   );
 }
