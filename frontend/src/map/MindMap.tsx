@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from 'react';
 import type { DccProfile, Lesson, MapNode, Skill } from '@l45/shared';
 import { TYPE_LABEL } from '@l45/shared';
-import { bounds, layout, trackColors, wrap, type Placed } from './layout.ts';
+import { bounds, edgePath, layout, trackColors, wrap, type Placed } from './layout.ts';
 
 interface Cam {
   x: number;
@@ -224,18 +224,11 @@ export function MindMap({
 function Edge({ from, to, color: trackColor }: { from: Placed; to: Placed; color?: string }) {
   const n = to.node;
   const color = n.kind === 'skill' ? 'var(--ink)' : trackColor ?? 'var(--ink-2)';
-  const mx = (from.x + to.x) / 2;
-  const my = (from.y + to.y) / 2;
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const bend = n.kind === 'lesson' ? 0.12 : 0.08;
-  const cx = mx - dy * bend;
-  const cy = my + dx * bend;
   const planned = n.kind === 'lesson' && (n.state === 'planned' || n.state === 'alternative' || n.state === 'recommended');
   const width = n.kind === 'skill' ? 5 : n.kind === 'track' ? 4 : 2.5;
   return (
     <path
-      d={`M${from.x} ${from.y} Q${cx} ${cy} ${to.x} ${to.y}`}
+      d={edgePath(from, to)}
       fill="none"
       stroke={color}
       strokeWidth={width}
@@ -287,40 +280,32 @@ function Node({
     );
   }
 
+  // All labels sit centred below their node; branches run through the node centres, so lines never cross text.
   if (n.kind === 'skill') {
-    const below = p.y > 0;
     return (
       <g {...common} aria-label={`Bereich ${n.label}`}>
         <circle r={28} className="skill-disc" />
-        <text y={below ? 52 : -42} textAnchor="middle" className="skill-label">{n.label}</text>
+        <text y={54} textAnchor="middle" className="skill-label">{n.label}</text>
       </g>
     );
   }
 
-  const cos = Math.cos(p.dir);
-  const sin = Math.sin(p.dir);
-
   if (n.kind === 'track') {
-    // Label beside the node, away from the branch: above for sideways branches, to the side for upright ones.
-    const lines = wrap(n.label, 22);
-    const sideways = Math.abs(cos) > 0.75;
-    const anchor = sideways ? 'middle' : cos > 0 ? 'start' : cos < 0 ? 'end' : 'middle';
-    const lx = sideways ? 0 : anchor === 'start' ? 28 : anchor === 'end' ? -28 : 0;
-    const ly = sideways ? -32 - lines.length * 18 : sin < 0 ? 0 : -6;
+    const lines = wrap(n.label, 18);
     return (
       <g {...common} aria-label={`${n.label}, ${dccText}`}>
         <circle r={20} fill={color} className="track-disc" />
         {lines.map((line, i) => (
-          <text key={i} x={lx} y={ly + i * 18} textAnchor={anchor} className="track-label">{line}</text>
+          <text key={i} y={38 + i * 18} textAnchor="middle" className="track-label">{line}</text>
         ))}
-        <text x={lx} y={ly + lines.length * 18} textAnchor={anchor} className="track-dcc">{dccText}</text>
+        <text y={38 + lines.length * 18} textAnchor="middle" className="track-dcc">{dccText}</text>
       </g>
     );
   }
 
   // Lesson node
   const lines = wrap(n.label, 20);
-  const meta = lesson ? `${TYPE_LABEL[lesson.type]}, ${lesson.durationMin} Min.${lesson.source === 'model' ? ', von der KI' : ''}` : '';
+  const meta = lesson ? `${TYPE_LABEL[lesson.type]}, ${lesson.durationMin} Min.${lesson.source === 'model' ? ', KI' : ''}` : '';
   const result = n.state === 'done' && n.result ? (n.result.allMet ? 'gelöst' : 'mit Lücken') : '';
   const stateText =
     n.state === 'recommended' ? 'Nächster Schritt' : n.state === 'alternative' ? 'Alternative' : n.state === 'done' ? 'erledigt' : 'geplant';
