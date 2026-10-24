@@ -221,7 +221,12 @@ export function BrandMark() {
   return (
     <span className="brand-mark">
       <img className="logo" src="/icons/owl.svg" alt="" width={32} height={32} />
-      <span className="brand-name">Owl for <img className="learn45-mark" src="/icons/learn45.png" alt="Learn45" /></span>
+      <BrandName />
     </span>
   );
+}
+
+/** AIthena: the AI in Athena, whose bird is the owl. The two letters carry the brand colour. */
+export function BrandName() {
+  return <span className="brand-name"><span className="brand-ai">AI</span>thena</span>;
 }

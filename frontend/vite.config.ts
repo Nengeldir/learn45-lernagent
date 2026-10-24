@@ -18,8 +18,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/owl.svg', 'icons/learn45.png'],
       manifest: {
-        name: 'Owl for Learn45',
-        short_name: 'Owl for Learn45',
+        name: 'AIthena für Learn45',
+        short_name: 'AIthena',
         description: 'Prototyp: Login mit DCC-Profil, Lernkarte als Mindmap, begründete nächste Schritte.',
         lang: 'de-CH',
         start_url: '/',

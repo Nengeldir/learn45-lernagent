@@ -652,10 +652,11 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .lang-float { position: absolute; top: 16px; right: 16px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .login-intro h1 { display: flex; align-items: center; flex-wrap: nowrap; gap: 12px; white-space: nowrap; }
 .login-intro h1 img.logo { flex: none; width: 46px; height: 46px; border-radius: 12px; }
-.brand-name { display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 0.45em; line-height: 1; white-space: nowrap; }
-.learn45-mark { height: 1em; width: auto; flex: none; border-radius: 0; }
-.login-intro h1 .learn45-mark { height: 46px; }
-.brand-mark .learn45-mark { height: 32px; }
+.brand-name { font-weight: 700; letter-spacing: -0.02em; line-height: 1; white-space: nowrap; }
+.brand-mark .brand-name { font-size: 22px; }
+.brand-ai { color: var(--red); }
+.login-intro .partner { display: flex; align-items: center; gap: 10px; margin: -4px 0 20px; font-size: 16px; color: var(--ink-2); }
+.login-intro .partner img { display: block; height: 30px; width: auto; padding: 5px 10px; border-radius: 8px; background: #ffffff; box-shadow: inset 0 0 0 1px var(--line); }
 .node.recommended .lesson-disc { fill: var(--red); stroke: var(--surface); filter: drop-shadow(0 3px 8px rgb(218 41 28 / 0.4)); }
 .side { z-index: 6; }
 .lg.rec, .dotmark.recommended { background: var(--red); border-color: var(--red); }

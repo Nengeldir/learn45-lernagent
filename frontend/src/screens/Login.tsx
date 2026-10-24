@@ -6,6 +6,7 @@ import { api, ApiError } from '../lib/api.ts';
 import { LangSwitch, localeOf, useI18n } from '../lib/i18n.tsx';
 import { ThemeSwitch } from '../lib/theme.tsx';
 import { useStore } from '../lib/store.tsx';
+import { BrandName } from './MapScreen.tsx';
 
 const SAMPLES = [
   { file: 'dcc-gemischt.json', label: 'Gemischt' },
@@ -80,8 +81,9 @@ export function Login() {
       <section className="login-intro">
         <h1>
           <img className="logo" src="/icons/owl.svg" alt="" width={46} height={46} />
-          <span className="brand-name">Owl for <img className="learn45-mark" src="/icons/learn45.png" alt="Learn45" /></span>
+          <BrandName />
         </h1>
+        <p className="partner">{t('für')} <img src="/icons/learn45.png" alt="Learn45" /></p>
         <p className="lead">{t('Lerne den Umgang mit dem Computer in kleinen Schritten. Du wählst ein Thema, der Lernagent zeigt dir immer, was als Nächstes kommt.')}</p>
         <MiniMap />
         <p className="small muted">{t('Prototyp für Learn45. Anmeldung ohne Passwort, nur erfundene Daten.')}</p>

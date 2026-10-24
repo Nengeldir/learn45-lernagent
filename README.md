@@ -1,6 +1,6 @@
-# Lernagent für Learn45
+# AIthena für Learn45
 
-Prototyp für den Zentral Hack 2026 (Challenge CoreTeam AG). Eine PWA mit Frontend und Backend.
+AIthena ist ein Prototyp für den Zentral Hack 2026 (Challenge CoreTeam AG). Eine PWA mit Frontend und Backend.
 
 Die Startseite ist eine Liste: «Was möchtest du lernen?» mit den Bereichen (Digitale Kompetenz, Mathematik, Naturwissenschaften, Eigene Themen) und ihren Themen, etwa «Kommunikation und Zusammenarbeit». Ein Tipp auf ein Thema öffnet es; ein neues Thema kommt dabei dazu. Oben steht «Weiterlernen» mit dem zuletzt bearbeiteten Thema. Ein Thema ist eine gerade Linie: die geschafften Lektionen (in der Reihenfolge, in der sie geschafft wurden, `frontend/src/path/order.ts`), darunter «Wie geht es weiter?» mit der Themen- und Formatwahl (siehe «Nächstes Thema und Format wählen»).
 
