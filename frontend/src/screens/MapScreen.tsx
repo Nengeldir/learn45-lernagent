@@ -262,11 +262,10 @@ export function MapScreen() {
 }
 
 export function BrandMark() {
-  const { t } = useI18n();
   return (
     <span className="brand-mark">
-      <span className="logo"><Icon name="map" size={18} /></span>
-      {t('Lernagent')}
+      <img className="logo" src="/icons/owl.svg" alt="" width={32} height={32} />
+      <span className="brand-name">Owl for <img className="learn45-mark" src="/icons/learn45.png" alt="Learn45" /></span>
     </span>
   );
 }

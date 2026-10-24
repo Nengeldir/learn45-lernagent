@@ -72,7 +72,7 @@ function Demo() {
   return (
     <div className="demo">
       <header className="demo-bar">
-        <strong className="brand">{t('Lernagent')}</strong>
+        <strong className="brand"><img className="logo" src="/icons/owl.svg" alt="" width={22} height={22} /><span className="brand-name">Owl for <img className="learn45-mark" src="/icons/learn45.png" alt="Learn45" /></span></strong>
         <span className="demo-tag">{t('Demo mit Beispieldaten')}</span>
         <span className="spacer" />
         <ThemeSwitch />

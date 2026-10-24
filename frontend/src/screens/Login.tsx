@@ -78,7 +78,10 @@ export function Login() {
         <LangSwitch />
       </div>
       <section className="login-intro">
-        <h1>{t('Lernagent')}</h1>
+        <h1>
+          <img className="logo" src="/icons/owl.svg" alt="" width={46} height={46} />
+          <span className="brand-name">Owl for <img className="learn45-mark" src="/icons/learn45.png" alt="Learn45" /></span>
+        </h1>
         <p className="lead">{t('Du wählst, was du lernen willst: ein eigenes Thema wie «Security+ Prüfung bestehen» oder einen vorbereiteten Bereich. Der Agent plant die Lektionen, schlägt den nächsten Schritt vor und sagt, warum.')}</p>
         <MiniMap />
         <p className="small muted">{t('Prototyp für Learn45. Anmeldung ohne Passwort, nur erfundene Daten.')}</p>

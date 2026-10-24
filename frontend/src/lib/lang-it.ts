@@ -2,7 +2,7 @@
 export const IT: Record<string, string> = {
   "Wird geladen …": "Caricamento …",
   "Neu laden": "Ricarica",
-  "Lernagent": "Agente di apprendimento",
+  "Lernagent": "Owl for Learn45",
   "Dein DCC-Profil wird zu einer Lernkarte. Der Agent plant Lektionen in allen fünf Bereichen, schlägt den nächsten Schritt vor und sagt, warum.": "Il tuo profilo DCC diventa una mappa di apprendimento. L’agente pianifica lezioni in tutti e cinque gli ambiti, propone il passo successivo e spiega perché.",
   "Prototyp für Learn45. Anmeldung ohne Passwort, nur erfundene Daten.": "Prototipo per Learn45. Accesso senza password, solo dati inventati.",
   "Anmelden": "Accedi",

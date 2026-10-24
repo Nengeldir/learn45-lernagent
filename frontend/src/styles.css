@@ -270,8 +270,9 @@ table.levels select { width: auto; min-width: 150px; }
 }
 
 /* Brand mark: a small node with a branch, the map in miniature */
-.brand-mark { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: -0.01em; }
-.brand-mark .logo { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--ink); color: var(--trail); }
+.brand-mark { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; letter-spacing: -0.01em; white-space: nowrap; }
+.brand-mark .logo { display: block; width: 32px; height: 32px; border-radius: 8px; margin-bottom: 0; }
+.brand-mark .logo { display: block; width: 32px; height: 32px; border-radius: 8px; }
 
 /* --- Map screen --- */
 .mapscreen { height: 100dvh; display: grid; grid-template-rows: auto 1fr; }
@@ -623,13 +624,17 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .btn.quiet[aria-pressed='true'] { background: var(--red); color: var(--on-red); border-color: var(--red); font-weight: 600; }
 .seg button[aria-selected='true'], .toggle button[aria-pressed='true'] { background: var(--red); color: var(--on-red); }
 .topbar { border-bottom: 3px solid var(--red); flex-wrap: wrap; }
-/* Logo: a peak with a summit flag, the climb the app is about. */
-.brand-mark .logo { border-radius: 7px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23da291c'/%3E%3Cpath d='M4 25 L12.5 13 L16.5 18 L21 10 L28 25 Z' fill='%23fff'/%3E%3Cpath d='M12.5 13 L15 16.5 L13.6 17.6 L12.4 16 L10.8 17.4 Z M21 10 L23.6 15 L21.8 16.4 L20.6 14.8 L18.8 16 Z' fill='%23f4c7c3'/%3E%3Cpath d='M21 10 V5.2' stroke='%23fff' stroke-width='1.4' stroke-linecap='round'/%3E%3Cpath d='M21 5 L25.5 6.4 L21 7.8 Z' fill='%23fff'/%3E%3C/svg%3E") center / contain no-repeat; }
-.brand-mark .logo .icon { display: none; }
+.brand-mark .logo { border-radius: 8px; }
 .login { position: relative; }
 .lang-float { position: absolute; top: 16px; right: 16px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-.login-intro h1 { display: flex; align-items: center; gap: 14px; }
-.login-intro h1::before { content: ''; flex: none; width: 46px; height: 46px; border-radius: 12px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23da291c'/%3E%3Cpath d='M4 25 L12.5 13 L16.5 18 L21 10 L28 25 Z' fill='%23fff'/%3E%3Cpath d='M12.5 13 L15 16.5 L13.6 17.6 L12.4 16 L10.8 17.4 Z M21 10 L23.6 15 L21.8 16.4 L20.6 14.8 L18.8 16 Z' fill='%23f4c7c3'/%3E%3Cpath d='M21 10 V5.2' stroke='%23fff' stroke-width='1.4' stroke-linecap='round'/%3E%3Cpath d='M21 5 L25.5 6.4 L21 7.8 Z' fill='%23fff'/%3E%3C/svg%3E") center / contain no-repeat; }
+.login-intro h1 { display: flex; align-items: center; flex-wrap: nowrap; gap: 12px; white-space: nowrap; }
+.login-intro h1 img.logo { flex: none; width: 46px; height: 46px; border-radius: 12px; }
+.brand-name { display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 0.45em; line-height: 1; white-space: nowrap; }
+.learn45-mark { height: 1em; width: auto; flex: none; border-radius: 0; }
+.login-intro h1 .learn45-mark { height: 46px; }
+.brand-mark .learn45-mark { height: 32px; }
+.demo-bar .brand { display: inline-flex; align-items: center; gap: 8px; }
+.demo-bar .brand img.logo { width: 22px; height: 22px; border-radius: 6px; }
 .lens-switch { display: inline-flex; gap: 4px; }
 .knot-note { position: absolute; left: 16px; top: 12px; z-index: 2; max-width: 460px; margin: 0; font-size: 13px; color: var(--ink-2); pointer-events: none; }
 .node.dim { opacity: 0.22; }

@@ -3,7 +3,7 @@
 export const RM: Record<string, string> = {
   "Wird geladen …": "Chargiar …",
   "Neu laden": "Chargiar da nov",
-  "Lernagent": "Agent d’emprender",
+  "Lernagent": "Owl for Learn45",
   "Dein DCC-Profil wird zu einer Lernkarte. Der Agent plant Lektionen in allen fünf Bereichen, schlägt den nächsten Schritt vor und sagt, warum.": "Tes profil DCC daventa ina charta d’emprender. L’agent planisescha lecziuns en tut ils tschintg secturs, propona il proxim pass e di pertge.",
   "Prototyp für Learn45. Anmeldung ohne Passwort, nur erfundene Daten.": "Prototip per Learn45. Annunzia senza pled-clav, mo datas inventadas.",
   "Anmelden": "S’annunziar",
