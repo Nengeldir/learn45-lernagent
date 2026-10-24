@@ -19,6 +19,7 @@
     "build:engine": "npm run build -w @l45/animlib",
     "postinstall": "npm run build:engine",
     "video:build": "node --import tsx scripts/build-derivative.ts",
+    "videos:build": "node --import tsx scripts/build-videos.ts",
     "predev": "npm run build:engine"
   },
   "devDependencies": {

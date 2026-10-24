@@ -232,12 +232,13 @@ export function MapScreen() {
       {adding && (
         <AddTrack
           onClose={() => setAdding(false)}
-          onAdded={(nodeId) => {
+          onAdded={(nodeId, openVideo) => {
             setAdding(false);
             setSelectedId(null);
             setSheetOpen(true);
             setFocusId(null);
             if (nodeId) requestAnimationFrame(() => setFocusId(nodeId));
+            if (nodeId && openVideo) setLessonNode(nodeId);
           }}
         />
       )}

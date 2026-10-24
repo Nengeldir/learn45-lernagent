@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "lessonId": "info-v1",
+  "title": "Warum erfindet eine KI Angaben?",
+  "locale": "de-CH",
+  "scriptHash": "06182f64ba162917a4301955f484651260855ebdb0054e24de8607ff2f713a08",
+  "narration": {
+    "provider": "elevenlabs",
+    "voice": "pFZP5JQG7iQjIQuC4Bku",
+    "model": "eleven_multilingual_v2"
+  },
+  "scenes": [
+    {
+      "id": "scene-0",
+      "title": "Ein Sprachmodell schreibt Wort für Wort. Bei jedem Schritt wählt es…",
+      "source": "export default scene({mode:'2d',end:'hold',audio:'narration-0',background:'BLACK'},s=>{\n    const duration=7.455291666666667;let elapsed=0;\n    const wait=t=>{s.wait(t);elapsed+=t;};const play=(a,t)=>{s.play(a,{duration:t,ease:'linear'});elapsed+=t;};\n    const label=(id,lines,x,y,size,fill)=>lines.forEach((text,i)=>s.text(id+'-'+i,{text,position:[x,y-i*size*1.4],fontSize:size,fill}));\n    s.play(s.camera.to2D({height:8}),{duration:0});\n    label('scene',['Szene 1 / 4'],0,3.7,.18,'GREY_B');\n    label('title',[\"Warum erfindet eine KI Angaben?\"],0,3.18,.31,'WHITE');\n    \n        label('prompt',['Das Team trifft sich nächsten …'],0,1.8,.32,'WHITE');\n        const words=['Montag','Dienstag','Mittwoch','Freitag','Juni'], values=[1,.46,.37,.22,.13];\n        words.forEach((word,i)=>{\n          const y=.9-i*.7;\n          label('word-'+i,[word],-3.8,y,.27,i===0&&false?'YELLOW':'WHITE');\n          const bar=s.line('bar-'+i,{points:[[-2.2,y],[-2.2+6*values[i],y]],stroke:i===0&&false?'YELLOW':'BLUE',strokeWidth:.25,opacity:0});\n          play(bar.fadeIn(),Math.min(.25,duration/10));\n        });\n        label('example',['Beispielwerte: sprachlich passend ist nicht automatisch wahr.'],0,-3,.2,'GREY_B');\n    wait(Math.max(0,duration-elapsed));\n  });",
+      "duration": 7.455291666666667,
+      "audioUrl": "/videos/info-v1/scene-0-c396a5615f31.wav",
+      "captions": [
+        {
+          "start": 0,
+          "end": 7.105291666666667,
+          "text": "Ein Sprachmodell schreibt Wort für Wort. Bei jedem Schritt wählt es ein Wort, das gut zum bisherigen Text passt."
+        }
+      ]
+    },
+    {
+      "id": "scene-1",
+      "title": "Nach «Das Team trifft sich nächsten …» passt «Montag» sehr gut. Ob …",
+      "source": "export default scene({mode:'2d',end:'hold',audio:'narration-1',background:'BLACK'},s=>{\n    const duration=12.217083333333333;let elapsed=0;\n    const wait=t=>{s.wait(t);elapsed+=t;};const play=(a,t)=>{s.play(a,{duration:t,ease:'linear'});elapsed+=t;};\n    const label=(id,lines,x,y,size,fill)=>lines.forEach((text,i)=>s.text(id+'-'+i,{text,position:[x,y-i*size*1.4],fontSize:size,fill}));\n    s.play(s.camera.to2D({height:8}),{duration:0});\n    label('scene',['Szene 2 / 4'],0,3.7,.18,'GREY_B');\n    label('title',[\"Warum erfindet eine KI Angaben?\"],0,3.18,.31,'WHITE');\n    \n        label('prompt',['Das Team trifft sich nächsten …'],0,1.8,.32,'WHITE');\n        const words=['Montag','Dienstag','Mittwoch','Freitag','Juni'], values=[1,.46,.37,.22,.13];\n        words.forEach((word,i)=>{\n          const y=.9-i*.7;\n          label('word-'+i,[word],-3.8,y,.27,i===0&&true?'YELLOW':'WHITE');\n          const bar=s.line('bar-'+i,{points:[[-2.2,y],[-2.2+6*values[i],y]],stroke:i===0&&true?'YELLOW':'BLUE',strokeWidth:.25,opacity:0});\n          play(bar.fadeIn(),Math.min(.25,duration/10));\n        });\n        label('example',['Beispielwerte: sprachlich passend ist nicht automatisch wahr.'],0,-3,.2,'GREY_B');\n    wait(Math.max(0,duration-elapsed));\n  });",
+      "duration": 12.217083333333333,
+      "audioUrl": "/videos/info-v1/scene-1-881cfcd27c04.wav",
+      "captions": [
+        {
+          "start": 0,
+          "end": 7.941208333333333,
+          "text": "Nach «Das Team trifft sich nächsten …» passt «Montag» sehr gut. Ob das stimmt, prüft das Modell dabei nicht."
+        },
+        {
+          "start": 8.291208333333334,
+          "end": 11.867083333333333,
+          "text": "Kurze Denkpause: Warum schreibt die KI «Montag»?"
+        }
+      ]
+    },
+    {
+      "id": "scene-2",
+      "title": "Fehlt der Tag in der Notiz, füllt das Modell die Lücke mit etwas Pl…",
+      "source": "export default scene({mode:'2d',end:'hold',audio:'narration-2',background:'BLACK'},s=>{\n    const duration=7.50175;let elapsed=0;\n    const wait=t=>{s.wait(t);elapsed+=t;};const play=(a,t)=>{s.play(a,{duration:t,ease:'linear'});elapsed+=t;};\n    const label=(id,lines,x,y,size,fill)=>lines.forEach((text,i)=>s.text(id+'-'+i,{text,position:[x,y-i*size*1.4],fontSize:size,fill}));\n    s.play(s.camera.to2D({height:8}),{duration:0});\n    label('scene',['Szene 3 / 4'],0,3.7,.18,'GREY_B');\n    label('title',[\"Warum erfindet eine KI Angaben?\"],0,3.18,.31,'WHITE');\n    \n        label('source-title',['Notiz'],0,1.9,.3,'BLUE');\n        label('source',['Das Team trifft sich nächste Woche.','Der Wochentag ist noch offen.'],0,1.2,.3,'WHITE');\n        label('summary-title',['KI-Zusammenfassung'],0,-.2,.3,'BLUE');\n        label('summary',['Das Team trifft sich nächsten Montag.'],0,-.9,.32,'YELLOW');\n        const warning=s.text('warning',{text:'Montag: keine Stelle in der Notiz',position:[0,-2.1],fontSize:.3,fill:'RED',opacity:0});\n        wait(Math.min(1,duration/4));play(warning.fadeIn(),Math.min(.5,duration/4));\n    wait(Math.max(0,duration-elapsed));\n  });",
+      "duration": 7.50175,
+      "audioUrl": "/videos/info-v1/scene-2-b740f8245e14.wav",
+      "captions": [
+        {
+          "start": 0,
+          "end": 7.15175,
+          "text": "Fehlt der Tag in der Notiz, füllt das Modell die Lücke mit etwas Plausiblem. Plausibel heisst aber nicht belegt."
+        }
+      ]
+    },
+    {
+      "id": "scene-3",
+      "title": "Darum prüfst du jede konkrete Angabe an der Quelle: Datum, Zahl, Pe…",
+      "source": "export default scene({mode:'2d',end:'hold',audio:'narration-3',background:'BLACK'},s=>{\n    const duration=12.217083333333333;let elapsed=0;\n    const wait=t=>{s.wait(t);elapsed+=t;};const play=(a,t)=>{s.play(a,{duration:t,ease:'linear'});elapsed+=t;};\n    const label=(id,lines,x,y,size,fill)=>lines.forEach((text,i)=>s.text(id+'-'+i,{text,position:[x,y-i*size*1.4],fontSize:size,fill}));\n    s.play(s.camera.to2D({height:8}),{duration:0});\n    label('scene',['Szene 4 / 4'],0,3.7,.18,'GREY_B');\n    label('title',[\"Warum erfindet eine KI Angaben?\"],0,3.18,.31,'WHITE');\n    \n        label('source-title',['Notiz'],0,1.9,.3,'BLUE');\n        label('source',['Das Team trifft sich nächste Woche.','Der Wochentag ist noch offen.'],0,1.2,.3,'WHITE');\n        label('summary-title',['KI-Zusammenfassung'],0,-.2,.3,'BLUE');\n        label('summary',['Das Team trifft sich nächsten Montag.'],0,-.9,.32,'YELLOW');\n        const warning=s.text('warning',{text:'Montag: keine Stelle in der Notiz',position:[0,-2.1],fontSize:.3,fill:'RED',opacity:0});\n        wait(Math.min(1,duration/4));play(warning.fadeIn(),Math.min(.5,duration/4));\n    wait(Math.max(0,duration-elapsed));\n  });",
+      "duration": 12.217083333333333,
+      "audioUrl": "/videos/info-v1/scene-3-f5dd7168174b.wav",
+      "captions": [
+        {
+          "start": 0,
+          "end": 6.9195416666666665,
+          "text": "Darum prüfst du jede konkrete Angabe an der Quelle: Datum, Zahl, Person, Entscheid."
+        },
+        {
+          "start": 7.269541666666667,
+          "end": 11.867083333333333,
+          "text": "Kurze Denkpause: Was prüfst du in einer KI-Zusammenfassung zuerst?"
+        }
+      ]
+    }
+  ]
+}

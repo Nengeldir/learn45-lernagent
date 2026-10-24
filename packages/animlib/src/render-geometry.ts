@@ -24,12 +24,15 @@ import type { AssetGeometryResolver } from './asset-types.js';
 
 export function textTex(text:string):string {
   const umlauts:Record<string,string>={ä:'a',ö:'o',ü:'u',Ä:'A',Ö:'O',Ü:'U'};
+  const math:Record<string,string>={'α':'\\alpha','β':'\\beta','γ':'\\gamma','δ':'\\delta','Δ':'\\Delta','θ':'\\theta','λ':'\\lambda','μ':'\\mu','π':'\\pi','σ':'\\sigma','Σ':'\\Sigma','φ':'\\phi','ω':'\\omega','Ω':'\\Omega','∞':'\\infty','≤':'\\leq','≥':'\\geq','≠':'\\neq','×':'\\times','°':'{}^{\\circ}'};
+  for(const [i,c] of [...'₀₁₂₃₄₅₆₇₈₉'].entries())math[c]=`{}_{${i}}`;
+  for(const [i,c] of [...'⁰¹²³⁴⁵⁶⁷⁸⁹'].entries())math[c]=`{}^{${i}}`;
   const escape=(run:string)=>run.replace(/[\\{}$&#%_^~]/g,c=>({'\\':String.raw`\backslash `,'{':String.raw`\{`,'}':String.raw`\}`,'$':String.raw`\$`,'&':String.raw`\&`,'#':String.raw`\#`,'%':String.raw`\%`,'_':String.raw`\_`,'^':String.raw`\textasciicircum `,'~':String.raw`\textasciitilde `}[c]!));
   // The bundled TeX configuration has math accents, but no text-accent macros.
   // Place accents outside text runs so MathJax emits actual vector glyphs.
-  return text.normalize('NFC').split(/([äöüÄÖÜ])/).map(run=>umlauts[run]
+  return text.normalize('NFC').split(/([äöüÄÖÜαβγδΔθλμπσΣφωΩ∞≤≥≠×°₀₁₂₃₄₅₆₇₈₉⁰¹²³⁴⁵⁶⁷⁸⁹])/).map(run=>umlauts[run]
     ? String.raw`\ddot{\text{${umlauts[run]}}}`
-    : String.raw`\text{${escape(run)}}`).join('');
+    : math[run] ? `{${math[run]}}` : String.raw`\text{${escape(run)}}`).join('');
 }
 function contains(contour:Vec3[],point:Vec3):boolean {
   let inside=false;

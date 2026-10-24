@@ -49,11 +49,18 @@ export function setMockHandler(fn: typeof mockHandler) {
 
 const chatModel = () => process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5';
 const plannerModel = () => process.env.ANTHROPIC_PLANNER_MODEL || 'claude-opus-5-5';
+const openAIModel = (planner = false) => (planner && process.env.OPENAI_PLANNER_MODEL) || process.env.OPENAI_MODEL!;
+// Explicit low effort keeps latency and reasoning costs bounded for this interactive app.
+const openAIReasoning = (planner = false) => {
+  const effort = (planner && process.env.OPENAI_PLANNER_REASONING_EFFORT) || process.env.OPENAI_REASONING_EFFORT || 'low';
+  if (!['none', 'low', 'medium', 'high', 'xhigh', 'max'].includes(effort)) throw new Error('invalid OpenAI reasoning effort');
+  return { effort };
+};
 
 /** Name of the model the planner and generator use, for the provenance of generated lessons. */
 export function plannerModelName(): string {
   const provider = providerName();
-  return provider === 'anthropic' ? plannerModel() : provider;
+  return provider === 'anthropic' ? plannerModel() : provider === 'openai' ? openAIModel(true) : provider;
 }
 
 /** The mock provider honours timeouts too, so tests can simulate a slow model. */
@@ -98,6 +105,19 @@ export async function callModel(req: ModelRequest): Promise<ModelReply> {
   }
 }
 
+/**
+ * Current models think before they answer, and thinking counts against max_tokens. Callers size maxTokens for the
+ * visible reply, so the request adds room for a short thought; low effort keeps that thought short.
+ */
+const THINKING_HEADROOM = 2000;
+
+/** Like the OpenAI errors: status and error type (e.g. invalid_request_error), never the provider's message. */
+async function anthropicError(res: Response): Promise<Error> {
+  const body = await res.json().catch(() => ({})) as { error?: { type?: string } };
+  const type = body.error?.type;
+  return new Error(`anthropic ${res.status}${type && /^[a-z_]+$/.test(type) ? ` (${type})` : ''}`);
+}
+
 async function callAnthropic(req: ModelRequest, timeoutMs: number): Promise<string> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -109,31 +129,61 @@ async function callAnthropic(req: ModelRequest, timeoutMs: number): Promise<stri
     },
     body: JSON.stringify({
       model: req.planner ? plannerModel() : chatModel(),
-      max_tokens: req.maxTokens ?? 700,
-      ...(req.planner ? { output_config: { effort: 'low' } } : {}),
+      max_tokens: (req.maxTokens ?? 700) + THINKING_HEADROOM,
+      output_config: { effort: 'low' },
       system: req.system,
       messages: req.messages,
     }),
   });
-  if (!res.ok) throw new Error(`anthropic ${res.status}`);
-  const data = (await res.json()) as { content?: { type: string; text?: string }[] };
-  return (data.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
+  if (!res.ok) throw await anthropicError(res);
+  const data = (await res.json()) as { content?: { type: string; text?: string }[]; stop_reason?: string };
+  const text = (data.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
+  if (!text.trim()) throw new Error(`no text in reply (stop_reason ${data.stop_reason ?? 'unknown'})`);
+  return text;
 }
 
 async function callOpenAI(req: ModelRequest, timeoutMs: number): Promise<string> {
+  const data = await openAIResponse({
+    model: openAIModel(req.planner),
+    reasoning: openAIReasoning(req.planner),
+    instructions: req.system,
+    input: req.messages,
+    max_output_tokens: (req.maxTokens ?? 700) + 2000,
+  }, timeoutMs);
+  return responseText(data.output);
+}
+
+interface OpenAIOutput extends Record<string, unknown> {
+  type: string;
+  content?: { type: string; text?: string }[];
+  call_id?: string;
+  name?: string;
+  arguments?: string;
+}
+
+function responseText(output: OpenAIOutput[]): string {
+  if (output.some(item => item.content?.some(c => c.type === 'refusal'))) throw new Error('refusal');
+  return output.filter(item => item.type === 'message').flatMap(item => item.content ?? [])
+    .filter(c => c.type === 'output_text').map(c => c.text ?? '').join('');
+}
+
+async function openAIResponse(body: Record<string, unknown>, timeoutMs: number): Promise<{ output: OpenAIOutput[] }> {
   const base = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '');
-  const res = await fetch(`${base}/chat/completions`, {
+  const res = await fetch(`${base}/responses`, {
     method: 'POST',
     signal: AbortSignal.timeout(timeoutMs),
     headers: { 'content-type': 'application/json', authorization: `Bearer ${process.env.OPENAI_API_KEY ?? ''}` },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL,
-      messages: [{ role: 'system', content: req.system }, ...req.messages],
-    }),
+    body: JSON.stringify({ store: false, ...body }),
   });
-  if (!res.ok) throw new Error(`openai ${res.status}`);
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  return data.choices?.[0]?.message?.content ?? '';
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({})) as { error?: { code?: string } };
+    const code = error.error?.code;
+    // Retain a useful failure code without logging provider messages or request content.
+    throw new Error(`openai ${res.status}${code && /^[a-z_]+$/.test(code) ? ` (${code})` : ''}`);
+  }
+  const data = (await res.json()) as { output?: OpenAIOutput[]; status?: string };
+  if (data.status !== 'completed') throw new Error(`openai response ${data.status ?? 'invalid'}`);
+  return { output: data.output ?? [] };
 }
 
 // --- Tool use for the planner agent ---------------------------------------------------------------
@@ -149,6 +199,8 @@ export type AgentBlock =
   | { type: 'text'; text: string }
   | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
   | { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean }
+  /** Replay complete Responses output, including encrypted reasoning, within this planning run. */
+  | { type: 'openai_response'; output: OpenAIOutput[] }
   /** Other blocks (thinking) are passed back unchanged */
   | { type: 'thinking' | 'redacted_thinking'; [key: string]: unknown };
 
@@ -187,6 +239,8 @@ export async function callAgent(req: AgentRequest): Promise<AgentReply> {
       stopReason = content.some((b) => b.type === 'tool_use') ? 'tool_use' : 'end_turn';
     } else if (provider === 'anthropic') {
       ({ content, stopReason } = await callAnthropicTools(req));
+    } else if (provider === 'openai') {
+      ({ content, stopReason } = await callOpenAITools(req));
     } else {
       throw new Error(`no tool use with provider ${provider}`);
     }
@@ -196,6 +250,37 @@ export async function callAgent(req: AgentRequest): Promise<AgentReply> {
     const error = err instanceof Error ? err.message : String(err);
     return { ok: false, error, call: logCall('plan', started, false, error) };
   }
+}
+
+async function callOpenAITools(req: AgentRequest): Promise<{ content: AgentBlock[]; stopReason: string }> {
+  const input = req.messages.flatMap((message): Record<string, unknown>[] => {
+    if (typeof message.content === 'string') return [{ role: message.role, content: message.content }];
+    const replay = message.content.find(b => b.type === 'openai_response');
+    if (replay?.type === 'openai_response') return replay.output;
+    return message.content.flatMap((block): Record<string, unknown>[] => {
+      if (block.type === 'tool_result') return [{ type: 'function_call_output', call_id: block.tool_use_id, output: block.content }];
+      if (block.type === 'text') return [{ role: message.role, content: block.text }];
+      return [];
+    });
+  });
+  const { output } = await openAIResponse({
+    model: openAIModel(true),
+    reasoning: openAIReasoning(true),
+    instructions: req.system,
+    input,
+    tools: req.tools.map(tool => ({ type: 'function', name: tool.name, description: tool.description, parameters: tool.input_schema, strict: false })),
+    tool_choice: 'auto',
+    max_output_tokens: (req.maxTokens ?? 4000) + 2000,
+  }, req.timeoutMs);
+  const content: AgentBlock[] = [{ type: 'openai_response', output }];
+  const text = responseText(output);
+  if (text) content.push({ type: 'text', text });
+  for (const item of output.filter(o => o.type === 'function_call')) {
+    const args: unknown = JSON.parse(item.arguments ?? '{}');
+    if (!item.call_id || !item.name || !args || typeof args !== 'object' || Array.isArray(args)) throw new Error('invalid OpenAI tool call');
+    content.push({ type: 'tool_use', id: item.call_id, name: item.name, input: args as Record<string, unknown> });
+  }
+  return { content, stopReason: content.some(b => b.type === 'tool_use') ? 'tool_use' : 'end_turn' };
 }
 
 async function callAnthropicTools(req: AgentRequest): Promise<{ content: AgentBlock[]; stopReason: string }> {
@@ -218,7 +303,7 @@ async function callAnthropicTools(req: AgentRequest): Promise<{ content: AgentBl
       messages: req.messages,
     }),
   });
-  if (!res.ok) throw new Error(`anthropic ${res.status}`);
+  if (!res.ok) throw await anthropicError(res);
   const data = (await res.json()) as { content?: AgentBlock[]; stop_reason?: string };
   return { content: data.content ?? [], stopReason: data.stop_reason ?? 'end_turn' };
 }

@@ -48,7 +48,7 @@ export default function NarratedVideo({ lesson, onComplete, onFallback }: {
       if (!active) return;
       const canvas = document.createElement('canvas');
       canvas.setAttribute('role', 'img');
-      canvas.setAttribute('aria-label', 'Animation: Sekante, Tangente und die lokale Steigung einer Kurve.');
+      canvas.setAttribute('aria-label', `Animation: ${lesson.title}`);
       container.append(canvas);
       player = createPlayer({ canvas, assets: Object.fromEntries(next.scenes.map((scene, i) => [`narration-${i}`, { kind: 'audio' as const, url: scene.audioUrl }])) });
       engine.current = player;

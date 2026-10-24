@@ -78,13 +78,13 @@ export function validateLesson(input: unknown, opts: ValidateOpts = {}): string[
   switch (l.type) {
     case 'video': {
       const { scenes, questions } = l.content;
-      if (!Array.isArray(scenes) || scenes.length === 0) e.push('Video ohne Szenen');
+      if (!Array.isArray(scenes) || scenes.length === 0 || scenes.length > 8) e.push('Video braucht 1 bis 8 Szenen');
       else {
         scenes.forEach((s, i) => {
           if (!isStr(s?.caption, 300)) e.push(`Szene ${i + 1}: Text fehlt`);
           if (!VISUALS.includes(s?.visual)) e.push(`Szene ${i + 1}: unbekanntes Bild ${String(s?.visual)}`);
           else if (generated && !GENERATED_VISUALS.includes(s.visual)) e.push(`Szene ${i + 1}: erzeugte Videos nutzen nur ${GENERATED_VISUALS.join(' oder ')}`);
-          if ((s?.visual === 'steps' || s?.visual === 'url-parts') && (!Array.isArray(s.items) || s.items.length < 2 || !s.items.every((x) => isStr(x, 60)))) {
+          if ((s?.visual === 'steps' || s?.visual === 'url-parts') && (!Array.isArray(s.items) || s.items.length < 2 || s.items.length > 6 || !s.items.every((x) => isStr(x, 60)))) {
             e.push(`Szene ${i + 1}: braucht 2 oder mehr kurze Stichworte (items)`);
           }
           if (typeof s?.seconds !== 'number' || s.seconds < 2 || s.seconds > 30) e.push(`Szene ${i + 1}: Dauer 2 bis 30 Sekunden`);

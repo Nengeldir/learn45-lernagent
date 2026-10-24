@@ -54,6 +54,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': api,
+      '/videos': api,
       '/ws': { target: api.replace(/^http/, 'ws'), ws: true },
     },
   },
