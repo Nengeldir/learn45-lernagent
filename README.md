@@ -365,9 +365,19 @@ Der Lernstand pro Kriterium kommt nur aus den Lerneinträgen und steht getrennt 
 - «am Üben»: Fehlvorstellung korrigiert, oder nach «sicher» wieder verpasst.
 - «sicher»: ohne Hilfe gezeigt.
 
-Wird ein Kriterium «demonstrated», kommt es in die Wiederholung. Sie ist fällig nach 2 weiteren Lektionen oder in der nächsten Sitzung. Dann kann eine kurze gemischte Wiederholung entstehen (`reviewOf`).
-
 Hilfe innerhalb einer Lektion (Hinweis nach dem Prüfen) wird vermerkt. Eine Beobachtung wie «Termine und Fristen 2× übersehen» gilt erst als erledigt, wenn das Kriterium ohne Hilfe gelöst wurde.
+
+### Kurz wiederholen
+
+Fällige Wiederholungen stehen auf der Startseite ganz oben, vor «Weiterlernen» und neuen Lektionen. Zuletzt verpasste Kriterien haben Vorrang, danach kommen die mit den meisten Fehlern und die ältesten fälligen Fragen. Auch im Thema und in der Kopfzeile lassen sich Wiederholungen öffnen. Eine Runde enthält höchstens fünf Fragen; übrige und abgebrochene Fragen bleiben fällig.
+
+Nach einer abgeschlossenen Lektion kommen die geprüften Kriterien in einen dauerhaften Wiederholungsplan. Die erste Frage kommt nach einem Tag. Richtig beantwortete Fragen kommen nach 3, 7, 14, 30 und schliesslich jeweils 60 Tagen wieder. Eine falsche Antwort setzt den Abstand auf 10 Minuten zurück. Nach dem erfolgreichen Wiederholen beginnt der Aufbau wieder bei einem Tag, dann 3, 7 usw. Fehler in normalen Lektionen verkürzen den Abstand ebenfalls. Neue Anmeldungen setzen die Fristen nicht zurück.
+
+Wiederholungen enthalten nur kurze Fragen, keine Videos, Podcasts oder erneuten Erklärungen. Vorhandene Quizfragen kommen ausschliesslich aus schon abgeschlossenen Lektionen. Bei Textprüfungen wird nur die nötige Notiz mit einer Aussage gezeigt; für weitere Kriterien gibt es eine Auswahl zur bereits gelernten Faustregel. Antworten werden gemischt, Lösungen bleiben bis zur Abgabe im Backend. Nach einem Fehler erscheint eine kurze Korrektur. Ein wiederholter Sendeversuch zählt nur einmal. Die Antworten verändern weder DCC noch XP oder die Anzahl abgeschlossener Lektionen; der Lernstand berücksichtigt das letzte Abrufen.
+
+Fristen, Fehlerzähler und laufende Fragen bleiben in `state.json` erhalten. Bestehende Warteschlangen einschliesslich früher als erledigt markierter Wiederholungen werden beim Öffnen übernommen. Die Startseite aktualisiert fällige Fragen spätestens nach einer Minute und beim Zurückkehren zum Browserfenster. Der Agent kann fällige Kriterien weiterhin in zusätzliche Übungen aufnehmen (`reviewOf`).
+
+API: `POST /api/sessions/:id/reviews/:review/start` öffnet eine fällige Frage ohne Lösung; `POST /api/sessions/:id/reviews/:review/answer` nimmt `{ challengeId, option }` entgegen, bewertet und plant den nächsten Termin. `SessionView.reviews` enthält die priorisierten fälligen und die kommenden Wiederholungen. Interne Fragen und Lösungen sind aus der öffentlichen Sitzung ausgeschlossen.
 
 ## Lernumgebung pro Person
 

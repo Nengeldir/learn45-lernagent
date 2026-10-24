@@ -12,6 +12,7 @@ import { Topics } from '../path/Topics.tsx';
 import { TrackView } from '../path/TrackView.tsx';
 import { AddTrack } from './AddTrack.tsx';
 import { Settings } from './Settings.tsx';
+import { ReviewOverlay } from '../reviews/Reviews.tsx';
 
 /** The list of topics (and one topic as a line of lessons) or the whole mind map. Remembered per browser; the list is the default. */
 type ViewMode = 'path' | 'map';
@@ -51,6 +52,7 @@ export function MapScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [lessonNode, setLessonNode] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
   const [adding, setAdding] = useState(false);
   /** The topic open in the list view; null shows all topics. */
@@ -65,6 +67,17 @@ export function MapScreen() {
 
   // While the planner agent works, ask the server every 1.5 s. When it is done, its plan replaces the provisional one.
   const planning = Boolean(view?.session.planning);
+  // Refresh at the next deadline (including a ten-minute retry), on return to the tab,
+  // and at least once per minute while this screen is open.
+  useEffect(() => {
+    if (!view) return;
+    const dueAt = view.reviews.upcoming[0]?.dueAt;
+    const delay = dueAt ? Math.min(60_000, Math.max(1000, Date.parse(dueAt) - Date.now() + 100)) : 60_000;
+    const timer = setTimeout(() => { void refresh().catch(() => null); }, delay);
+    const onFocus = () => { void refresh().catch(() => null); };
+    window.addEventListener('focus', onFocus);
+    return () => { clearTimeout(timer); window.removeEventListener('focus', onFocus); };
+  }, [view, refresh]);
   useEffect(() => {
     if (!planning) return;
     let stop = false;
@@ -145,6 +158,7 @@ export function MapScreen() {
           ? <button className="btn secondary small" onClick={back}><Icon name="back" size={18} />{t('Alle Themen')}</button>
           : <BrandMark />}
         <span className="spacer" />
+        {view.reviews.due.length > 0 && <button className="btn secondary small review-nav" onClick={() => setReviewing('all')}><Icon name="repeat" />{t('Wiederholen ({n})', { n: view.reviews.due.length })}</button>}
         <span className="header-xp" aria-label={`Level ${view.rewards.level}, ${view.rewards.xp} XP`}><Icon name="star" size={18} /><strong>Level {view.rewards.level}</strong><span>{view.rewards.xp} XP</span></span>
         <button className="btn quiet small who" onClick={() => setSettings(true)} aria-label={t('Mein Konto ({name})', { name: view.session.userName })}>
           <span className="avatar" aria-hidden="true">{view.session.userName.slice(0, 1).toUpperCase()}</span>
@@ -155,8 +169,8 @@ export function MapScreen() {
       {viewMode === 'path' ? (
         <main className="path-area" key={openTrack ?? 'topics'}>
           {openTrack
-            ? <TrackView view={view} trackId={openTrack} onStart={setLessonNode} />
-            : <Topics view={view} onOpen={setOpenTrack} onOwnTopic={() => setAdding(true)} onShowMap={() => setViewMode('map')} />}
+            ? <TrackView view={view} trackId={openTrack} onStart={setLessonNode} onReview={() => setReviewing(openTrack)} />
+            : <Topics view={view} onOpen={setOpenTrack} onOwnTopic={() => setAdding(true)} onShowMap={() => setViewMode('map')} onReview={() => setReviewing('all')} />}
         </main>
       ) : (
         <main className="map-area">
@@ -200,6 +214,7 @@ export function MapScreen() {
 
       {toast && <div className="toast" role="status" aria-live="polite"><Icon name="sparkle" />{toast}</div>}
       {lessonNode && <LessonOverlay key={lessonNode} nodeId={lessonNode} onClose={closeLesson} />}
+      {reviewing && <ReviewOverlay trackId={reviewing === 'all' ? undefined : reviewing} onClose={() => setReviewing(null)} />}
       {settings && <Settings onClose={() => setSettings(false)} onLogout={() => { logout(); nav('/'); }} />}
       {adding && (
         <AddTrack

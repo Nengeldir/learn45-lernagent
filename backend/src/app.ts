@@ -17,6 +17,7 @@ import { chooseTopic, getTopics, suggestTopic } from './nextTopics.ts';
 import { askOwl, owlMessages } from './owlChat.ts';
 import { learnMore } from './learnMore.ts';
 import { accessGate } from './access.ts';
+import { startReview, answerReview } from './reviews.ts';
 
 type Handler = (req: Request, res: Response) => unknown;
 const h = (fn: Handler) => (req: Request, res: Response, next: NextFunction) => {
@@ -96,6 +97,15 @@ export function createApp(options: { videoService?: VideoService; podcastService
 
   app.get('/api/sessions/:id', h((req, res) => res.json(view(get(p(req, 'id'))))));
   app.get('/api/sessions/:id/lessons', h((req, res) => res.json(generatedPublic(get(p(req, 'id'))))));
+  app.post('/api/sessions/:id/reviews/:review/start', h((req, res) => {
+    const st = get(p(req, 'id'));
+    res.json({ question: startReview(st, p(req, 'review')), view: view(st) });
+  }));
+  app.post('/api/sessions/:id/reviews/:review/answer', h((req, res) => {
+    const st = get(p(req, 'id'));
+    const feedback = answerReview(st, p(req, 'review'), req.body ?? {});
+    res.json({ feedback, view: view(st) });
+  }));
   app.patch('/api/sessions/:id', h((req, res) => {
     const st = get(p(req, 'id'));
     patch(st, req.body ?? {});

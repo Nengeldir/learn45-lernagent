@@ -461,19 +461,66 @@ export interface ReferenceEntry {
   basedOn: string[];
 }
 
-/** A demonstrated criterion waiting for spaced retrieval practice */
+/** A practiced criterion in the recurring retrieval schedule. */
 export interface ReviewItem {
   id: string;
   trackId: string;
   criterion: string;
   recordId: string;
   addedAt: string;
-  /** Number of events when it was added; due after 2 more lessons */
+  /** Legacy queue trigger: due after two more lessons when no deadline exists yet. */
   addedAfterEvents: number;
-  /** Due in a later session at the latest */
+  /** Legacy queue trigger: due in a later session when no deadline exists yet. */
   addedInSession: number;
   status: 'waiting' | 'done';
   doneEventId?: string;
+  /** UTC deadline. Older queues are migrated when the workspace is opened. */
+  dueAt?: string;
+  intervalDays?: number;
+  streak?: number;
+  lapses?: number;
+  lastReviewedAt?: string;
+  lastCorrect?: boolean;
+  lastReviewSource?: 'lesson' | 'recall';
+}
+
+export interface ReviewSummary {
+  id: string;
+  trackId: string;
+  label: string;
+  dueAt: string;
+  lapses: number;
+}
+
+export interface ReviewOverview {
+  due: ReviewSummary[];
+  upcoming: ReviewSummary[];
+}
+
+export interface ReviewQuestion {
+  id: string;
+  reviewId: string;
+  trackId: string;
+  label: string;
+  prompt: string;
+  context?: string[];
+  options: string[];
+}
+
+export interface ReviewFeedback {
+  correct: boolean;
+  correctOption: number;
+  explanation: string;
+  dueAt: string;
+  intervalDays: number;
+}
+
+/** Server-only challenge and receipt: never included in SessionView. */
+export interface ReviewChallenge extends ReviewQuestion {
+  correctOption: number;
+  explanation: string;
+  answeredOption?: number;
+  feedback?: ReviewFeedback;
 }
 
 export type LernstandState = 'unbekannt' | 'am-ueben' | 'sicher';
@@ -550,6 +597,7 @@ export interface Session {
   /** Saved in the learner workspace, retained across server restarts and new sessions. */
   preferredLessonType?: LessonType;
   reviewQueue: ReviewItem[];
+  reviewChallenges?: Record<string, ReviewChallenge>;
   missionChanges: MissionChange[];
   plannerRuns: PlannerRun[];
   /** True while the planner agent works on the next step */
@@ -567,9 +615,10 @@ export interface WorkspaceView {
 
 /** What the browser gets: session and the read-only DCC profile, kept apart */
 export interface SessionView {
+  reviews: ReviewOverview;
   /** Game progress from learning history; independent of the diagnostic DCC levels. */
   rewards: LearningProgress;
-  session: Omit<Session, 'generatedLessons'>;
+  session: Omit<Session, 'generatedLessons' | 'reviewChallenges'>;
   dcc: DccProfile;
   recommendation: Recommendation | null;
   modelStatus: ModelStatus;

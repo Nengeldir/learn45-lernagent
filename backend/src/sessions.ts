@@ -16,6 +16,7 @@ import {
 import { firstLesson, generatedThisSession, ruleLesson } from './ownlessons.ts';
 import { modelStatus, providerName } from './provider.ts';
 import { addRecord, lernstandAll, recordFromEvent, settleReviews } from './records.ts';
+import { ensureReviews, reviewOverview } from './reviews.ts';
 import { chatReply, hintMarkEvidence, hintMockSite, judgeChat, type Opts } from './services.ts';
 import { catalogTrack, criterionLabel, defaultMission, learnerSkills, learnerTracks, missionOf, skillIn, trackIn } from './tracks.ts';
 import { newId, nowIso } from './util.ts';
@@ -593,9 +594,11 @@ export function patch(st: Stored, body: { simulation?: unknown }) {
 }
 
 export function view(st: Stored): SessionView {
-  const { generatedLessons: _g, ...session } = st.session;
+  ensureReviews(st);
+  const { generatedLessons: _g, reviewChallenges: _r, ...session } = st.session;
   return {
     session,
+    reviews: reviewOverview(st),
     rewards: learningProgress(st.session.events, allLessons(st.session)),
     dcc: st.dcc,
     recommendation: openRecommendation(st.session),
