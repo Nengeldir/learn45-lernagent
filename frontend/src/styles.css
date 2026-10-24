@@ -1330,3 +1330,16 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .owl-panel input { flex: 1; min-width: 0; border: 1px solid var(--line-strong); background: var(--paper); color: var(--ink); border-radius: 999px; padding: 10px 14px; font: inherit; }
 .owl-panel form button { width: 42px; height: 42px; border: 0; border-radius: 50%; background: #E23B2F; color: #fff; font-size: 20px; cursor: pointer; }
 .owl-panel form button:disabled, .owl-chips button:disabled { opacity: 0.5; cursor: default; }
+
+.learn-more { margin: 18px 0 8px; }
+.learn-more-toggle { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 8px 14px; cursor: pointer; font: inherit; font-weight: 650; }
+.learn-more-toggle:hover { border-color: #E23B2F; }
+.learn-more-body { margin-top: 12px; display: grid; gap: 14px; }
+.learn-more-body h3 { margin: 0 0 8px; font-size: 15px; }
+.learn-videos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.learn-videos a { display: grid; gap: 6px; color: inherit; text-decoration: none; font-weight: 650; }
+.learn-videos img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; background: var(--surface-2); }
+.learn-web { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.learn-web a { color: inherit; font-weight: 650; }
+.learn-web p { margin: 2px 0 0; }
+@media (max-width: 600px) { .learn-videos { grid-template-columns: 1fr; } }
