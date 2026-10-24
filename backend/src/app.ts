@@ -2,7 +2,7 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Answer, ChatTurn, ContentBundle } from '@l45/shared';
+import type { Answer, ChatTurn, ContentBundle, VideoLesson } from '@l45/shared';
 import { content } from './content.ts';
 import { InputError, profileFromFile, profileFromManual } from './dcc.ts';
 import { modelStatus, providerName } from './provider.ts';
@@ -10,6 +10,7 @@ import {
   HttpError, addTracks, chat, clearCache, complete, createTrack, generatedPublic, get, hint, login, nextLesson, partialCheck, patch, publicLesson,
   setMission, startNode, view,
 } from './sessions.ts';
+import { VideoService } from './video/service.ts';
 
 type Handler = (req: Request, res: Response) => unknown;
 const h = (fn: Handler) => (req: Request, res: Response, next: NextFunction) => {
@@ -41,10 +42,15 @@ function parseTurns(turns: unknown): ChatTurn[] {
     .map((t) => ({ role: t.role, text: String(t.text ?? '').slice(0, 2000), source: t.source }));
 }
 
-export function createApp() {
+export function createApp(options: { videoService?: VideoService } = {}) {
   // A new app starts like a restarted server: nothing in memory, everything is read from disk.
   clearCache();
   const app = express();
+  const videos = options.videoService ?? new VideoService({
+    output: process.env.VIDEO_CACHE_DIR ?? join(import.meta.dirname, '..', 'var', 'videos'),
+    speechCache: process.env.VIDEO_SPEECH_CACHE_DIR ?? join(import.meta.dirname, '..', 'var', 'video-speech'),
+    published: join(import.meta.dirname, '..', '..', 'frontend', 'public', 'videos'),
+  });
   app.use(express.json({ limit: '200kb' }));
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, provider: providerName(), modelStatus: modelStatus(false) }));
@@ -100,6 +106,21 @@ export function createApp() {
     const r = startNode(st, p(req, 'node'));
     res.json({ ...r, view: view(st) });
   }));
+  const videoOf = (sessionId: string, nodeId: string): VideoLesson => {
+    const st = get(sessionId);
+    const node = st.session.nodes.find(n => n.id === nodeId && n.kind === 'lesson');
+    const lesson = [...content.lessons, ...st.session.generatedLessons].find(l => l.id === node?.lessonId);
+    if (!lesson) throw new HttpError(404, 'Lektion nicht gefunden');
+    if (lesson.type !== 'video') throw new HttpError(400, 'Diese Lektion ist kein Video.');
+    return lesson;
+  };
+  app.post('/api/sessions/:id/nodes/:node/video', h(async (req, res) => {
+    const result = await videos.prepare(videoOf(p(req, 'id'), p(req, 'node')));
+    res.status(result.state === 'building' ? 202 : result.state === 'error' ? 503 : 200).json(result);
+  }));
+  app.get('/api/sessions/:id/nodes/:node/video', h(async (req, res) => {
+    res.json(await videos.status(videoOf(p(req, 'id'), p(req, 'node'))));
+  }));
   app.post('/api/sessions/:id/nodes/:node/check', h((req, res) => res.json(partialCheck(get(p(req, 'id')), p(req, 'node'), parseAnswer(req.body)))));
   app.post('/api/sessions/:id/nodes/:node/hint', h(async (req, res) => res.json(await hint(get(p(req, 'id')), p(req, 'node'), parseAnswer(req.body)))));
   app.post('/api/sessions/:id/nodes/:node/chat', h(async (req, res) => res.json(await chat(get(p(req, 'id')), p(req, 'node'), parseTurns(req.body?.turns)))));
@@ -109,6 +130,10 @@ export function createApp() {
     const result = await complete(st, p(req, 'node'), parseAnswer(req.body), Number.isFinite(d) ? d : undefined);
     res.json({ result, view: view(st), generated: generatedPublic(st) });
   }));
+
+  // Completed runtime videos and bundled videos share the same public asset URL shape.
+  app.use('/videos', express.static(videos.options.output), express.static(videos.options.published));
+  app.use('/videos', (_req, res) => res.status(404).json({ error: 'Video-Datei nicht gefunden' }));
 
   // Built frontend
   const dist = process.env.FRONTEND_DIST ?? join(import.meta.dirname, '..', '..', 'frontend', 'dist');

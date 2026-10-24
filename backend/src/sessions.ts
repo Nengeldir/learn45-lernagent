@@ -54,8 +54,8 @@ export function get(id: string): Stored {
 const offline = (s: Session) => s.simulation || providerName() === 'none';
 const opts = (s: Session): Opts => ({ offline: offline(s), onCall: (c) => s.modelCalls.push(c) });
 
-/** The planner agent needs tool use: Anthropic, or the mock provider in tests. Other providers keep the rules. */
-const plannerProvider = () => providerName() === 'anthropic' || providerName() === 'mock';
+/** Both configured model providers support the planner's tools; rules remain the fallback. */
+const plannerProvider = () => providerName() !== 'none';
 export const agentAvailable = (s: Session) => !s.simulation && plannerProvider();
 
 export function save(st: Stored) {
@@ -322,11 +322,12 @@ const clean = (v: unknown) => String(v ?? '').replace(/ß/g, 'ss').replace(/\s+/
  * Creates a track from an own topic, e.g. "Security+ Prüfung bestehen". The model designs it (designer.ts),
  * the generator writes its first lesson. Only if both are valid does the track go on the map.
  */
-export async function createTrack(st: Stored, body: { topic?: unknown; goal?: unknown; selfLevel?: unknown }): Promise<Track> {
+export async function createTrack(st: Stored, body: { topic?: unknown; goal?: unknown; selfLevel?: unknown; lessonType?: unknown }): Promise<Track> {
   const s = st.session;
   if (offline(s)) throw new HttpError(409, 'Eigene Bereiche plant der Agent mit KI. Ohne KI kannst du einen vorbereiteten Bereich wählen.');
   const topic = clean(body.topic);
   const goal = clean(body.goal);
+  if (body.lessonType !== undefined && body.lessonType !== 'video') throw new HttpError(400, 'Als gewünschter Einstieg ist derzeit nur video möglich.');
   if (topic.length < 3 || topic.length > 120) throw new HttpError(400, 'Das Thema braucht 3 bis 120 Zeichen.');
   if (goal.length > 300) throw new HttpError(400, 'Wofür: höchstens 300 Zeichen.');
   const selfLevel = (DCC_LEVELS as unknown[]).includes(body.selfLevel) ? (body.selfLevel as DccLevel) : 'Grundstufe';
@@ -338,7 +339,8 @@ export async function createTrack(st: Stored, body: { topic?: unknown; goal?: un
   const design = await designTrack({ topic, goal: goal || undefined, selfLevel, timeoutMs: generateMs() }, (c) => s.modelCalls.push(c));
   if (!design.ok) throw new HttpError(502, `Der Agent konnte «${topic}» nicht als Bereich planen: ${design.errors.join('; ')}`);
   const { track } = design;
-  const first = await firstLesson(st, track, goal || undefined);
+  if (body.lessonType === 'video') track.custom!.lessonTypes = [...new Set(['video' as const, ...track.custom!.lessonTypes])];
+  const first = await firstLesson(st, track, goal || undefined, body.lessonType === 'video' ? 'video' : undefined);
   if (!first.ok) throw new HttpError(502, `Der Bereich «${track.name}» ist geplant, aber die erste Lektion war ungültig: ${first.errors.join('; ')}. Versuch es noch einmal.`);
 
   st.tracks.push(track);
@@ -351,6 +353,7 @@ export async function createTrack(st: Stored, body: { topic?: unknown; goal?: un
   });
   // What the learner wrote under "Wofür" is their mission; otherwise it is asked before the first lesson.
   if (goal.length >= 3) setMission(st, track.id, { text: goal });
+  else if (body.lessonType === 'video') setMission(st, track.id, { skip: true });
   recommend(st, false, track.id);
   save(st);
   return track;

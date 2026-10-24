@@ -5,6 +5,7 @@ Package metadata is adapted for the Learn45 workspace; demos, fixtures, native G
 Local fixes:
 
 - German umlauts in plain text labels are converted to vector math accents in `src/render-geometry.ts`.
+- Common Greek letters, scientific operators, degree signs and Unicode sub/superscripts use the bundled math glyphs, so generated labels such as `CO₂` and `πr²` remain renderable.
 - `src/webgl.ts` packs contiguous vertex fields into 11 attributes, leaving room for Safari/Metal's internal instancing attribute. The shared vertex buffer and WebGPU layout remain compatible.
 
 OwlYouNeed itself is unchanged.

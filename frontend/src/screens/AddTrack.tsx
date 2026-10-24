@@ -13,11 +13,12 @@ const PRIOR: { level: DccLevel; label: string }[] = [
 ];
 const EXAMPLES = ['Security+ Prüfung bestehen', 'Excel-Formeln für Auswertungen', 'Spanisch für die Reise'];
 
-export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (nodeId?: string) => void }) {
+export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (nodeId?: string, openVideo?: boolean) => void }) {
   const { view, content, setView } = useStore();
   const [topic, setTopic] = useState('');
   const [goal, setGoal] = useState('');
   const [prior, setPrior] = useState<DccLevel>('Grundstufe');
+  const [format, setFormat] = useState<'video' | 'auto'>('video');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -34,13 +35,13 @@ export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (
   const onMap = new Set(view.skills.flatMap((s) => s.tracks.map((t) => t.id)));
   const catalog = content.skills.map((s) => ({ skill: s, open: s.tracks.filter((t) => !onMap.has(t.id)) })).filter((x) => x.open.length);
 
-  const run = async (what: string, fn: () => Promise<{ view: SessionView; generated: Lesson[] }>) => {
+  const run = async (what: string, fn: () => Promise<{ view: SessionView; generated: Lesson[] }>, openVideo = false) => {
     setBusy(what);
     setError(null);
     try {
       const r = await fn();
       setView(r.view, r.generated);
-      onAdded(r.view.recommendation?.nodeId || undefined);
+      onAdded(r.view.recommendation?.nodeId || undefined, openVideo);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setBusy(null);
@@ -66,7 +67,7 @@ export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (
             <p className="small muted">Der Agent plant den Bereich mit der KI: was du können musst, passende Quellen und einen ersten Einstieg.</p>
             <form className="add-own" onSubmit={(e) => {
               e.preventDefault();
-              run('own', () => api.createTrack(sessionId, { topic, goal: goal.trim() || undefined, selfLevel: prior }));
+              run('own', () => api.createTrack(sessionId, { topic, goal: goal.trim() || undefined, selfLevel: prior, lessonType: format === 'video' ? 'video' : undefined }), format === 'video');
             }}>
               <label className="field">
                 <span>Thema</span>
@@ -87,8 +88,15 @@ export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (
                   ))}
                 </div>
               </fieldset>
+              <label className="field">
+                <span>Was möchtest du zuerst?</span>
+                <select value={format} onChange={e => setFormat(e.target.value as 'video' | 'auto')} disabled={Boolean(busy)}>
+                  <option value="video">Ein Erklärvideo mit Fragen</option>
+                  <option value="auto">Der Agent wählt eine passende Übung</option>
+                </select>
+              </label>
               <div className="row">
-                <button className="btn primary" disabled={!view.canCreateTracks || topic.trim().length < 3 || Boolean(busy)}><Icon name="sparkle" size={16} />Bereich planen</button>
+                <button className="btn primary" disabled={!view.canCreateTracks || topic.trim().length < 3 || Boolean(busy)}><Icon name="sparkle" size={16} />{format === 'video' ? 'Erklärvideo erstellen' : 'Bereich planen'}</button>
               </div>
               {busy === 'own' && (
                 <p className="planning" role="status"><span className="dot-pulse" aria-hidden="true" />Der Agent plant «{topic.trim()}» und erstellt einen Einstieg. Das dauert bis zu einer Minute.</p>

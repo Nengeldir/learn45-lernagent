@@ -42,7 +42,7 @@ export const api = {
   generated: (id: string) => call<Lesson[]>('GET', `${s(id)}/lessons`),
   patch: (id: string, body: Record<string, unknown>) => call<SessionView>('PATCH', s(id), body),
   addTracks: (id: string, trackIds: string[]) => call<{ view: SessionView; generated: Lesson[] }>('POST', `${s(id)}/tracks`, { trackIds }),
-  createTrack: (id: string, body: { topic: string; goal?: string; selfLevel: DccLevel }) =>
+  createTrack: (id: string, body: { topic: string; goal?: string; selfLevel: DccLevel; lessonType?: 'video' }) =>
     call<{ trackId: string; view: SessionView; generated: Lesson[] }>('POST', `${s(id)}/own-tracks`, body),
   nextLesson: (id: string, trackId: string) =>
     call<{ view: SessionView; generated: Lesson[] }>('POST', `${s(id)}/tracks/${encodeURIComponent(trackId)}/next`, {}),
