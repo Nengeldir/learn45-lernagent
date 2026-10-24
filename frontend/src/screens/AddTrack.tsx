@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DccLevel } from '@l45/shared';
 import { api } from '../lib/api.ts';
+import { useI18n } from '../lib/i18n.tsx';
 import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
 
@@ -15,6 +16,7 @@ const EXAMPLES = ['Sichere Passwörter', 'Fotos vom Handy auf den Computer', 'Vi
 
 export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (nodeId?: string) => void }) {
   const { view, setView } = useStore();
+  const { t } = useI18n();
   const [topic, setTopic] = useState('');
   const [prior, setPrior] = useState<DccLevel>('Grundstufe');
   const [busy, setBusy] = useState(false);
@@ -46,32 +48,32 @@ export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (
     <div className="overlay" onClick={() => !busy && onClose()}>
       <div className="overlay-panel add-track" role="dialog" aria-modal="true" aria-labelledby="add-track-title" tabIndex={-1} ref={ref} onClick={(e) => e.stopPropagation()}>
         <header className="overlay-head">
-          <h2 id="add-track-title">Eigenes Thema</h2>
-          <button className="btn quiet small" disabled={busy} onClick={onClose}><Icon name="close" size={18} />Schliessen</button>
+          <h2 id="add-track-title">{t('Eigenes Thema')}</h2>
+          <button className="btn quiet small" disabled={busy} onClick={onClose}><Icon name="close" size={18} />{t('Schliessen')}</button>
         </header>
         {error && <p className="error" role="alert">{error}</p>}
         {!view.canCreateTracks ? (
-          <p className="muted">Eigene Themen gehen nur mit KI. Gerade ist keine KI verbunden. Wähle bitte ein Thema aus der Liste.</p>
+          <p className="muted">{t('Eigene Themen gehen nur mit KI. Gerade ist keine KI verbunden. Wähle bitte ein Thema aus der Liste.')}</p>
         ) : (
           <form className="add-own" onSubmit={(e) => { e.preventDefault(); void create(); }}>
             <label className="field">
-              <span>Worüber möchtest du etwas lernen?</span>
-              <input type="text" value={topic} maxLength={120} placeholder="z. B. Sichere Passwörter" onChange={(e) => setTopic(e.target.value)} disabled={busy} />
+              <span>{t('Worüber möchtest du etwas lernen?')}</span>
+              <input type="text" value={topic} maxLength={120} placeholder={t('z. B. Sichere Passwörter')} onChange={(e) => setTopic(e.target.value)} disabled={busy} />
             </label>
-            <div className="chips" aria-label="Beispiele">
-              {EXAMPLES.map((x) => <button key={x} type="button" className="chip" disabled={busy} onClick={() => setTopic(x)}>{x}</button>)}
+            <div className="chips" aria-label={t('Beispiele')}>
+              {EXAMPLES.map((x) => <button key={x} type="button" className="chip" disabled={busy} onClick={() => setTopic(x)}>{t(x)}</button>)}
             </div>
             <fieldset className="prior">
-              <legend>Wie viel weisst du schon darüber?</legend>
-              <div className="seg" role="radiogroup" aria-label="Vorwissen">
+              <legend>{t('Wie viel weisst du schon darüber?')}</legend>
+              <div className="seg" role="radiogroup" aria-label={t('Vorwissen')}>
                 {PRIOR.map((p) => (
-                  <button key={p.level} type="button" role="radio" aria-checked={prior === p.level} disabled={busy} onClick={() => setPrior(p.level)}>{p.label}</button>
+                  <button key={p.level} type="button" role="radio" aria-checked={prior === p.level} disabled={busy} onClick={() => setPrior(p.level)}>{t(p.label)}</button>
                 ))}
               </div>
             </fieldset>
-            <button className="btn primary big" disabled={topic.trim().length < 3 || busy}><Icon name="sparkle" size={20} />Los geht's</button>
-            {busy && <p className="planning" role="status"><span className="dot-pulse" aria-hidden="true" />Die KI plant «{topic.trim()}» für dich. Das kann bis zu einer Minute dauern.</p>}
-            <p className="small muted">Die KI bekommt nur dein Thema, nicht deinen Namen.</p>
+            <button className="btn primary big" disabled={topic.trim().length < 3 || busy}><Icon name="sparkle" size={20} />{t("Los geht's")}</button>
+            {busy && <p className="planning" role="status"><span className="dot-pulse" aria-hidden="true" />{t('Die KI plant «{topic}» für dich. Das kann bis zu einer Minute dauern.', { topic: topic.trim() })}</p>}
+            <p className="small muted">{t('Die KI bekommt nur dein Thema, nicht deinen Namen.')}</p>
           </form>
         )}
       </div>
