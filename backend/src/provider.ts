@@ -105,6 +105,19 @@ export async function callModel(req: ModelRequest): Promise<ModelReply> {
   }
 }
 
+/**
+ * Current models think before they answer, and thinking counts against max_tokens. Callers size maxTokens for the
+ * visible reply, so the request adds room for a short thought; low effort keeps that thought short.
+ */
+const THINKING_HEADROOM = 2000;
+
+/** Like the OpenAI errors: status and error type (e.g. invalid_request_error), never the provider's message. */
+async function anthropicError(res: Response): Promise<Error> {
+  const body = await res.json().catch(() => ({})) as { error?: { type?: string } };
+  const type = body.error?.type;
+  return new Error(`anthropic ${res.status}${type && /^[a-z_]+$/.test(type) ? ` (${type})` : ''}`);
+}
+
 async function callAnthropic(req: ModelRequest, timeoutMs: number): Promise<string> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -116,15 +129,17 @@ async function callAnthropic(req: ModelRequest, timeoutMs: number): Promise<stri
     },
     body: JSON.stringify({
       model: req.planner ? plannerModel() : chatModel(),
-      max_tokens: req.maxTokens ?? 700,
-      ...(req.planner ? { output_config: { effort: 'low' } } : {}),
+      max_tokens: (req.maxTokens ?? 700) + THINKING_HEADROOM,
+      output_config: { effort: 'low' },
       system: req.system,
       messages: req.messages,
     }),
   });
-  if (!res.ok) throw new Error(`anthropic ${res.status}`);
-  const data = (await res.json()) as { content?: { type: string; text?: string }[] };
-  return (data.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
+  if (!res.ok) throw await anthropicError(res);
+  const data = (await res.json()) as { content?: { type: string; text?: string }[]; stop_reason?: string };
+  const text = (data.content ?? []).filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
+  if (!text.trim()) throw new Error(`no text in reply (stop_reason ${data.stop_reason ?? 'unknown'})`);
+  return text;
 }
 
 async function callOpenAI(req: ModelRequest, timeoutMs: number): Promise<string> {
@@ -288,7 +303,7 @@ async function callAnthropicTools(req: AgentRequest): Promise<{ content: AgentBl
       messages: req.messages,
     }),
   });
-  if (!res.ok) throw new Error(`anthropic ${res.status}`);
+  if (!res.ok) throw await anthropicError(res);
   const data = (await res.json()) as { content?: AgentBlock[]; stop_reason?: string };
   return { content: data.content ?? [], stopReason: data.stop_reason ?? 'end_turn' };
 }

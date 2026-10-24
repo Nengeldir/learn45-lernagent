@@ -98,3 +98,20 @@ it('keeps Anthropic generation and multi-turn planner tools supported with low e
   expect(bodies[2].messages).toEqual(messages);
   expect(plannerModelName()).toBe('claude-opus-5-5');
 });
+
+it('gives Anthropic chat calls low effort and room to think, so a reply is never only a thought', async () => {
+  const { bodies, replies } = setup('anthropic');
+  const chat = { purpose: 'chat' as const, system: 'Role play', messages: [{ role: 'user' as const, content: 'Hallo' }], maxTokens: 250 };
+  replies.push({ content: [{ type: 'thinking', thinking: '', signature: 'sig' }], stop_reason: 'max_tokens' }, { content: [{ type: 'thinking', thinking: '' }, { type: 'text', text: 'Was ist passiert?' }] });
+  expect(await callModel(chat)).toMatchObject({ ok: false, error: 'no text in reply (stop_reason max_tokens)' });
+  expect(await callModel(chat)).toMatchObject({ ok: true, text: 'Was ist passiert?' });
+  expect(bodies.every(b => b.model === 'claude-haiku-5-5' && b.output_config.effort === 'low' && b.max_tokens === 2250)).toBe(true);
+});
+
+it('reports the Anthropic error type without exposing provider messages', async () => {
+  setup('anthropic');
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json({ type: 'error', error: { type: 'invalid_request_error', message: 'private provider detail' } }, { status: 400 })));
+  const result = await callModel(request);
+  expect(result).toMatchObject({ ok: false, error: 'anthropic 400 (invalid_request_error)' });
+  expect(JSON.stringify(result)).not.toContain('private provider detail');
+});
