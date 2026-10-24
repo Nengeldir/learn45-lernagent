@@ -303,6 +303,8 @@ export interface MapNode {
   skillId?: string;
   trackId?: string;
   lessonId?: string;
+  /** Display-only topic preview; never a completed lesson. */
+  topicId?: string;
   state?: NodeState;
   /** Added by the agent after a result (the map grows) */
   addedByAgent?: boolean;
@@ -329,7 +331,9 @@ export interface Recommendation {
   /** Didactic justification: why this step and mode help now */
   why: string;
   tags: Source[];
-  status: 'open' | 'accepted' | 'declined';
+  status: 'open' | 'accepted' | 'declined' | 'chosen';
+  /** A learner chose another direction, without rejecting the recommendation. */
+  chosenNodeId?: string;
   /** Rule plan shown while the planner agent still works on it */
   provisional?: boolean;
   /** Learning record and event ids the recommendation cites (A1) */
@@ -471,6 +475,30 @@ export interface PlannerRun {
   tools: string[];
 }
 
+/** A topic preview, with only the existing lesson formats. No lesson content is generated yet. */
+export interface NextTopic {
+  id: string;
+  title: string;
+  reason: string;
+  criterion: string;
+  formats: LessonType[];
+  level: DccLevel;
+  recommended: boolean;
+  /** An existing lesson can be reused if the learner chooses its format. */
+  lessonId?: string;
+}
+
+export interface TopicChoices {
+  id: string;
+  trackId: string;
+  parentNodeId: string;
+  revision: string;
+  topics: NextTopic[];
+  customTopic?: NextTopic;
+  canSuggestOwn: boolean;
+  source: 'rule' | 'model';
+}
+
 export interface Session {
   id: string;
   learnerId: string;
@@ -489,6 +517,11 @@ export interface Session {
   checks: Record<string, number>;
   modelCalls: ModelCall[];
   generatedLessons: Lesson[];
+  /** Enabled when the client requests topic previews; legacy clients keep their original flow. */
+  topicChoiceFlow?: boolean;
+  topicChoices?: TopicChoices;
+  /** Saved in the learner workspace, retained across server restarts and new sessions. */
+  preferredLessonType?: LessonType;
   reviewQueue: ReviewItem[];
   missionChanges: MissionChange[];
   plannerRuns: PlannerRun[];

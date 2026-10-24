@@ -275,6 +275,7 @@ export function recommend(st: Stored, provisional = false, focusTrackId?: string
 
 /** After a change of settings or session: an open agent plan stays if it still passes the guardrails. */
 function keepOrRecommend(st: Stored) {
+  if (st.session.topicChoiceFlow) return;
   const rec = openRecommendation(st.session);
   if (rec?.ruleId === 'A1') {
     const problems = checkPlan(st, { nodeId: rec.nodeId, alternativeNodeId: rec.alternativeNodeId ?? '', reason: rec.reason, basedOn: rec.basedOn ?? [] });
@@ -320,9 +321,9 @@ const clean = (v: unknown) => String(v ?? '').replace(/ß/g, 'ss').replace(/\s+/
 
 /**
  * Creates a track from an own topic, e.g. "Security+ Prüfung bestehen". The model designs it (designer.ts),
- * the generator writes its first lesson. Only if both are valid does the track go on the map.
+ * New clients defer the first lesson until topic/format selection; legacy clients receive a starter.
  */
-export async function createTrack(st: Stored, body: { topic?: unknown; goal?: unknown; selfLevel?: unknown; lessonType?: unknown }): Promise<Track> {
+export async function createTrack(st: Stored, body: { topic?: unknown; goal?: unknown; selfLevel?: unknown; lessonType?: unknown; deferLesson?: unknown }): Promise<Track> {
   const s = st.session;
   if (offline(s)) throw new HttpError(409, 'Eigene Bereiche plant der Agent mit KI. Ohne KI kannst du einen vorbereiteten Bereich wählen.');
   const topic = clean(body.topic);
@@ -340,17 +341,23 @@ export async function createTrack(st: Stored, body: { topic?: unknown; goal?: un
   if (!design.ok) throw new HttpError(502, `Der Agent konnte «${topic}» nicht als Bereich planen: ${design.errors.join('; ')}`);
   const { track } = design;
   if (body.lessonType === 'video') track.custom!.lessonTypes = [...new Set(['video' as const, ...track.custom!.lessonTypes])];
-  const first = await firstLesson(st, track, goal || undefined, body.lessonType === 'video' ? 'video' : undefined);
-  if (!first.ok) throw new HttpError(502, `Der Bereich «${track.name}» ist geplant, aber die erste Lektion war ungültig: ${first.errors.join('; ')}. Versuch es noch einmal.`);
+  const first = body.deferLesson === true ? undefined : await firstLesson(st, track, goal || undefined, body.lessonType === 'video' ? 'video' : undefined);
+  if (first && !first.ok) throw new HttpError(502, `Der Bereich «${track.name}» ist geplant, aber die erste Lektion war ungültig: ${first.errors.join('; ')}. Versuch es noch einmal.`);
 
   st.tracks.push(track);
   writeTrack(st.profile.id, track);
   placeTrack(s, track, CUSTOM_SKILL);
-  storeLesson(st, first.lesson);
-  s.nodes.push({
-    id: `n-${first.lesson.id}`, kind: 'lesson', parentId: `t-${track.id}`, label: first.lesson.title,
-    skillId: CUSTOM_SKILL.id, trackId: track.id, lessonId: first.lesson.id, state: 'planned',
-  });
+  if (first?.ok) {
+    storeLesson(st, first.lesson);
+    s.nodes.push({
+      id: `n-${first.lesson.id}`, kind: 'lesson', parentId: `t-${track.id}`, label: first.lesson.title,
+      skillId: CUSTOM_SKILL.id, trackId: track.id, lessonId: first.lesson.id, state: 'planned',
+    });
+  }
+  if (body.deferLesson === true) {
+    s.topicChoiceFlow = true;
+    delete s.topicChoices;
+  }
   // What the learner wrote under "Wofür" is their mission; otherwise it is asked before the first lesson.
   if (goal.length >= 3) setMission(st, track.id, { text: goal });
   else if (body.lessonType === 'video') setMission(st, track.id, { skip: true });
@@ -439,9 +446,10 @@ export function startNode(st: Stored, nodeId: string): { lesson: Lesson; switche
   let switched: string | undefined;
   if (rec && node.state === 'recommended') rec.status = 'accepted';
   if (rec && node.state === 'alternative') {
-    // Choosing the alternative = declining the recommendation. Recorded as such.
-    rec.status = 'declined';
-    switched = 'Du hast die Alternative gewählt. Der Agent merkt sich das und plant danach neu.';
+    // A different topic is a neutral choice in the new flow; preserve legacy API behaviour.
+    rec.status = s.topicChoiceFlow ? 'chosen' : 'declined';
+    rec.chosenNodeId = nodeId;
+    switched = s.topicChoiceFlow ? 'Du hast eine andere Richtung gewählt. Die übrigen Themen bleiben offen.' : 'Du hast die Alternative gewählt. Der Agent merkt sich das und plant danach neu.';
   }
   delete s.helpUsed[nodeId];
   delete s.checks[nodeId];
@@ -510,12 +518,19 @@ export async function complete(st: Stored, nodeId: string, a: Answer, durationMi
   settleReviews(st, event);
   recordFromEvent(st, event);
 
-  // The recommendation is settled: if the learner started something else, record it as declined.
+  // Settle the recommendation; another direction in the topic flow is a neutral choice.
   const rec = openRecommendation(s);
-  if (rec && rec.nodeId !== nodeId) rec.status = 'declined';
+  if (rec && rec.nodeId !== nodeId) rec.status = s.topicChoiceFlow ? 'chosen' : 'declined';
   if (rec && rec.nodeId === nodeId) rec.status = 'accepted';
 
   Object.assign(node, { state: 'done', result, helpUsed });
+  // Topic-choice clients plan lightweight previews on demand. Never generate a full next lesson here.
+  if (s.topicChoiceFlow) {
+    delete s.topicChoices;
+    for (const n of s.nodes) if (n.state === 'recommended' || n.state === 'alternative') n.state = 'planned';
+    save(st);
+    return result;
+  }
   // The rules answer at once. With an agent, their plan is provisional until the agent is done.
   const withAgent = agentAvailable(s) && !s.plannerRuns.some((r) => r.eventId === event.id);
   // Own tracks have no prepared lessons: without the agent, the rules let the generator write the next one.

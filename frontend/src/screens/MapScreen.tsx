@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import type { MapNode } from '@l45/shared';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { LessonOverlay } from '../lessons/LessonOverlay.tsx';
 import { Icon } from '../lib/icons.tsx';
@@ -59,6 +60,14 @@ export function MapScreen() {
   }, [planning, refresh, lessonNode]);
 
   useEffect(() => {
+    const choices = view?.session.topicChoices;
+    const recommended = choices?.topics.find(t => t.recommended);
+    if (!lessonNode && choices && recommended && (!selectedId || selectedId === `t-${choices.trackId}`)) {
+      setFocusId(`preview-${recommended.id}`);
+    }
+  }, [view?.session.topicChoices?.id, lessonNode, selectedId]);
+
+  useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(null), 6000);
     return () => clearTimeout(id);
@@ -73,8 +82,23 @@ export function MapScreen() {
     }
   }, [view?.recommendation?.nodeId]);
 
+  const mapNodes = useMemo<MapNode[]>(() => {
+    if (!view) return [];
+    const choices = view.session.topicChoices;
+    if (!choices) return view.session.nodes;
+    const track = view.skills.flatMap(s => s.tracks).find(t => t.id === choices.trackId);
+    const previews: MapNode[] = choices.topics.map(t => ({
+      id: `preview-${t.id}`, kind: 'lesson', parentId: choices.parentNodeId,
+      label: t.title, topicId: t.id, trackId: choices.trackId, skillId: track?.skillId,
+      state: t.recommended ? 'recommended' : 'alternative',
+    }));
+    const previewedLessons = new Set(choices.topics.map(t => t.lessonId).filter(Boolean));
+    const existing = view.session.nodes.filter(n => !(n.kind === 'lesson' && n.state !== 'done' && previewedLessons.has(n.lessonId) && !view.session.nodes.some(child => child.parentId === n.id)));
+    return [...existing.map(n => n.state === 'recommended' || n.state === 'alternative' ? { ...n, state: 'planned' as const } : n), ...previews];
+  }, [view]);
+
   if (!view || !content) return <Navigate to="/" replace />;
-  const selected = view.session.nodes.find((n) => n.id === selectedId) ?? null;
+  const selected = mapNodes.find((n) => n.id === selectedId) ?? null;
 
   const select = (id: string | null) => {
     setSelectedId(id);
@@ -102,7 +126,7 @@ export function MapScreen() {
 
       <main className="map-area">
         <MindMap
-          nodes={view.session.nodes}
+          nodes={mapNodes}
           skills={view.skills}
           dcc={view.dcc}
           lessonOf={lessonOf}
@@ -110,6 +134,7 @@ export function MapScreen() {
           focusId={focusId}
           onSelect={select}
           rightInset={wide ? 400 : 0}
+          bottomCoverage={!wide && sheetOpen ? 0.6 : 0}
         />
         <aside className={`side${wide ? '' : ' sheet'}${!wide && !sheetOpen ? ' collapsed' : ''}`} aria-label="Details">
           {!wide && (
@@ -117,7 +142,7 @@ export function MapScreen() {
               {sheetOpen ? 'Einklappen' : 'Nächster Schritt'}
             </button>
           )}
-          {(wide || sheetOpen) && (
+          {(wide || sheetOpen) && !lessonNode && (
             <NodePanel
               view={view}
               selected={selected}
@@ -143,13 +168,13 @@ export function MapScreen() {
       {adding && (
         <AddTrack
           onClose={() => setAdding(false)}
-          onAdded={(nodeId, openVideo) => {
+          onAdded={(nodeId) => {
             setAdding(false);
-            setSelectedId(null);
+            setSelectedId(nodeId?.startsWith('t-') ? nodeId : null);
             setSheetOpen(true);
             setFocusId(null);
             if (nodeId) requestAnimationFrame(() => setFocusId(nodeId));
-            if (nodeId && openVideo) setLessonNode(nodeId);
+            // The next topic and its format are chosen in the side panel.
           }}
         />
       )}

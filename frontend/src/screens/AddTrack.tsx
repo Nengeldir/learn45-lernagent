@@ -13,12 +13,11 @@ const PRIOR: { level: DccLevel; label: string }[] = [
 ];
 const EXAMPLES = ['Security+ Prüfung bestehen', 'Excel-Formeln für Auswertungen', 'Spanisch für die Reise'];
 
-export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (nodeId?: string, openVideo?: boolean) => void }) {
+export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (nodeId?: string) => void }) {
   const { view, content, setView } = useStore();
   const [topic, setTopic] = useState('');
   const [goal, setGoal] = useState('');
   const [prior, setPrior] = useState<DccLevel>('Grundstufe');
-  const [format, setFormat] = useState<'video' | 'auto'>('video');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -35,13 +34,13 @@ export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (
   const onMap = new Set(view.skills.flatMap((s) => s.tracks.map((t) => t.id)));
   const catalog = content.skills.map((s) => ({ skill: s, open: s.tracks.filter((t) => !onMap.has(t.id)) })).filter((x) => x.open.length);
 
-  const run = async (what: string, fn: () => Promise<{ view: SessionView; generated: Lesson[] }>, openVideo = false) => {
+  const run = async (what: string, fn: () => Promise<{ view: SessionView; generated: Lesson[]; trackId?: string }>) => {
     setBusy(what);
     setError(null);
     try {
       const r = await fn();
       setView(r.view, r.generated);
-      onAdded(r.view.recommendation?.nodeId || undefined, openVideo);
+      onAdded(r.trackId ? `t-${r.trackId}` : r.view.recommendation?.nodeId || undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setBusy(null);
@@ -64,10 +63,10 @@ export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (
         <div className="add-grid">
           <section aria-labelledby="add-own">
             <h3 id="add-own">Eigenes Thema</h3>
-            <p className="small muted">Der Agent plant den Bereich mit der KI: was du können musst, passende Quellen und einen ersten Einstieg.</p>
+            <p className="small muted">Der Agent plant den Bereich mit passenden Quellen. Danach wählst du dein erstes Thema und das Format.</p>
             <form className="add-own" onSubmit={(e) => {
               e.preventDefault();
-              run('own', () => api.createTrack(sessionId, { topic, goal: goal.trim() || undefined, selfLevel: prior, lessonType: format === 'video' ? 'video' : undefined }), format === 'video');
+              run('own', () => api.createTrack(sessionId, { topic, goal: goal.trim() || undefined, selfLevel: prior, deferLesson: true }));
             }}>
               <label className="field">
                 <span>Thema</span>
@@ -88,18 +87,11 @@ export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (
                   ))}
                 </div>
               </fieldset>
-              <label className="field">
-                <span>Was möchtest du zuerst?</span>
-                <select value={format} onChange={e => setFormat(e.target.value as 'video' | 'auto')} disabled={Boolean(busy)}>
-                  <option value="video">Ein Erklärvideo mit Fragen</option>
-                  <option value="auto">Der Agent wählt eine passende Übung</option>
-                </select>
-              </label>
               <div className="row">
-                <button className="btn primary" disabled={!view.canCreateTracks || topic.trim().length < 3 || Boolean(busy)}><Icon name="sparkle" size={16} />{format === 'video' ? 'Erklärvideo erstellen' : 'Bereich planen'}</button>
+                <button className="btn primary" disabled={!view.canCreateTracks || topic.trim().length < 3 || Boolean(busy)}><Icon name="sparkle" size={16} />Bereich planen</button>
               </div>
               {busy === 'own' && (
-                <p className="planning" role="status"><span className="dot-pulse" aria-hidden="true" />Der Agent plant «{topic.trim()}» und erstellt einen Einstieg. Das dauert bis zu einer Minute.</p>
+                <p className="planning" role="status"><span className="dot-pulse" aria-hidden="true" />Der Agent plant «{topic.trim()}». Anschliessend wählst du Thema und Format deiner ersten Lektion.</p>
               )}
               {!view.canCreateTracks && <p className="note small">Eigene Bereiche plant der Agent mit KI. Gerade ist keine KI verbunden. Ein vorbereiteter Bereich geht auch ohne.</p>}
               <p className="small muted">An die KI gehen Thema, Wofür und Vorwissen, dein Name nicht. Die Quellen schlägt die KI vor. Behalten werden nur Adressen, die beim Anlegen erreichbar sind.</p>

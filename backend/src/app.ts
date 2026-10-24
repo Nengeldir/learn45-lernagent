@@ -14,6 +14,7 @@ import { PodcastService, type PodcastRequest } from './podcast/service.ts';
 import { sourcesOf } from './resources.ts';
 import { missionOf, trackIn } from './tracks.ts';
 import { VideoService } from './video/service.ts';
+import { chooseTopic, getTopics, suggestTopic } from './nextTopics.ts';
 
 type Handler = (req: Request, res: Response) => unknown;
 const h = (fn: Handler) => (req: Request, res: Response, next: NextFunction) => {
@@ -100,6 +101,22 @@ export function createApp(options: { videoService?: VideoService; podcastService
     const st = get(p(req, 'id'));
     await nextLesson(st, p(req, 'track'));
     res.json({ view: view(st), generated: generatedPublic(st) });
+  }));
+
+  app.post('/api/sessions/:id/tracks/:track/topics', h(async (req, res) => {
+    const st = get(p(req, 'id'));
+    const choices = await getTopics(st, p(req, 'track'));
+    res.json({ choices, view: view(st) });
+  }));
+  app.post('/api/sessions/:id/topics/custom', h(async (req, res) => {
+    const st = get(p(req, 'id'));
+    const topic = await suggestTopic(st, req.body ?? {});
+    res.json({ topic, view: view(st) });
+  }));
+  app.post('/api/sessions/:id/topics/choose', h(async (req, res) => {
+    const st = get(p(req, 'id'));
+    const nodeId = await chooseTopic(st, req.body ?? {});
+    res.status(201).json({ nodeId, view: view(st), generated: generatedPublic(st) });
   }));
 
   app.put('/api/sessions/:id/missions/:track', h((req, res) => {

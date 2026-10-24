@@ -1,11 +1,11 @@
 // A lesson opens over the map. After finishing, feedback and the agent's next step are shown here.
 import { useEffect, useRef, useState } from 'react';
 import type { Answer, Lesson, LessonResult } from '@l45/shared';
-import { MODE_LABEL, SOURCE_LABEL, TYPE_LABEL } from '@l45/shared';
+import { MODE_LABEL, TYPE_LABEL } from '@l45/shared';
 import { api } from '../lib/api.ts';
 import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
-import { BasedOn, LessonSource, PlanStatus, planLabel } from '../map/NodePanel.tsx';
+import { LessonSource } from '../map/NodePanel.tsx';
 import { AiChat } from './AiChat.tsx';
 import { MarkEvidence, MockSite } from './Checkable.tsx';
 import { MissionCard } from './MissionCard.tsx';
@@ -58,8 +58,6 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
 
   const track = view?.skills.flatMap((s) => s.tracks).find((t) => t.id === lesson?.trackId);
   const missed = result?.criteria.filter((c) => c.status === 'missed').map((c) => track?.criteria.find((x) => x.id === c.key)).filter(Boolean) ?? [];
-  const rec = view?.recommendation;
-  const recNode = view?.session.nodes.find((n) => n.id === rec?.nodeId);
 
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label={lesson?.title ?? 'Lektion'}>
@@ -118,18 +116,12 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
               <div className="note"><strong>Merksatz:</strong> {missed.map((m) => m!.ruleOfThumb).join(' ')}</div>
             )}
             {lesson.transfer && <div className="transfer"><strong>Für deine Arbeit:</strong> {lesson.transfer}</div>}
-            {rec && view && (
-              <div className="next-card">
-                <p className="eyebrow next">Der Agent passt deine Karte an</p>
-                <PlanStatus view={view} />
-                <h3>{recNode ? `Nächster Schritt: ${recNode.label}` : 'Alles erledigt'}</h3>
-                <p>{rec.reason}</p>
-                <p className="small">{rec.why}</p>
-                {rec.basedOn?.length ? <div className="small"><strong>Gestützt auf:</strong><BasedOn rec={rec} view={view} /></div> : null}
-                <p className="small muted">{rec.ruleId} {rec.ruleName}. {rec.tags.map((t) => SOURCE_LABEL[t]).join(', ')}. {planLabel(rec, view)}</p>
-                <button className="btn primary" onClick={() => onClose(true)}><Icon name="map" size={16} />Auf der Karte ansehen</button>
-              </div>
-            )}
+            <div className="next-card">
+              <p className="eyebrow next">Dein nächster Schritt</p>
+              <h3>Du wählst, wie es weitergeht</h3>
+              <p>Drei passende Themen oder dein eigener Vorschlag. Danach wählst du das Format.</p>
+              <button className="btn primary" onClick={() => onClose(true)}><Icon name="map" size={16} />Nächstes Thema wählen</button>
+            </div>
           </div>
         )}
       </div>
