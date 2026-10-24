@@ -1369,3 +1369,41 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .review-finished p { margin: 0; }
 .review-finished > .icon { color: var(--ok); }
 @media (max-width: 600px) { .review-dialog { padding: 20px; } .review-card { padding: 18px; } .review-nav { font-size: 13px; padding: 6px 8px; } .review-nav + .header-xp { display: none; } }
+
+/* The climber and the cable car on the topic mountain */
+.climber { pointer-events: none; }
+.hiker-svg { filter: drop-shadow(0 0 1px #fff) drop-shadow(0 1.5px 1.5px rgba(0, 0, 0, 0.35)); }
+.hiker-svg:not(.is-walking) { animation: climber-idle 2.4s ease-in-out infinite; }
+.hiker-svg .hiker-leg, .hiker-svg .climber-arm { transform-box: view-box; }
+.hiker-svg .hiker-leg { transform-origin: 22px 33px; }
+.hiker-svg .climber-arm.high { transform-origin: 22px 20px; }
+.hiker-svg .climber-arm.low { transform-origin: 17px 22px; }
+.hiker-svg.is-walking .hiker-leg { animation: climber-step 0.36s ease-in-out infinite alternate; }
+.hiker-svg.is-walking .hiker-leg.back { animation-direction: alternate-reverse; }
+.hiker-svg.is-walking .climber-arm.high { animation: climber-axe 0.36s ease-in-out infinite alternate; }
+.hiker-svg.is-walking .climber-arm.low { animation: climber-step 0.36s ease-in-out infinite alternate-reverse; }
+@keyframes climber-step { from { transform: rotate(-14deg); } to { transform: rotate(14deg); } }
+@keyframes climber-axe { from { transform: rotate(-24deg); } to { transform: rotate(8deg); } }
+@keyframes climber-idle { 50% { transform: translateY(-1.5px); } }
+
+.cable-rope { stroke: #1c1915; stroke-width: 1.4; }
+.cable-station { fill: #7a4a24; }
+.gondola-svg { filter: drop-shadow(0 1.5px 1.5px rgba(0, 0, 0, 0.3)); }
+.gondola-svg.is-moving { transform-box: view-box; transform-origin: 50% 0; animation: gondola-swing 0.9s ease-in-out infinite alternate; }
+@keyframes gondola-swing { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+.gondola-names { font-size: 9px; font-weight: 700; fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+
+.cheer line { stroke: var(--red); stroke-width: 2.4; stroke-linecap: round; transform: rotate(var(--a)); animation: cheer-ray 0.9s ease-out forwards; }
+.cheer.is-big line { stroke-width: 3; }
+.cheer text { font-size: 12px; font-weight: 800; text-anchor: middle; fill: var(--red); paint-order: stroke; stroke: var(--surface); stroke-width: 3.5px; stroke-linejoin: round; animation: cheer-text 1.8s ease-out forwards; }
+.cheer.is-big text { font-size: 16px; }
+@keyframes cheer-ray { from { opacity: 1; transform: rotate(var(--a)) scale(0.4); } to { opacity: 0; transform: rotate(var(--a)) scale(1.6); } }
+@keyframes cheer-text { 0% { opacity: 0; transform: translateY(6px) scale(0.7); } 15% { opacity: 1; transform: translateY(0) scale(1.05); } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+
+.climb-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 4px 0 14px; }
+.climb-tools .btn[aria-pressed='true'] { background: var(--red); color: var(--on-red); }
+.friend-name { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.friend-name input { width: 110px; font: inherit; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+@media (prefers-reduced-motion: reduce) {
+  .hiker-svg, .hiker-svg *, .gondola-svg, .cheer line, .cheer text { animation: none !important; }
+}

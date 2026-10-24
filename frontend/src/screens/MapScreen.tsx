@@ -169,7 +169,7 @@ export function MapScreen() {
       {viewMode === 'path' ? (
         <main className="path-area" key={openTrack ?? 'topics'}>
           {openTrack
-            ? <TrackView view={view} trackId={openTrack} onStart={setLessonNode} onReview={() => setReviewing(openTrack)} />
+            ? <TrackView view={view} trackId={openTrack} onStart={setLessonNode} onReview={() => setReviewing(openTrack)} paused={Boolean(lessonNode)} />
             : <Topics view={view} onOpen={setOpenTrack} onOwnTopic={() => setAdding(true)} onShowMap={() => setViewMode('map')} onReview={() => setReviewing('all')} />}
         </main>
       ) : (

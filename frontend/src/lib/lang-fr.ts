@@ -571,4 +571,12 @@ export const FR: Record<string, string> = {
   "Alles von diesem Berg in einer Lektion": "Tout ce qui vient de cette montagne en une leçon",
   "Fünf Schritte sind geschafft. Die Gipfelprüfung mischt, was du auf diesem Berg geübt hast.": "Cinq étapes sont faites. L’examen du sommet mélange ce que tu as exercé sur cette montagne.",
   "Als Letztes: die Gipfelprüfung": "Dernière étape : l’examen du sommet",
+  "Gipfel!": "Sommet !",
+  "Geschafft!": "Réussi !",
+  "Dein Freund": "Ton ami",
+  "Du und {friend} in der Seilbahn.": "Toi et {friend} dans le téléphérique.",
+  "Du kletterst den Weg hinauf.": "Tu grimpes le sentier.",
+  "Mit Freund lernen": "Apprendre avec un ami",
+  "Lernpartner": "Partenaire d’apprentissage",
+  "Aufstieg nochmals zeigen": "Revoir l’ascension",
 };
