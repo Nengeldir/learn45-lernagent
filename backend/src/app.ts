@@ -3,11 +3,12 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Answer, ChatTurn, ContentBundle, Lesson, PodcastLesson, VideoLesson } from '@l45/shared';
+import { completionReward } from '@l45/shared';
 import { content } from './content.ts';
 import { InputError, profileFromFile, profileFromManual } from './dcc.ts';
 import { modelStatus, providerName } from './provider.ts';
 import {
-  HttpError, addTracks, chat, clearCache, complete, createTrack, generatedPublic, get, hint, login, nextLesson, partialCheck, patch, publicLesson,
+  HttpError, addTracks, answerFeedback, chat, clearCache, complete, createTrack, generatedPublic, get, hint, login, nextLesson, partialCheck, patch, publicLesson,
   setMission, startNode, view,
 } from './sessions.ts';
 import { PodcastService } from './podcast/service.ts';
@@ -161,14 +162,18 @@ export function createApp(options: { videoService?: VideoService; podcastService
   app.get('/api/sessions/:id/nodes/:node/podcast', h(async (req, res) => {
     res.json(await podcasts.status(podcastOf(p(req, 'id'), p(req, 'node'))));
   }));
+  app.post('/api/sessions/:id/nodes/:node/answer-feedback', h((req, res) => res.json(answerFeedback(get(p(req, 'id')), p(req, 'node'), req.body))));
   app.post('/api/sessions/:id/nodes/:node/check', h((req, res) => res.json(partialCheck(get(p(req, 'id')), p(req, 'node'), parseAnswer(req.body)))));
   app.post('/api/sessions/:id/nodes/:node/hint', h(async (req, res) => res.json(await hint(get(p(req, 'id')), p(req, 'node'), parseAnswer(req.body)))));
   app.post('/api/sessions/:id/nodes/:node/chat', h(async (req, res) => res.json(await chat(get(p(req, 'id')), p(req, 'node'), parseTurns(req.body?.turns)))));
   app.post('/api/sessions/:id/nodes/:node/complete', h(async (req, res) => {
     const st = get(p(req, 'id'));
+    const before = view(st).rewards;
     const d = Number(req.body?.durationMin);
     const result = await complete(st, p(req, 'node'), parseAnswer(req.body), Number.isFinite(d) ? d : undefined);
-    res.json({ result, view: view(st), generated: generatedPublic(st) });
+    const after = view(st);
+    const trackId = st.session.nodes.find((node) => node.id === p(req, 'node'))!.trackId!;
+    res.json({ result, reward: completionReward(before, after.rewards, trackId), view: after, generated: generatedPublic(st) });
   }));
 
   // Completed runtime videos and bundled videos share the same public asset URL shape.

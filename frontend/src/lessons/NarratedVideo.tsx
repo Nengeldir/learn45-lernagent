@@ -1,27 +1,22 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { Player } from '@l45/animlib';
 import type { Answer, NarratedVideoManifest, VideoLesson } from '@l45/shared';
-import { useI18n } from '../lib/i18n.tsx';
 import { VideoPlayback, type PlaybackState } from './videoPlayback.ts';
 import { parseVideoManifest } from './videoManifest.ts';
-import { Question } from './Question.tsx';
+import { LessonProgress, QuestionCard } from './LessonActivity.tsx';
+import { Icon } from '../lib/icons.tsx';
 
 const initial: PlaybackState = { scene: 0, time: 0, playing: false, asking: null, answers: {}, ended: false, error: '' };
 const subscribeLoading = () => () => {};
 const getLoading = () => initial;
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
-const scrollTo = (element: Element | null) => element?.scrollIntoView({
-  behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start',
-});
+
 
 export default function NarratedVideo({ lesson, onComplete, onFallback }: {
   lesson: VideoLesson; onComplete: (answer: Answer) => Promise<void>; onFallback: () => void;
 }) {
-  const { t } = useI18n();
   const host = useRef<HTMLDivElement>(null);
   const screen = useRef<HTMLDivElement>(null);
-  const checkpoint = useRef<HTMLDivElement>(null);
-  const questionHeading = useRef<HTMLHeadingElement>(null);
   const playButton = useRef<HTMLButtonElement>(null);
   const [controller, setController] = useState<VideoPlayback>();
   const [manifest, setManifest] = useState<NarratedVideoManifest>();
@@ -75,78 +70,61 @@ export default function NarratedVideo({ lesson, onComplete, onFallback }: {
     };
   }, [manifestUrl, lesson, questions]);
 
-  const showQuestion = useCallback(() => {
-    questionHeading.current?.focus({ preventScroll: true });
-    scrollTo(checkpoint.current);
-  }, []);
-  useEffect(() => { if (state.asking !== null) showQuestion(); }, [state.asking, showQuestion]);
   const answerQuestion = async (option: number) => {
     await controller!.answer(option);
     const next = controller!.getState();
-    if (next.asking === null && !next.ended) {
-      playButton.current?.focus({ preventScroll: true });
-      scrollTo(screen.current);
-    }
+    if (next.ended && questions.every((_, i) => next.answers[i] !== undefined)) {
+      await onComplete({ type: 'video', answers: next.answers });
+    } else if (next.asking === null) requestAnimationFrame(() => playButton.current?.focus({ preventScroll: true }));
   };
   const scene = manifest?.scenes[state.scene];
   const caption = scene?.captions.find(cue => state.time >= cue.start && state.time < cue.end)?.text ?? '';
   const problem = error || state.error;
   const ready = Boolean(controller && manifest);
-  const questionId = `checkpoint-${lesson.id}`;
+
+  const completed = Object.keys(state.answers).length;
+  const finish = async () => {
+    setBusy(true);
+    try { await onComplete({ type: 'video', answers: state.answers }); }
+    finally { setBusy(false); }
+  };
 
   return (
     <div className="narrated-video" ref={screen}>
-      <div className="narrated-stage" hidden={Boolean(error) && !ready}>
-        <div className="narrated-canvas" ref={host} />
-        {state.asking !== null && ready && (
-          <div ref={checkpoint} className="video-pop-host">
-            <Question
-              q={questions[state.asking]}
-              n={state.asking}
-              total={questions.length}
-              id={questionId}
-              headingRef={questionHeading}
-              onAnswer={(i) => void answerQuestion(i)}
-              note={state.scene === manifest!.scenes.length - 1
-                ? t('Wähle eine Antwort. Danach kannst du die Lektion abschliessen.')
-                : t('Wähle eine Antwort. Danach läuft das Video automatisch weiter.')}
-            />
+      <LessonProgress completed={completed} total={questions.length} label="Deine Wissens-Checks" detail={ready ? `Abschnitt ${state.scene + 1} / ${manifest!.scenes.length} · ${completed} / ${questions.length} Checks` : 'Video wird geladen …'} />
+      <div className={`video-workspace${state.asking !== null || state.ended ? ' has-check' : ''}`}>
+        <div className="video-player">
+          <div className="narrated-stage" hidden={Boolean(error) && !ready}>
+            <div className="narrated-canvas" ref={host} />
+            {captions && caption && <p className="in-video-caption" lang="de">{caption}</p>}
           </div>
-        )}
+          {!ready && !problem && <p role="status">Erklärvideo wird geladen …</p>}
+          {problem && <div className="note" role="alert"><p>{problem}</p><button className="btn secondary" onClick={onFallback}>Storyboard ansehen</button></div>}
+          {ready && <>
+            <div className="video-timeline">
+              <label className="sr-only" htmlFor={`seek-${lesson.id}`}>Videoposition</label>
+              <input id={`seek-${lesson.id}`} type="range" min={0} max={controller!.duration} step="any" value={controller!.position}
+                aria-valuetext={`${clock(controller!.position)} von ${clock(controller!.duration)}`} onChange={event => void controller!.seek(Number(event.target.value))} />
+              <span>{clock(controller!.position)} / {clock(controller!.duration)}</span>
+            </div>
+            <div className="video-controls" role="group" aria-label="Videosteuerung">
+              <button ref={playButton} className="btn primary small" onClick={() => state.playing ? controller!.pause() : void controller!.play()}>{state.playing ? 'Pause' : state.ended ? 'Nochmals abspielen' : 'Abspielen'}</button>
+              <button className="btn quiet small" aria-label="10 Sekunden zurück" onClick={() => void controller!.seek(controller!.position - 10)}><Icon name="back" size={17} />10 s</button>
+              <button className="btn quiet small" aria-label={muted ? 'Ton einschalten' : 'Ton ausschalten'} aria-pressed={muted} onClick={() => { engine.current?.setMuted(!muted); setMuted(!muted); }}><Icon name="headphones" size={17} />{muted ? 'Ton aus' : 'Ton an'}</button>
+              <button className="btn quiet small" aria-pressed={captions} onClick={() => setCaptions(!captions)}>Untertitel</button>
+            </div>
+            <details className="video-transcript"><summary>Text zum Mitlesen</summary>
+              {manifest!.scenes.map(scene => <section key={scene.id}><h3>{scene.title}</h3>{scene.captions.map((cue, i) => <p key={i}>{cue.text}</p>)}</section>)}
+            </details>
+          </>}
+        </div>
+        {state.asking !== null && <aside className="video-question-panel" aria-label="Wissens-Check">
+          <QuestionCard key={state.asking} prompt={questions[state.asking].prompt} options={questions[state.asking].options} index={state.asking} total={questions.length}
+            check={(option) => ({ type: 'quiz', questionIndex: state.asking!, option })}
+            onContinue={answerQuestion} continueLabel={state.ended && completed + 1 === questions.length ? 'Lektion abschliessen' : 'Weiter'} />
+        </aside>}
+        {state.ended && state.asking === null && <aside className="video-question-panel video-end-card"><span className="finish-disc"><Icon name="check" size={32} /></span><h3>Alle Abschnitte geschafft!</h3><button className="btn primary" disabled={busy} onClick={() => void finish()}>{busy ? 'Wird geprüft …' : 'Lektion abschliessen'}<Icon name="star" size={18} /></button></aside>}
       </div>
-      {!ready && !problem && <p role="status">{t('Erklärvideo wird geladen …')}</p>}
-      {problem && <div className="note" role="alert"><p>{t(problem)}</p><button className="btn secondary" onClick={onFallback}>{t('Storyboard ansehen')}</button></div>}
-      {ready && (
-        <>
-          <p className="video-scene-label">{state.scene + 1} / {manifest!.scenes.length} · {scene?.title}</p>
-          <div className="video-controls" role="group" aria-label={t('Videosteuerung')}>
-            <button ref={playButton} className="btn primary" aria-controls={state.asking !== null ? questionId : undefined}
-              onClick={() => state.asking !== null ? showQuestion() : state.playing ? controller!.pause() : void controller!.play()}>
-              {t(state.asking !== null ? 'Zur Frage' : state.playing ? 'Pause' : state.ended ? 'Nochmals abspielen' : 'Abspielen')}
-            </button>
-            <button className="btn quiet" aria-pressed={muted} onClick={() => { engine.current?.setMuted(!muted); setMuted(!muted); }}>{t(muted ? 'Ton einschalten' : 'Ton ausschalten')}</button>
-            <button className="btn quiet" aria-pressed={captions} onClick={() => setCaptions(!captions)}>{t('Untertitel')}</button>
-          </div>
-          <div className="video-timeline">
-            <label className="sr-only" htmlFor={`seek-${lesson.id}`}>{t('Videoposition')}</label>
-            <input id={`seek-${lesson.id}`} type="range" min={0} max={controller!.duration} step="any" value={controller!.position}
-              disabled={state.asking !== null} aria-valuetext={t('{a} von {b}', { a: clock(controller!.position), b: clock(controller!.duration) })}
-              onChange={event => void controller!.seek(Number(event.target.value))} />
-            <span>{clock(controller!.position)} / {clock(controller!.duration)}</span>
-          </div>
-          {captions && <p className="video-caption" lang="de">{caption || '\u00a0'}</p>}
-          {state.ended && questions.every((_, i) => state.answers[i] !== undefined) && (
-            <button className="btn primary block" disabled={busy} onClick={async () => {
-              setBusy(true);
-              try { await onComplete({ type: 'video', answers: state.answers }); }
-              finally { setBusy(false); }
-            }}>{busy ? t('Wird geprüft …') : t('Abschliessen')}</button>
-          )}
-          <details className="video-transcript"><summary>{t('Text zum Mitlesen')}</summary>
-            {manifest!.scenes.map(scene => <section key={scene.id}><h3>{scene.title}</h3>{scene.captions.map((cue, i) => <p key={i}>{cue.text}</p>)}</section>)}
-          </details>
-        </>
-      )}
     </div>
   );
 }

@@ -47,11 +47,12 @@ function MissionRow({ track, mission, onSave }: { track: Track; mission?: Missio
       </div>
       {!editing ? (
         <p>
-          {mission?.text ? t(mission.text) : <span className="muted">{t('Wird beim ersten Start einer Lektion gefragt.')}</span>}{' '}
+          {mission?.text ? t(mission.text) : <span className="muted">{t('Ein persönliches Ziel ist freiwillig. Du kannst direkt mit den Lektionen loslegen.')}</span>}{' '}
           <button className="linkbtn small" onClick={() => setEditing(true)}>{mission ? t('Ändern') : t('Festlegen')}</button>
         </p>
       ) : (
         <div className="mission-edit">
+          {track.mission?.suggestions && <div className="choices">{track.mission.suggestions.map((suggestion) => <button key={suggestion} className="choice small" onClick={() => setText(suggestion)} disabled={confirming}>{t(suggestion)}</button>)}</div>}
           <textarea rows={2} maxLength={300} value={text} disabled={confirming} onChange={(e) => setText(e.target.value)} aria-label={t('Mission für {name}', { name: trackName(track.id, track.name) })} />
           {confirming ? (
             <div className="row">

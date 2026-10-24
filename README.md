@@ -2,13 +2,17 @@
 
 AIthena ist ein Prototyp für den Zentral Hack 2026 (Challenge CoreTeam AG). Eine PWA mit Frontend und Backend.
 
-Die Startseite ist eine Liste: «Was möchtest du lernen?» mit den Bereichen (Digitale Kompetenz, Mathematik, Naturwissenschaften, Eigene Themen) und ihren Themen, etwa «Kommunikation und Zusammenarbeit». Ein Tipp auf ein Thema öffnet es; ein neues Thema kommt dabei dazu. Oben steht «Weiterlernen» mit dem zuletzt bearbeiteten Thema. Ein Thema ist eine gerade Linie: die geschafften Lektionen (in der Reihenfolge, in der sie geschafft wurden, `frontend/src/path/order.ts`), darunter «Wie geht es weiter?» mit der Themen- und Formatwahl (siehe «Nächstes Thema und Format wählen»).
+Die Startseite ist eine Liste: «Was möchtest du lernen?» mit den Bereichen (Digitale Kompetenz, Mathematik, Naturwissenschaften, Eigene Themen) und ihren Themen, etwa «Kommunikation und Zusammenarbeit». Ein Tipp auf ein Thema öffnet es; ein neues Thema kommt dabei dazu. Oben steht «Weiterlernen» mit dem zuletzt bearbeiteten Thema. Ein Thema zeigt zuerst die nächsten Lektionen mit Format und Dauer. Die abgeschlossenen Lektionen stehen darunter in einer aufklappbaren Liste, in der Reihenfolge ihres Abschlusses (`frontend/src/path/order.ts`). Das persönliche Ziel bleibt unter «Mein Konto».
 
 Unter «Alles als Karte ansehen» gibt es die ganze Lernkarte. Die Lernkarte ist eine Mindmap mit dir in der Mitte. Sie beginnt leer: Du wählst, was du lernen willst. Das kann ein eigenes Thema sein, zum Beispiel «Security+ Prüfung bestehen». Dann plant der Agent den Bereich mit der KI. Oder du nimmst einen vorbereiteten Bereich: die fünf DigComp-Bereiche, Mathematik oder Naturwissenschaften. Geplante Lektionen sind blass. Der Agent hebt den nächsten Schritt hervor, begründet ihn und bietet eine Alternative an. Während du lernst, wächst die Karte: Der Agent hängt neue Knoten an, wenn etwas zweimal schwierig war oder zu leicht ist.
 
 Mit KI arbeitet der Agent wie eine Lehrperson (nach dem Skill «teach» von mattpocock/skills). Pro Bereich kennt er deine Mission, schreibt Lerneinträge mit Belegen und erzeugt kurze Lektionen, die zu dir passen. Die Regeln bleiben als Prüfung und als Rückfall. Dein Fortschritt liegt auf der Festplatte und übersteht einen Neustart.
 
-Die Spielmechanik kommt später. Alle Daten sind synthetisch.
+Abgeschlossene Lektionen geben Erfahrungspunkte (XP): 40 XP für den ersten Abschluss einer Lektion und bis zu 60 XP für erreichte Lernziele. Jedes Format zählt gleich viel; Tipps und Lerntempo ändern die Punkte nicht. Bei Wiederholungen zählt nur die Verbesserung gegenüber dem bisherigen besten Ergebnis derselben Lektion im Thema. Alle 200 XP steigt das Gesamtlevel und das Level im jeweiligen Thema. Diese Spiellevel sind unabhängig vom DCC-Profil.
+
+Die Startseite zeigt XP, Themenlevel, vier verdienbare Abzeichen, ein Tagesziel (eine Lektion) und ein Wochenziel (an drei Tagen lernen). Tages- und Wochenanzeige verwenden den Schweizer Kalender (`Europe/Zurich`, Wochenbeginn Montag). Wiederholungen zählen als Lerntag, geben aber nur bei Verbesserung zusätzliche XP. Es gibt keinen Punkteverlust bei Pausen oder Fehlern. Beim Abschluss erscheinen die verdienten XP, neue Level und neue Abzeichen. Alles wird aus den bereits gespeicherten Lerneinträgen abgeleitet; bestehende Lernende erhalten ihren bisherigen Fortschritt automatisch und behalten ihn nach Neustarts und erneutem Anmelden. Die Punkteberechnung liegt in `shared/src/rewards.ts`, der Server liefert sie in `SessionView.rewards` und als `reward` beim Abschluss.
+
+Alle Daten sind synthetisch.
 
 Die Lernenden sind oft wenig vertraut mit Computern. Darum hat jede Ansicht eine klare Hauptaktion mit grossem Knopf, die Texte sind einfach und gross, und Fachbegriffe (DCC, Lernstand, Regeln, Lerneinträge) bleiben hinter «Mehr erfahren» oder unter «Mein Konto → Für Fachleute».
 
@@ -91,10 +95,20 @@ Das DCC ist die einzige Quelle für Stufen. Lernen in der App ändert das DCC-Pr
 
 Nach der Anmeldung ist die Karte leer. Aus der Liste auf der Startseite kommt dazu:
 
-- **Eigenes Thema**: Thema und dein Vorwissen. Der Agent plant den Bereich mit der KI: einen Namen, 3 bis 6 Kriterien mit Faustregeln, drei Missionsvorschläge, die passenden Lektionsarten und 2 bis 5 Quellen. Der Server prüft den Entwurf. Von den Quellen bleiben nur Adressen, die beim Anlegen antworten (404 und 410 fallen weg). Danach erzeugt der Generator den ersten Einstieg, auf der Stufe deines Vorwissens. Erst wenn Entwurf und Einstieg gültig sind, kommt der Bereich auf die Karte. Die Mission fragt die App beim ersten Start einer Lektion.
+- **Eigenes Thema**: Thema und dein Vorwissen. Der Agent plant den Bereich mit der KI: einen Namen, 3 bis 6 Kriterien mit Faustregeln, drei Missionsvorschläge, die passenden Lektionsarten und 2 bis 5 Quellen. Der Server prüft den Entwurf. Von den Quellen bleiben nur Adressen, die beim Anlegen antworten (404 und 410 fallen weg). Danach erzeugt der Generator den ersten Einstieg, auf der Stufe deines Vorwissens. Erst wenn Entwurf und Einstieg gültig sind, kommt der Bereich auf die Karte. Nach der Themen- und Formatwahl öffnet die Lektion direkt. Ein persönliches Ziel lässt sich freiwillig unter «Mein Konto» festlegen; ohne eigenes Ziel verwendet der Agent das Standardziel des Bereichs.
 - **Vorbereiteter Bereich**: aus `data/skills.json`, mit geprüften Quellen und vorbereiteten Lektionen. Das geht auch ohne KI. Mehrere auf einmal sind möglich, zum Beispiel alle fünf DigComp-Bereiche.
 
 Eigene Bereiche haben keine vorbereiteten Lektionen. Der Agent erzeugt jede weitere Lektion. Läuft er nicht oder scheitert er, nehmen die Regeln eine gültige Lektion, die der Agent im Lauf schon erzeugt hat. Gibt es keine, wählen sie selbst das Ziel: das zuletzt verpasste Kriterium, sonst eines ohne Belege. Fällige Wiederholungen werden beigemischt. Nach zwei glatten Lektionen geht es eine Stufe höher. Ist im Bereich nichts mehr offen, gibt es den Knopf «Neue Lektion in …».
+
+## Lektionen ohne Umwege
+
+Die Themenwahl startet die gewählte Lektion ohne eine zweite Zielauswahl. Persönliche Ziele bleiben unter «Mein Konto» freiwillig verfügbar. Im Lektionsfenster bleiben Kopfzeile und Abschlussaktion sichtbar. Ausführliche Aufgabenhinweise, Quellen und die abschliessende Antwortübersicht lassen sich bei Bedarf öffnen.
+
+Video-Fragen erscheinen neben dem Player und auf schmalen Bildschirmen darunter, auch im Storyboard. Wiedergabe und Zurückspulen bleiben während einer Frage und beim Feedback verfügbar. Ein Klick auf eine Antwort zeigt direkt das geprüfte Feedback und eine Erklärung; ein zusätzlicher Prüfen-Knopf entfällt. Während der Prüfung und nach dem Feedback bleibt der gewählte Versuch gesperrt. Bei einem Verbindungsfehler lässt er sich erneut senden. Richtige Antworten erhalten grünes Feedback mit einem kurzen Sterneffekt; bei Fehlern gibt es eine freundliche Erklärung und die richtige Antwort. «Weiter» übernimmt den Versuch; ein bereits laufendes oder zurückgespultes Video bleibt an seiner Position. Podcasts und Textprüfungen zeigen jeweils nur eine Frage beziehungsweise einen Satz mit Fortschrittsanzeige. Der ursprüngliche Antwortversuch wird weiterhin bewertet, nicht die danach angezeigte Lösung. Die Endpunkte für Inhalte und Lektionsstart enthalten weiterhin keine Lösungen.
+
+Webseitenprüfungen führen durch Mail, Webseite und Urteil; die Auswahl eines Urteils prüft direkt. Markierungen geben sichtbares Feedback, ohne sie vorzeitig als richtig zu bewerten. KI-Chats zeigen die Anzahl eigener Beiträge. Neue Nachrichten scrollen nur das Gespräch, nicht die gesamte Lektion. Animationen beachten die Systemeinstellung für reduzierte Bewegung.
+
+API: `POST /api/sessions/:id/nodes/:node/answer-feedback` prüft eine einzelne Video-/Podcast-Antwort (`type: quiz`, `questionIndex`, `option`) oder einen Textsatz (`type: mark-evidence`, `itemId`, `mark`). Der Endpunkt verändert weder das Endergebnis noch die XP. Diese entstehen weiterhin ausschliesslich beim Abschluss der Lektion.
 
 ## Lektionsarten
 
@@ -107,7 +121,7 @@ Eigene Bereiche haben keine vorbereiteten Lektionen. Der Agent erzeugt jede weit
 
 Alle sieben vorbereiteten Video-Lektionen enthalten deutsche ElevenLabs-Sprachausgabe, animierte Szenen, zeitlich passende Untertitel und die bisherigen Fragen. Die geprüfte Ableitungsanimation bleibt erhalten; die übrigen Themen verwenden wiederverwendbare Szenenvorlagen.
 
-Die Ableitungslektion liegt unter Mathematik → Ableitung auf der Lernkarte. Abspielen, Pause, Zurückspulen, Ton und Untertitel funktionieren im Lektionsfenster. Unbeantwortete Fragen lassen sich nicht überspringen. Die Antworten werden wie bisher im Backend bewertet. Kann das Video nicht geladen werden, lässt sich auf das Storyboard wechseln.
+Die Ableitungslektion liegt unter Mathematik → Ableitung auf der Lernkarte. Abspielen, Pause, Zurückspulen, Ton und Untertitel funktionieren im Lektionsfenster. Fragen pausieren das Video beim ersten Erreichen. Danach bleiben Wiedergabe und Spulen frei; offene Fragen bleiben sichtbar und werden vor dem Lektionsabschluss beantwortet. Die Antworten werden wie bisher im Backend bewertet. Kann das Video nicht geladen werden, lässt sich auf das Storyboard wechseln.
 
 ### Videos für eigene Themen und vorbereitete Lektionen
 
@@ -288,7 +302,7 @@ notes.md                           Vorlieben, zum Beispiel «mag kurze Lektionen
 
 - **Anmelden mit einem bekannten Namen** (Gross- und Kleinschreibung egal): «Weitermachen» setzt die bestehende Person fort, «Neu beginnen» legt eine neue an. Nichts wird gelöscht.
 - **Neues DCC-Resultat**: Es kommt als neuer Stand dazu, wenn es sich vom letzten unterscheidet. Lerneinträge bleiben. Bereiche ohne erledigte Lektion bekommen einen neuen Plan.
-- **Mission**: Beim ersten Öffnen eines Bereichs fragt die App nach der Mission: drei Vorschläge oder eigene Worte. Überspringen geht auch, dann gilt ein Standard. Eine Änderung unter «Mein Konto» braucht eine Bestätigung und wird als `mission-shift` festgehalten.
+- **Mission**: Ein persönliches Ziel lässt sich freiwillig unter «Mein Konto» festlegen, mit drei Vorschlägen oder eigenen Worten. Ohne eigenes Ziel gilt das Standardziel. Die Lektion startet nach der Themenwahl direkt. Eine Änderung eines bereits gespeicherten Ziels braucht eine Bestätigung und wird als `mission-shift` festgehalten.
 
 ## Datenschutz
 

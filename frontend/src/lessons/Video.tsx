@@ -1,12 +1,12 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { Answer, VideoLesson, VideoVisual } from '@l45/shared';
-import { useI18n } from '../lib/i18n.tsx';
-import { Question } from './Question.tsx';
+import { LessonProgress, QuestionCard } from './LessonActivity.tsx';
+import { Icon } from '../lib/icons.tsx';
 
 const reduced = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** Progress 0..1 through the current scene while playing. */
-function useSceneProgress(playing: boolean, seconds: number, sceneKey: number, onEnd: () => void) {
+function useSceneProgress(playing: boolean, seconds: number, sceneKey: string, onEnd: () => void) {
   const [p, setP] = useState(0);
   const endRef = useRef(onEnd);
   endRef.current = onEnd;
@@ -20,13 +20,14 @@ function useSceneProgress(playing: boolean, seconds: number, sceneKey: number, o
       return () => clearTimeout(id);
     }
     let raf = 0;
+    let finished = false;
     let last = performance.now();
     const tick = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
       setP((prev) => {
         const next = Math.min(1, prev + dt / seconds);
-        if (next >= 1) queueMicrotask(() => endRef.current());
+        if (next >= 1 && !finished) { finished = true; queueMicrotask(() => endRef.current()); }
         return next;
       });
       raf = requestAnimationFrame(tick);
@@ -213,114 +214,95 @@ const PreparedVideo = lazy(() => import('./PreparedVideo.tsx'));
 export function Video(props: { lesson: VideoLesson; prepareUrl?: string; onComplete: (a: Answer) => Promise<void> }) {
   const [fallback, setFallback] = useState(false);
   if (props.lesson.content.narrated && !fallback) {
-    return <Suspense fallback={<p role="status"><VideoLoading /></p>}><NarratedVideo {...props} onFallback={() => setFallback(true)} /></Suspense>;
+    return <Suspense fallback={<p role="status">Erklärvideo wird geladen …</p>}><NarratedVideo {...props} onFallback={() => setFallback(true)} /></Suspense>;
   }
   if (props.prepareUrl && !fallback) {
-    return <Suspense fallback={<p role="status"><VideoLoading text="Erklärvideo wird vorbereitet …" /></p>}><PreparedVideo {...props} prepareUrl={props.prepareUrl} onFallback={() => setFallback(true)} /></Suspense>;
+    return <Suspense fallback={<p role="status">Erklärvideo wird vorbereitet …</p>}><PreparedVideo {...props} prepareUrl={props.prepareUrl} onFallback={() => setFallback(true)} /></Suspense>;
   }
   return <StoryboardVideo {...props} />;
 }
 
-function VideoLoading({ text = 'Erklärvideo wird geladen …' }: { text?: string }) {
-  const { t } = useI18n();
-  return <>{t(text)}</>;
-}
 
 function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComplete: (a: Answer) => Promise<void> }) {
-  const { t } = useI18n();
   const { scenes, questions } = lesson.content;
   const [scene, setScene] = useState(0);
+  const [revision, setRevision] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [ended, setEnded] = useState(false);
+  const [atEnd, setAtEnd] = useState(false);
   const [asking, setAsking] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-
+  const rawVideo = useRef<HTMLVideoElement>(null);
+  const pending = (through: number, next = answers) => questions.findIndex((q, i) => q.afterScene <= through && next[i] === undefined);
+  const go = (index: number, play = playing) => {
+    setScene(index); setRevision(value => value + 1); setEnded(false); setAtEnd(false); setPlaying(play);
+  };
   const onSceneEnd = () => {
-    const q = questions.findIndex((x, i) => x.afterScene === scene && answers[i] === undefined);
-    if (q >= 0) {
-      setPlaying(false);
-      setAsking(q);
-      return;
-    }
-    if (scene + 1 < scenes.length) setScene(scene + 1);
-    else {
-      setPlaying(false);
-      setEnded(true);
-    }
+    const q = pending(scene);
+    const last = scene === scenes.length - 1;
+    if (last) setEnded(true);
+    if (asking === null && q >= 0) { setPlaying(false); setAtEnd(true); setAsking(q); return; }
+    if (!last) go(scene + 1);
+    else { setPlaying(false); setAtEnd(true); }
   };
-  const p = useSceneProgress(playing, scenes[scene].seconds, scene, onSceneEnd);
-  const first = scenes.findIndex((s) => s.visual === scenes[scene].visual) === scene;
-
-  const answer = (i: number) => {
+  const p = useSceneProgress(playing, scenes[scene].seconds, `${scene}:${revision}`, onSceneEnd);
+  const first = scenes.findIndex(s => s.visual === scenes[scene].visual) === scene;
+  const rawPosition = () => {
+    const video = rawVideo.current!;
+    const total = scenes.reduce((sum, s) => sum + s.seconds, 0);
+    let remaining = video.duration && Number.isFinite(video.duration) ? video.currentTime / video.duration * total : 0;
+    let index = 0;
+    while (index < scenes.length - 1 && remaining > scenes[index].seconds) remaining -= scenes[index++].seconds;
+    return { index, atBoundary: remaining >= scenes[index].seconds - .05 };
+  };
+  const checkRaw = () => {
+    const video = rawVideo.current;
+    if (!video) return;
+    const { index, atBoundary } = rawPosition();
+    setScene(index); setAtEnd(atBoundary); setEnded(video.ended);
+    const q = pending(index - (atBoundary ? 0 : 1));
+    if (asking === null && q >= 0) { video.pause(); setAsking(q); }
+  };
+  const answer = async (option: number) => {
     if (asking === null) return;
-    const next = { ...answers, [asking]: i };
+    const next = { ...answers, [asking]: option };
     setAnswers(next);
-    setAsking(null);
-    if (lesson.content.videoUrl) {
-      const q = questions.findIndex((_, k) => next[k] === undefined);
-      if (q >= 0) setAsking(q);
-      else setEnded(true);
-      return;
-    }
-    if (scene + 1 < scenes.length) {
-      setScene(scene + 1);
-      setPlaying(true);
-    } else setEnded(true);
+    const q = pending(scene - (atEnd ? 0 : 1), next);
+    setAsking(q >= 0 ? q : null);
+    if (q >= 0) return;
+    if (ended && questions.every((_, i) => next[i] !== undefined)) {
+      await onComplete({ type: 'video', answers: next });
+    } else if (lesson.content.videoUrl) {
+      if (rawVideo.current?.paused && atEnd) await rawVideo.current.play();
+    } else if (atEnd && scene + 1 < scenes.length) go(scene + 1, true);
   };
 
-  return (
-    <>
-      {!lesson.content.videoUrl && (
-        <p className="note">
-          {lesson.source === 'model'
-            ? <>{t('Von der KI erstellt: ein kurzes Storyboard mit Fragen.')} <span className="tag model">{t('Beispiel erfunden')}</span></>
-            : t('Platzhalter-Storyboard. Das fertige Video wird vorab mit der Aha-Engine erzeugt und hier eingebunden.')}
-        </p>
-      )}
-      {lesson.content.videoUrl ? (
-        <video
-          src={lesson.content.videoUrl}
-          controls
-          style={{ width: '100%', borderRadius: 10 }}
-          onEnded={() => (questions.length ? setAsking(questions.findIndex((_, k) => answers[k] === undefined)) : setEnded(true))}
-        />
-      ) : (
-        <>
-          <div className="stage-wrap">
-            <div className="stage">
-              <Visual visual={scenes[scene].visual} p={p} scene={scene} first={first} items={scenes[scene].items} />
-            </div>
-            {asking !== null && <Question q={questions[asking]} n={asking} total={questions.length} onAnswer={answer} />}
+  return <div className="storyboard-video">
+    <LessonProgress completed={Object.keys(answers).length} total={questions.length} label="Deine Wissens-Checks" detail={`Abschnitt ${scene + 1} / ${scenes.length} · ${Object.keys(answers).length} / ${questions.length} Checks`} />
+    <div className={`video-workspace${asking !== null || ended ? ' has-check' : ''}`}>
+      <div className="video-player">
+        <div className="stage storyboard-stage">
+          {lesson.content.videoUrl ? <video ref={rawVideo} src={lesson.content.videoUrl} controls onTimeUpdate={checkRaw} onSeeking={checkRaw} onEnded={() => { setEnded(true); setAtEnd(true); if (asking === null) { const q = pending(scenes.length - 1); if (q >= 0) setAsking(q); } }} />
+            : <Visual visual={scenes[scene].visual} p={p} scene={scene} first={first} items={scenes[scene].items} />}
+        </div>
+        {!lesson.content.videoUrl && <>
+          <p className="storyboard-caption" aria-live="polite">{scenes[scene].caption}</p>
+          <div className="video-timeline">
+            <label className="sr-only" htmlFor={`scene-${lesson.id}`}>Abschnitt</label>
+            <input id={`scene-${lesson.id}`} type="range" min={1} max={scenes.length} step={1} value={scene + 1} onChange={event => go(Number(event.target.value) - 1)} />
+            <span>{scene + 1} / {scenes.length}</span>
           </div>
-          <div className="progress" aria-hidden="true">
-            {scenes.map((_, i) => <span key={i} className={i <= scene ? 'on' : ''} />)}
+          <div className="video-controls" role="group" aria-label="Videosteuerung">
+            <button className="btn primary small" onClick={() => playing ? setPlaying(false) : atEnd ? go(ended ? 0 : Math.min(scene + 1, scenes.length - 1), true) : setPlaying(true)}>{playing ? 'Pause' : ended ? 'Nochmals abspielen' : 'Abspielen'}</button>
+            <button className="btn quiet small" onClick={() => go(scene, true)}><Icon name="back" size={17} />Abschnitt wiederholen</button>
+            {!ended && <button className="btn quiet small" onClick={onSceneEnd}>Weiter<Icon name="chevron" size={16} /></button>}
           </div>
-          <p className="caption" aria-live="polite">{scenes[scene].caption}</p>
-          {asking === null && !ended && (
-            <button className="btn secondary" onClick={() => setPlaying(!playing)}>{playing ? t('Pause') : scene === 0 && p === 0 ? t('Abspielen') : t('Weiter abspielen')}</button>
-          )}
-        </>
-      )}
-
-      {asking !== null && lesson.content.videoUrl && <Question q={questions[asking]} n={asking} total={questions.length} onAnswer={answer} />}
-
-      {ended && (
-        <button
-          className="btn block"
-          disabled={busy || questions.some((_, i) => answers[i] === undefined && !lesson.content.videoUrl)}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              await onComplete({ type: 'video', answers });
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          {t('Abschliessen')}
-        </button>
-      )}
-    </>
-  );
+        </>}
+      </div>
+      {asking !== null && <aside className="video-question-panel" aria-label="Wissens-Check"><QuestionCard key={asking} prompt={questions[asking].prompt} options={questions[asking].options} index={asking} total={questions.length}
+        check={(option) => ({ type: 'quiz', questionIndex: asking, option })} onContinue={answer} continueLabel={ended && Object.keys(answers).length + 1 === questions.length ? 'Lektion abschliessen' : 'Weiter'} /></aside>}
+      {ended && asking === null && <aside className="video-question-panel video-end-card"><span className="finish-disc"><Icon name="check" size={30} /></span><h3>Alle Abschnitte geschafft!</h3><button className="btn primary" disabled={busy || questions.some((_, i) => answers[i] === undefined)} onClick={async () => { setBusy(true); try { await onComplete({ type: 'video', answers }); } finally { setBusy(false); } }}>Lektion abschliessen</button></aside>}
+    </div>
+  </div>;
 }

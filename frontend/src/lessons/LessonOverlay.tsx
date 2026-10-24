@@ -1,44 +1,39 @@
 // A lesson opens over the topic. After finishing, feedback is shown here; the learner then chooses what comes next.
 import { useEffect, useRef, useState } from 'react';
-import type { Answer, Lesson, LessonResult } from '@l45/shared';
+import type { Answer, CompletionReward, Lesson, LessonResult } from '@l45/shared';
+import { TYPE_LABEL, lessonXp } from '@l45/shared';
 import { api } from '../lib/api.ts';
 import { Icon } from '../lib/icons.tsx';
-import { useI18n } from '../lib/i18n.tsx';
 import { useStore } from '../lib/store.tsx';
+import { RewardCelebration } from '../rewards/Rewards.tsx';
 import { LessonSource } from '../map/NodePanel.tsx';
 import { AiChat } from './AiChat.tsx';
 import { MarkEvidence, MockSite } from './Checkable.tsx';
-import { MissionCard } from './MissionCard.tsx';
+import { LessonActivityProvider } from './LessonActivity.tsx';
 import { PodcastLesson } from './PodcastLesson.tsx';
 import { Video } from './Video.tsx';
 
 export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (showNext: boolean) => void }) {
   const { view, setView } = useStore();
-  const { t, lang, type, mode, level, trackName, lessonTitle } = useI18n();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<LessonResult | null>(null);
+  const [reward, setReward] = useState<CompletionReward | null>(null);
+  const completing = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const started = useRef(Date.now());
   const ref = useRef<HTMLDivElement>(null);
   const sessionId = view!.session.id;
-  // The first time a track is opened, the mission question comes before the lesson.
-  const trackId = view?.session.nodes.find((n) => n.id === nodeId)?.trackId;
-  const missionTrack = view?.skills.flatMap((s) => s.tracks).find((t) => t.id === trackId);
-  const needsMission = Boolean(missionTrack && !view?.workspace.missions.some((m) => m.trackId === trackId));
-  const [askMission] = useState(needsMission);
-  const [missionDone, setMissionDone] = useState(false);
-  const ready = !askMission || missionDone;
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!ready) return;
     api.start(sessionId, nodeId).then((r) => {
       setLesson(r.lesson);
       setNotice(r.switched ?? null);
       setView(r.view);
       started.current = Date.now();
     }).catch((e) => setError(e.message));
-  }, [sessionId, nodeId, setView, ready]);
+  }, [sessionId, nodeId, setView]);
 
   useEffect(() => {
     ref.current?.focus();
@@ -48,95 +43,82 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
   }, [onClose]);
 
   const onComplete = async (answer: Answer) => {
+    if (completing.current) return;
+    completing.current = true;
+    setError(null);
     try {
       const r = await api.complete(sessionId, nodeId, answer, (Date.now() - started.current) / 60000);
       setResult(r.result);
+      setReward(r.reward);
       setView(r.view, r.generated);
-      ref.current?.scrollTo({ top: 0 });
+      contentRef.current?.scrollTo({ top: 0 });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      completing.current = false;
     }
   };
 
   const track = view?.skills.flatMap((s) => s.tracks).find((t) => t.id === lesson?.trackId);
+  const previousXp = lesson ? view!.session.events.reduce((best, event) => event.lessonId === lesson.id && event.trackId === lesson.trackId ? Math.max(best, lessonXp(event.result)) : best, 0) : 0;
   const missed = result?.criteria.filter((c) => c.status === 'missed').map((c) => track?.criteria.find((x) => x.id === c.key)).filter(Boolean) ?? [];
 
   return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-label={lesson ? lessonTitle(lesson.id, lesson.title) : t('Lektion')}>
-      <div className="overlay-panel lesson-panel" ref={ref} tabIndex={-1}>
+    <div className="overlay lesson-overlay" role="dialog" aria-modal="true" aria-label={lesson?.title ?? 'Lektion'}>
+      <div className="overlay-panel lesson-shell" ref={ref} tabIndex={-1}>
         <header className="overlay-head">
           <div>
             {lesson && (
-              <div className="meta">
-                <span className="pill">{type(lesson.type)}</span>
-                <span>{mode(lesson.mode)}</span>
-                <span>{lesson.durationMin} {t('Min.')}</span>
-                <span>{track ? trackName(track.id, track.name) : ''}</span>
-                <span>{level(lesson.level)}</span>
-                <LessonSource lesson={lesson} />
-              </div>
-            )}
-            <h2>{lesson ? lessonTitle(lesson.id, lesson.title) : ready ? t('Lektion wird geladen …') : missionTrack ? trackName(missionTrack.id, missionTrack.name) : ''}</h2>
-            {lesson && !result && (
-              <p className="lesson-intro">
-                {lesson.intro}
-                {lang !== 'de' && <span className="small muted"> {t('Die Aufgabe bleibt auf Deutsch. Die Prüfung erkennt die deutschen Formulierungen.')}</span>}
+              <p className="meta">
+                <span className="pill">{TYPE_LABEL[lesson.type]}</span>
+                {!result && <span className="pill xp-preview"><Icon name="star" size={14} />{previousXp === 0 ? 'Bis zu 100 XP' : previousXp < 100 ? `Noch ${100 - previousXp} XP möglich` : 'Zum Festigen'}</span>}
+                <span>etwa {lesson.durationMin} {lesson.durationMin === 1 ? 'Minute' : 'Minuten'}</span>
               </p>
             )}
+            <h2>{lesson?.title ?? 'Lektion wird geladen …'}</h2>
+
           </div>
-          {result
-            ? <button className="btn secondary" onClick={() => onClose(true)}><Icon name="map" size={16} />{t('Zur Karte')}</button>
-            : <button className="icon-btn" onClick={() => onClose(false)} aria-label={t('Schliessen')} title={t('Schliessen')}><Icon name="close" size={20} /></button>}
+          <button className="btn quiet small lesson-close" aria-label="Schliessen" onClick={() => onClose(Boolean(result))}><Icon name="close" size={18} /><span>Schliessen</span></button>
         </header>
 
-        {error && <p className="error" role="alert">{t(error)}</p>}
-        {!ready && missionTrack && <MissionCard track={missionTrack} onDone={() => setMissionDone(true)} />}
+        <div className="lesson-content" ref={contentRef}>
+        {lesson && !result && <details className="lesson-brief"><summary>Hinweise</summary><p>{lesson.intro}</p><LessonSource lesson={lesson} /></details>}
+        {error && <p className="error" role="alert">{error}</p>}
         {notice && !result && <p className="note">{notice}</p>}
 
         {lesson && !result && (
-          <div className="lesson-body">
+          <LessonActivityProvider sessionId={sessionId} nodeId={nodeId}><div className={`lesson-body lesson-${lesson.type}`}>
             {lesson.type === 'mark-evidence' && <MarkEvidence lesson={lesson} sessionId={sessionId} nodeId={nodeId} onComplete={onComplete} />}
             {lesson.type === 'mock-site' && <MockSite lesson={lesson} sessionId={sessionId} nodeId={nodeId} onComplete={onComplete} />}
             {lesson.type === 'video' && <Video lesson={lesson} prepareUrl={`/api/sessions/${encodeURIComponent(sessionId)}/nodes/${encodeURIComponent(nodeId)}/video`} onComplete={onComplete} />}
             {lesson.type === 'ai-chat' && <AiChat lesson={lesson} sessionId={sessionId} nodeId={nodeId} onComplete={onComplete} />}
             {lesson.type === 'podcast' && <PodcastLesson lesson={lesson} sessionId={sessionId} nodeId={nodeId} onComplete={onComplete} />}
-          </div>
+          </div></LessonActivityProvider>
         )}
 
         {result && lesson && (
           <div className="feedback" aria-live="polite">
+            {reward && view && <RewardCelebration reward={reward} progress={view.rewards} trackId={lesson.trackId} trackName={track?.name ?? "Dein Thema"} />}
             <div className={`result ${result.allMet ? 'ok' : 'gap'}`}>
-              <div className="result-head">
-                <span className="result-icon" aria-hidden="true">{result.allMet ? '✓' : '!'}</span>
-                <h3>{result.allMet ? t('Gelöst') : t('Noch nicht ganz')}</h3>
-                {result.items.length > 0 && (
-                  <span className="result-score">{t('{n} von {total} richtig', { n: result.items.filter((it) => it.correct).length, total: result.items.length })}</span>
-                )}
-              </div>
+              <h3>{result.allMet ? 'Geschafft!' : 'Noch nicht ganz.'}</h3>
               <p>{result.summary}</p>
-              <span className={`tag ${result.judgedBy === 'model' ? 'model' : result.judgedBy === 'keywords' ? 'prepared' : 'rule'}`}>
-                {t('Geprüft durch: {by}', { by: result.judgedBy === 'model' ? t('KI') : result.judgedBy === 'keywords' ? t('Stichwörter (ohne KI)') : t('Regel') })}
-              </span>
             </div>
-            <ul className="items">
+            <details className="result-review"><summary>Antworten ({result.items.filter((item) => item.correct).length}/{result.items.length} richtig)</summary><ul className="items">
               {result.items.map((it, i) => (
                 <li key={i} className={it.correct ? 'ok' : 'no'}>
                   {it.label && <strong>{it.label}</strong>}
                   <span>{it.text}</span>
                 </li>
               ))}
-            </ul>
+            </ul></details>
             {missed.length > 0 && (
-              <div className="note"><strong>{t('Merksatz:')}</strong> {missed.map((m) => m!.ruleOfThumb).join(' ')}</div>
+              <div className="note"><strong>Merke dir:</strong> {missed.map((m) => m!.ruleOfThumb).join(' ')}</div>
             )}
-            {lesson.transfer && <div className="transfer"><strong>{t('Im Alltag:')}</strong> {lesson.transfer}</div>}
-            <div className="next-card">
-              <p className="eyebrow next">{t('Wie geht es weiter?')}</p>
-              <h3>{t('Du wählst, was du als Nächstes lernst.')}</h3>
-              <button className="btn primary big" onClick={() => onClose(true)}><Icon name="play" size={20} />{t('Weiter')}</button>
-            </div>
+            {lesson.transfer && <div className="transfer"><strong>Im Alltag:</strong> {lesson.transfer}</div>}
+
           </div>
         )}
+        </div>
+        {result && <footer className="lesson-result-actions"><button className="btn primary" onClick={() => onClose(true)}>Weiterlernen<Icon name="chevron" size={18} /></button></footer>}
       </div>
     </div>
   );

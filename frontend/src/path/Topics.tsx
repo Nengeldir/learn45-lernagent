@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from 'react';
 import type { SessionView, Skill } from '@l45/shared';
 import { CUSTOM_SKILL } from '@l45/shared';
+import { Achievements, LearningGoals, RewardsSummary, TopicLevel } from '../rewards/Rewards.tsx';
 import { api } from '../lib/api.ts';
 import { useI18n } from '../lib/i18n.tsx';
 import { Icon } from '../lib/icons.tsx';
@@ -45,6 +46,8 @@ export function Topics({ view, onOpen, onOwnTopic, onShowMap }: {
 
   return (
     <div className="home">
+      <RewardsSummary progress={view.rewards} name={session.userName} />
+      <LearningGoals progress={view.rewards} />
       <h1 className="home-title">{t('Was möchtest du lernen?')}</h1>
       {lastTrack && (
         <button className="continue-card" style={{ ['--tc' as string]: colors.get(lastTrack.id) } as CSSProperties} onClick={() => onOpen(lastTrack.id)}>
@@ -73,11 +76,13 @@ export function Topics({ view, onOpen, onOwnTopic, onShowMap }: {
                     onClick={() => void open(tr.id)}
                   >
                     <span className="topic-dot" aria-hidden="true" />
+                    <span className="topic-level-disc" aria-hidden="true">{view.rewards.tracks[tr.id]?.level ?? 1}</span>
                     <span className="topic-row-text">
                       <strong>{trackName(tr.id, tr.name)}</strong>
                       {busy === tr.id
                         ? <span className="small muted">{t('Wird vorbereitet …')}</span>
-                        : mine.has(tr.id) && <span className="small muted">{done === 1 ? t('1 Lektion geschafft') : done ? t('{n} Lektionen geschafft', { n: done }) : t('Angefangen')}</span>}
+                        : mine.has(tr.id) && <span className="small muted">{done === 1 ? t('1 Lektion geschafft') : done ? t('{n} Lektionen geschafft', { n: done }) : ''}</span>}
+                      <TopicLevel progress={view.rewards.tracks[tr.id]} name={trackName(tr.id, tr.name)} />
                     </span>
                     <Icon name="chevron" size={22} />
                   </button>
@@ -99,6 +104,7 @@ export function Topics({ view, onOpen, onOwnTopic, onShowMap }: {
         </section>
       ))}
 
+      <Achievements achievements={view.rewards.achievements} />
       <button className="linkbtn path-map" onClick={onShowMap}><Icon name="map" size={18} />{t('Alles als Karte ansehen')}</button>
     </div>
   );
