@@ -51,7 +51,7 @@ export function AiChat({ lesson, sessionId, nodeId, onComplete }: { lesson: AiCh
   return (
     <>
       <div className="goal"><strong>Dein Ziel:</strong> {c.goal}</div>
-      <p className="small muted">{KIND_NOTE[c.kind]} Die KI bekommt nur diese Übung und deine Nachrichten, nicht deinen Namen.</p>
+      <p className="small muted">{KIND_NOTE[c.kind]}</p>
       <div className={c.material ? 'two-col chat-layout' : 'chat-layout'}>
         {c.material && (
           <div className="card source">
@@ -65,7 +65,7 @@ export function AiChat({ lesson, sessionId, nodeId, onComplete }: { lesson: AiCh
               <div key={i} className={`bubble ${t.role}`}>
                 <span className="who">{t.role === 'ai' ? 'KI' : 'Du'}</span>
                 <span className="txt">{t.text}</span>
-                {t.role === 'ai' && t.source && <span className={`tag ${t.source}`}>{SOURCE_LABEL[t.source]}</span>}
+                {t.role === 'ai' && t.source && t.source !== 'model' && i > 0 && <span className={`tag ${t.source}`}>{SOURCE_LABEL[t.source]}</span>}
               </div>
             ))}
             {busy && <div className="bubble ai typing">…</div>}
@@ -86,13 +86,13 @@ export function AiChat({ lesson, sessionId, nodeId, onComplete }: { lesson: AiCh
               rows={2}
               disabled={busy}
             />
-            <button className="btn secondary" disabled={busy || !text.trim()}>Senden</button>
+            <button className="btn primary" disabled={busy || !text.trim()}>Senden</button>
           </form>
         </div>
       </div>
       <div className="actions">
-        <span className="small muted">{learnerTurns < c.minTurns ? `Noch ${c.minTurns - learnerTurns} Antwort${c.minTurns - learnerTurns === 1 ? '' : 'en'} bis zum Abschluss` : 'Du kannst abschliessen oder weiterschreiben.'}</span>
-        <button className="btn primary" disabled={busy || learnerTurns < c.minTurns} onClick={finish}>Abschliessen und auswerten</button>
+        <span className="small muted">{learnerTurns < c.minTurns ? `Schreib noch ${c.minTurns - learnerTurns} ${c.minTurns - learnerTurns === 1 ? 'Antwort' : 'Antworten'}` : 'Du kannst jetzt aufhören oder weiterschreiben.'}</span>
+        <button className="btn primary" disabled={busy || learnerTurns < c.minTurns} onClick={finish}>Fertig</button>
       </div>
     </>
   );

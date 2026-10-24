@@ -72,21 +72,29 @@ export function Login() {
     <div className="login">
       <section className="login-intro">
         <h1>Lernagent</h1>
-        <p className="lead">Du wählst, was du lernen willst: ein eigenes Thema wie «Security+ Prüfung bestehen» oder einen vorbereiteten Bereich. Der Agent plant die Lektionen, schlägt den nächsten Schritt vor und sagt, warum.</p>
+        <p className="lead">Lerne den Umgang mit dem Computer in kleinen Schritten. Du wählst ein Thema, der Lernagent zeigt dir immer, was als Nächstes kommt.</p>
         <MiniMap />
         <p className="small muted">Prototyp für Learn45. Anmeldung ohne Passwort, nur erfundene Daten.</p>
       </section>
 
       <section className="login-card" aria-label="Anmelden">
-        <h2>Anmelden</h2>
+        <h2>Willkommen!</h2>
         <label className="field">
-          <span>Dein Name</span>
-          <input type="text" value={name} onChange={(e) => { setName(e.target.value); setConflict(null); }} autoComplete="given-name" maxLength={40} />
+          <span>Wie heisst du?</span>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => { setName(e.target.value); setConflict(null); }}
+            onKeyDown={(e) => e.key === 'Enter' && ready && !busy && !conflict && submit()}
+            autoComplete="given-name"
+            maxLength={40}
+          />
         </label>
 
-        <fieldset className="dcc-box">
-          <legend>DCC-Profil (freiwillig)</legend>
-          <p className="small muted">Nur für die vorbereiteten Bereiche der Digitalen Kompetenz. Für eigene Themen brauchst du es nicht.</p>
+        {/* Optional and only for the prepared Digitale-Kompetenz tracks, so it stays closed unless asked for. */}
+        <details className="dcc-box more">
+          <summary>Ich habe ein DCC-Resultat (freiwillig)</summary>
+          <p className="small muted">Nur nötig, wenn du einen DCC-Test gemacht hast. Sonst einfach weiter.</p>
           <div className="seg" role="tablist">
             <button role="tab" aria-selected={mode === 'file'} onClick={() => setMode('file')}>Resultat laden</button>
             <button role="tab" aria-selected={mode === 'manual'} onClick={() => setMode('manual')}>Stufen eingeben</button>
@@ -143,24 +151,24 @@ export function Login() {
             </table>
           )}
           <p className="small muted">Die DCC-Werte bleiben unverändert. Lernen in der App stuft nichts hoch. «Nicht erhoben» heisst nicht geringe Kompetenz.</p>
-        </fieldset>
+        </details>
 
         {error && <p className="error" role="alert">{error}</p>}
         {conflict ? (
           <div className="choice-card" role="alert">
             <p>
-              <strong>Es gibt schon einen Verlauf für «{conflict.name}».</strong>{' '}
-              Seit {new Date(conflict.createdAt).toLocaleDateString('de-CH')}, {conflict.lessonsDone} {conflict.lessonsDone === 1 ? 'Lektion' : 'Lektionen'} erledigt.
+              <strong>Willkommen zurück, {conflict.name}!</strong>{' '}
+              Du hast schon {conflict.lessonsDone} {conflict.lessonsDone === 1 ? 'Lektion' : 'Lektionen'} geschafft.
             </p>
             <div className="row">
-              <button className="btn primary" disabled={busy} onClick={() => submit('continue')}>Weitermachen</button>
-              <button className="btn secondary" disabled={busy} onClick={() => submit('new')}>Neu beginnen</button>
+              <button className="btn primary big" disabled={busy} onClick={() => submit('continue')}>Weitermachen</button>
+              <button className="btn secondary" disabled={busy} onClick={() => submit('new')}>Neu anfangen</button>
             </div>
-            <p className="small muted">Weitermachen: Karte, Lerneinträge und Missionen bleiben. Ein neues DCC-Resultat wird als neuer Stand gespeichert. Neu beginnen: eine neue Karte, der alte Verlauf wird nicht gelöscht.</p>
+            <p className="small muted">Neu anfangen gibt dir eine leere Karte. Dein alter Stand bleibt gespeichert.</p>
           </div>
         ) : (
-          <button className="btn primary block" disabled={!ready || busy} onClick={() => submit()}>
-            {busy ? 'Lernkarte wird erstellt …' : 'Lernkarte erstellen'}
+          <button className="btn primary big block" disabled={!ready || busy} onClick={() => submit()}>
+            {busy ? 'Einen Moment …' : "Los geht's"}
           </button>
         )}
       </section>

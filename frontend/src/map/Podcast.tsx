@@ -56,12 +56,12 @@ export function Podcast({ sessionId, track }: { sessionId: string; track: Track 
 
   return (
     <section className="podcast" aria-labelledby={`podcast-${track.id}`}>
-      <h3 id={`podcast-${track.id}`} className="podcast-head"><Icon name="headphones" size={18} />Podcast zum Bereich</h3>
+      <h3 id={`podcast-${track.id}`} className="podcast-head"><Icon name="headphones" size={18} />Zum Anhören</h3>
       {error ? <p className="error small" role="alert">{error}</p>
         : !status ? <p className="small muted" role="status">Wird geladen …</p>
         : status.state === 'idle' ? (
           <>
-            <p className="small">Zwei Stimmen sprechen etwa drei Minuten über die Faustregeln dieses Bereichs und die Lektionen auf deiner Karte.</p>
+            <p className="small">Zwei Stimmen erklären dir in etwa drei Minuten das Wichtigste zu diesem Thema. Wie ein kurzes Radiogespräch.</p>
             <button className="btn secondary block" onClick={() => setRequested(true)}><Icon name="headphones" size={16} />Podcast erstellen</button>
           </>
         ) : status.state === 'building' ? (

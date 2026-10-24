@@ -5,6 +5,7 @@ import { SOURCE_LABEL } from '@l45/shared';
 import { api } from '../lib/api.ts';
 
 type Mark = 'belegt' | 'erfunden';
+const MARK_LABEL: Record<Mark, string> = { belegt: 'Steht in der Notiz', erfunden: 'Erfunden' };
 
 interface Ctx {
   sessionId: string;
@@ -50,14 +51,14 @@ function HelpBox({ check, hint, onHint, onRetry, busy }: { check: PartialCheck; 
       <p><strong>{check.message}</strong></p>
       {!hint ? (
         <>
-          <p className="small muted">Möchtest du einen kurzen Hinweis der KI, oder suchst du nochmals selbst?</p>
+          <p className="small muted">Möchtest du einen Tipp?</p>
           <div className="row">
-            <button className="btn secondary" onClick={onHint} disabled={busy}>Hinweis der KI</button>
-            <button className="btn quiet" onClick={onRetry}>Selbst nochmals suchen</button>
+            <button className="btn secondary" onClick={onHint} disabled={busy}>Tipp anzeigen</button>
+            <button className="btn quiet" onClick={onRetry}>Selbst nochmals versuchen</button>
           </div>
         </>
       ) : (
-        <p className="bubble ai">{hint.text} <span className={`tag ${hint.source}`}>{SOURCE_LABEL[hint.source]}</span></p>
+        <p className="bubble ai">{hint.text} {hint.source !== 'model' && <span className={`tag ${hint.source}`}>{SOURCE_LABEL[hint.source]}</span>}</p>
       )}
     </div>
   );
@@ -84,7 +85,7 @@ export function MarkEvidence({ lesson, ...ctx }: { lesson: MarkEvidenceLesson } 
               <p>{s.text}</p>
               <div className="toggle" role="group" aria-label={`Satz ${i + 1}`}>
                 {(['belegt', 'erfunden'] as Mark[]).map((m) => (
-                  <button key={m} aria-pressed={marks[s.id] === m} onClick={() => setMarks({ ...marks, [s.id]: m })}>{m}</button>
+                  <button key={m} aria-pressed={marks[s.id] === m} onClick={() => setMarks({ ...marks, [s.id]: m })}>{MARK_LABEL[m]}</button>
                 ))}
               </div>
             </div>
@@ -93,8 +94,8 @@ export function MarkEvidence({ lesson, ...ctx }: { lesson: MarkEvidenceLesson } 
       </div>
       {flow.check && <HelpBox check={flow.check} hint={flow.hint} busy={flow.busy} onHint={() => flow.askHint(answer)} onRetry={flow.dismiss} />}
       <div className="actions">
-        {!all && <span className="small muted">Markiere jeden Satz.</span>}
-        <button className="btn primary" disabled={!all || flow.busy} onClick={() => flow.run(answer)}>{flow.checks ? 'Abschliessen' : 'Prüfen'}</button>
+        {!all && <span className="small muted">Wähle bei jedem Satz eine Antwort.</span>}
+        <button className="btn primary" disabled={!all || flow.busy} onClick={() => flow.run(answer)}>{flow.checks ? 'Fertig' : 'Antwort prüfen'}</button>
       </div>
     </>
   );
@@ -139,9 +140,9 @@ export function MockSite({ lesson, ...ctx }: { lesson: MockSiteLesson } & Ctx) {
               <div key={p.id}>
                 {hot(p, 'linkpart')}
                 <button type="button" className="linkbtn small" onClick={() => setShowTarget(!showTarget)}>
-                  {showTarget ? 'Linkziel ausblenden' : 'Linkziel anzeigen (wie mit der Maus darüberfahren)'}
+                  {showTarget ? 'Ziel des Links ausblenden' : 'Wohin führt der Link? (wie mit der Maus darauf zeigen)'}
                 </button>
-                {showTarget && <div className="small target">Linkziel: {p.linkTarget}</div>}
+                {showTarget && <div className="small target">Der Link führt zu: {p.linkTarget}</div>}
               </div>
             ))}
             {of(mail, 'signature').map((p) => hot(p))}
@@ -160,16 +161,16 @@ export function MockSite({ lesson, ...ctx }: { lesson: MockSiteLesson } & Ctx) {
         </div>
       )}
       <div className="card">
-        <h3>Dein Entscheid</h3>
+        <h3>Was meinst du?</h3>
         <div className="toggle" role="group" aria-label="Entscheid">
-          <button aria-pressed={verdict === 'phishing'} onClick={() => setVerdict('phishing')}>Phishing</button>
+          <button aria-pressed={verdict === 'phishing'} onClick={() => setVerdict('phishing')}>Betrug (Phishing)</button>
           <button aria-pressed={verdict === 'echt'} onClick={() => setVerdict('echt')}>Echt</button>
         </div>
-        <p className="small muted">Markiert: {marked.length}</p>
+        <p className="small muted">Tippe in der E-Mail oder Webseite auf alles, was dir verdächtig vorkommt. Markiert: {marked.length}</p>
       </div>
       {flow.check && <HelpBox check={flow.check} hint={flow.hint} busy={flow.busy} onHint={() => flow.askHint(answer)} onRetry={flow.dismiss} />}
       <div className="actions">
-        <button className="btn primary" disabled={!verdict || flow.busy} onClick={() => flow.run(answer)}>{flow.checks ? 'Abschliessen' : 'Prüfen'}</button>
+        <button className="btn primary" disabled={!verdict || flow.busy} onClick={() => flow.run(answer)}>{flow.checks ? 'Fertig' : 'Antwort prüfen'}</button>
       </div>
     </>
   );
