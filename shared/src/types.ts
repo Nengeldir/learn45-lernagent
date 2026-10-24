@@ -287,7 +287,7 @@ export interface MapNode {
   helpUsed?: boolean;
 }
 
-export type RuleId = 'R0' | 'R1' | 'R2' | 'R3' | 'R4' | 'R5' | 'R6' | 'R7' | 'R8' | 'A1';
+export type RuleId = 'R0' | 'R1' | 'R2' | 'R3' | 'R5' | 'R6' | 'R7' | 'R8' | 'A1';
 
 export interface Recommendation {
   id: string;
@@ -452,8 +452,6 @@ export interface Session {
   sessionNo: number;
   createdAt: string;
   userName: string;
-  timeBudgetMin: number;
-  usedMin: number;
   /** Forces prepared content, as if the model were unreachable */
   simulation: boolean;
   nodes: MapNode[];
@@ -486,7 +484,6 @@ export interface SessionView {
   session: Omit<Session, 'generatedLessons'>;
   dcc: DccProfile;
   recommendation: Recommendation | null;
-  remainingMin: number;
   modelStatus: ModelStatus;
   /** Whether a planner agent can run (Anthropic or mock, not simulated offline) */
   agentAvailable: boolean;

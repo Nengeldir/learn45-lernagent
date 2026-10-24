@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from 'react';
 import type { DccProfile, Lesson, MapNode, Skill } from '@l45/shared';
 import { TYPE_LABEL } from '@l45/shared';
+import { Icon } from '../lib/icons.tsx';
 import { bounds, edgePath, layout, trackColors, wrap, type Placed } from './layout.ts';
 
 interface Cam {
@@ -213,9 +214,10 @@ export function MindMap({
         </g>
       </svg>
       <div className="map-controls" style={{ right: rightInset + 16 }}>
-        <button onClick={() => zoomAt((size.w - rightInset) / 2, size.h / 2, 1.25)} aria-label="Hineinzoomen">+</button>
-        <button onClick={() => zoomAt((size.w - rightInset) / 2, size.h / 2, 0.8)} aria-label="Herauszoomen">−</button>
-        <button onClick={fit} className="wide">Ganze Karte</button>
+        <button className="icon-btn" onClick={() => zoomAt((size.w - rightInset) / 2, size.h / 2, 0.8)} aria-label="Herauszoomen" title="Herauszoomen"><Icon name="minus" /></button>
+        <button className="icon-btn" onClick={() => zoomAt((size.w - rightInset) / 2, size.h / 2, 1.25)} aria-label="Hineinzoomen" title="Hineinzoomen"><Icon name="plus" /></button>
+        <span className="sep" aria-hidden="true" />
+        <button className="icon-btn fit" onClick={fit}><Icon name="fit" size={16} />Ganze Karte</button>
       </div>
     </div>
   );
@@ -223,9 +225,9 @@ export function MindMap({
 
 function Edge({ from, to, color: trackColor }: { from: Placed; to: Placed; color?: string }) {
   const n = to.node;
-  const color = n.kind === 'skill' ? 'var(--ink)' : trackColor ?? 'var(--ink-2)';
+  const color = n.kind === 'skill' ? 'var(--ink-3)' : trackColor ?? 'var(--ink-3)';
   const planned = n.kind === 'lesson' && (n.state === 'planned' || n.state === 'alternative' || n.state === 'recommended');
-  const width = n.kind === 'skill' ? 5 : n.kind === 'track' ? 4 : 2.5;
+  const width = n.kind === 'lesson' ? 2 : 3;
   return (
     <path
       d={edgePath(from, to)}
@@ -233,8 +235,8 @@ function Edge({ from, to, color: trackColor }: { from: Placed; to: Placed; color
       stroke={color}
       strokeWidth={width}
       strokeLinecap="round"
-      strokeDasharray={planned ? '2 7' : undefined}
-      opacity={planned ? 0.55 : 0.9}
+      strokeDasharray={planned ? '1 6' : undefined}
+      opacity={planned ? 0.6 : n.kind === 'skill' ? 0.5 : 0.75}
     />
   );
 }
@@ -272,6 +274,7 @@ function Node({
   if (n.kind === 'start') {
     return (
       <g {...common} aria-label={`Start: ${n.label}`}>
+        <circle r={46} className="start-halo" />
         <circle r={40} className="start-disc" />
         {wrap(n.label, 10).map((line, i, all) => (
           <text key={i} y={(i - (all.length - 1) / 2) * 16 + 5} textAnchor="middle" className="start-label">{line}</text>
@@ -284,7 +287,9 @@ function Node({
   if (n.kind === 'skill') {
     return (
       <g {...common} aria-label={`Bereich ${n.label}`}>
+        <circle r={34} className="ring" />
         <circle r={28} className="skill-disc" />
+        <circle r={7} className="skill-core" />
         <text y={54} textAnchor="middle" className="skill-label">{n.label}</text>
       </g>
     );
@@ -294,6 +299,7 @@ function Node({
     const lines = wrap(n.label, 18);
     return (
       <g {...common} aria-label={`${n.label}, ${dccText}`}>
+        <circle r={27} className="ring" />
         <circle r={20} fill={color} className="track-disc" />
         {lines.map((line, i) => (
           <text key={i} y={38 + i * 18} textAnchor="middle" className="track-label">{line}</text>
@@ -312,21 +318,31 @@ function Node({
   return (
     <g {...common} aria-label={`${n.label}. ${meta}. ${stateText}${result ? `, ${result}` : ''}`}>
       {n.state === 'recommended' && <circle r={24} className="halo" />}
+      <circle r={19} className="ring" />
       <circle r={13} className="lesson-disc" style={{ ['--tc' as string]: color }} />
       {n.state === 'done' && <path d="M-5 0 l3.5 4 l7 -8" className="check" />}
       {lesson?.type === 'video' && n.state !== 'done' && <path d="M-3.5 -5 L5 0 L-3.5 5 Z" className="glyph" />}
       {lesson?.type === 'ai-chat' && n.state !== 'done' && <path d="M-6 -4 h12 v7 h-7 l-3 3 v-3 h-2 z" className="glyph" />}
       {lesson?.type === 'mock-site' && n.state !== 'done' && <rect x={-6} y={-5} width={12} height={10} rx={1.5} className="glyph" />}
       {lesson?.type === 'mark-evidence' && n.state !== 'done' && <path d="M-5 -3 h10 M-5 0 h10 M-5 3 h6" className="glyph-line" />}
-      {n.state === 'recommended' && <text y={-30} textAnchor="middle" className="tag-next">Nächster Schritt</text>}
-      {n.state === 'alternative' && <text y={-24} textAnchor="middle" className="tag-alt">Alternative</text>}
-      {n.addedByAgent && n.state !== 'done' && n.state !== 'recommended' && n.state !== 'alternative' && (
-        <text y={-22} textAnchor="middle" className="tag-new">neu</text>
-      )}
+      {n.state === 'recommended' && <Flag y={-33} kind="next" text="Nächster Schritt" />}
+      {n.state === 'alternative' && <Flag y={-31} kind="alt" text="Alternative" />}
+      {n.addedByAgent && n.state !== 'done' && n.state !== 'recommended' && n.state !== 'alternative' && <Flag y={-30} kind="new" text="neu" />}
       {lines.map((line, i) => (
         <text key={i} y={30 + i * 15} textAnchor="middle" className="lesson-label">{line}</text>
       ))}
       <text y={30 + lines.length * 15} textAnchor="middle" className="lesson-meta">{result || meta}</text>
+    </g>
+  );
+}
+
+/** A small pill above a lesson node, centred on `y`. Stays inside the space the layout keeps above the node. */
+function Flag({ y, kind, text }: { y: number; kind: 'next' | 'alt' | 'new'; text: string }) {
+  const w = Math.round(text.length * 6.4 + 18);
+  return (
+    <g className={`flag ${kind}`} aria-hidden="true">
+      <rect x={-w / 2} y={y - 9} width={w} height={18} rx={9} />
+      <text y={y + 4} textAnchor="middle">{text}</text>
     </g>
   );
 }

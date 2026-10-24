@@ -138,7 +138,6 @@ Die Regeln antworten sofort. Mit KI plant danach der Planer-Agent (A1), und die 
 | R0 Weiter im Lernweg | nach jeder Lektion | nächste Lektion im Bereich, zielt auf das, was gefehlt hat |
 | R1 Wiederholte Schwierigkeit | gleiches Kriterium zweimal verpasst | neuer Knoten «Mit KI klären: ...» plus eine Alternative zum Alleine-Üben |
 | R2 Unterfordert | die letzten zwei Lektionen im Bereich ohne Hilfe gelöst | neuer Knoten mit einer Lektion eine Stufe höher |
-| R4 Wenig Zeit | Lektion passt nicht in die Restzeit | kürzerer Schritt, der längere bleibt Alternative |
 | R7 Bereich abgeschlossen | Bereich fertig | weiter zum nächsten Bereich; ist nichts mehr offen oder die Karte leer: einen Bereich hinzufügen |
 | A1 Agent-Plan | nach jeder Lektion, wenn der Planer-Agent läuft | Plan des Agenten, von den Regeln geprüft (siehe unten), Tags «KI» und «Regel» |
 
@@ -150,7 +149,7 @@ Der Agent arbeitet in einer Schleife mit Werkzeugen: höchstens 6 Schritte, 45 S
 
 | Werkzeug | Was es tut |
 |---|---|
-| `get_learner_state(trackId)` | Mission, DCC-Stufe nur dieses Bereichs, aktive Lerneinträge, letzte 5 Ergebnisse, fällige Wiederholungen, Restzeit, Karte des Bereichs |
+| `get_learner_state(trackId)` | Mission, DCC-Stufe nur dieses Bereichs, aktive Lerneinträge, letzte 5 Ergebnisse, fällige Wiederholungen, Karte des Bereichs |
 | `list_pool_lessons(trackId, criterion?)` | vorbereitete und schon erzeugte Lektionen |
 | `generate_lesson({type, trackId, criterion, level, contextHint, reviewOf?})` | erzeugt und prüft eine Lektion; bei Fehlern kommen sie zurück, ein zweiter Versuch ist erlaubt |
 | `add_to_map(lessonId, parentNodeId)` | neuer Knoten, höchstens 2 pro Lauf |
@@ -164,11 +163,10 @@ Der Systemprompt enthält die Grundsätze aus «teach»: Zone der nächsten Entw
 Bevor A1 gilt, prüfen die Regeln:
 
 - Der Knoten existiert und ist erreichbar.
-- Die Lektion passt in die Restzeit (R4).
 - Es gibt eine erreichbare Alternative, sobald ausser der Empfehlung ein anderer Knoten erreichbar ist. Mit nur einem Bereich und einem neuen Knoten bleibt sie leer.
 - Die Begründung nennt mindestens einen Lerneintrag (`LR-…`) oder ein Ereignis (`ev-…`), und alle genannten IDs gibt es.
 
-Fällt eine Prüfung durch, gilt der Plan der Regeln. Das gilt auch, wenn das Modell ausfällt, die Zeit abläuft oder beide Versuche einer Lektion ungültig sind. Der Grund steht im Verlauf unter «Läufe des Planer-Agenten». Hat die Person inzwischen schon eine Lektion gestartet, verwirft die App den Plan des Agenten.
+Fällt eine Prüfung durch, gilt der Plan der Regeln. Das gilt auch, wenn das Modell ausfällt, die Zeit abläuft oder beide Versuche einer Lektion ungültig sind. Der Grund steht in den Einstellungen unter «Agent», «Läufe des Planer-Agenten». Hat die Person inzwischen schon eine Lektion gestartet, verwirft die App den Plan des Agenten.
 
 Grenzen: 1 Lauf pro abgeschlossene Lektion, höchstens 10 erzeugte Lektionen pro Sitzung.
 
@@ -250,7 +248,7 @@ Jede Empfehlung zeigt: was der Agent gesehen hat, den Vorschlag, warum das jetzt
 
 Hilfe innerhalb einer Lektion (Hinweis nach dem Prüfen) wird vermerkt. Eine Beobachtung wie «Termine und Fristen 2× übersehen» gilt erst als erledigt, wenn das Kriterium ohne Hilfe gelöst wurde.
 
-Unter «Profil und Verlauf» stehen getrennt: DCC-Profil (nur lesen), Lernstand (aus dem Lernen, kein DCC), Mission pro Bereich, Lerneinträge (aktiv und ersetzt), Merkblatt, Entscheidungen des Agenten mit seinen Läufen, Lernverlauf, Beobachtungen und Transfer-Hinweise für die eigene Arbeit.
+Die Einstellungen (Zahnrad oben rechts) haben vier Bereiche: «Allgemein» (KI-Verbindung für die Demo trennen, Konto, Abmelden), «Profil» (DCC-Profil nur lesen, Lernstand aus dem Lernen, kein DCC, Mission pro Bereich), «Lernen» (Lerneinträge aktiv und ersetzt, Merkblatt, Lernverlauf, Beobachtungen, Transfer-Hinweise für die eigene Arbeit) und «Agent» (Entscheidungen des Agenten mit seinen Läufen).
 
 ## Aufbau
 

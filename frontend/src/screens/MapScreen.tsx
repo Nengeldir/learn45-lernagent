@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { LessonOverlay } from '../lessons/LessonOverlay.tsx';
-import { api } from '../lib/api.ts';
+import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
 import { MindMap } from '../map/MindMap.tsx';
 import { NodePanel } from '../map/NodePanel.tsx';
 import { AddTrack } from './AddTrack.tsx';
-import { ProfileDrawer } from './ProfileDrawer.tsx';
-
-const STATUS: Record<string, string> = { online: 'KI an', offline: 'Ohne KI', simulation: 'KI simuliert aus' };
+import { Settings, STATUS } from './Settings.tsx';
 
 function useWide() {
   const q = '(min-width: 900px)';
@@ -23,13 +21,13 @@ function useWide() {
 }
 
 export function MapScreen() {
-  const { view, content, setView, lessonOf, logout, refresh } = useStore();
+  const { view, content, lessonOf, logout, refresh } = useStore();
   const nav = useNavigate();
   const wide = useWide();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [lessonNode, setLessonNode] = useState<string | null>(null);
-  const [drawer, setDrawer] = useState(false);
+  const [settings, setSettings] = useState(false);
   // The map starts empty: the first thing to do is to choose what to learn.
   const [adding, setAdding] = useState(() => Boolean(view && !view.skills.length));
   const [sheetOpen, setSheetOpen] = useState(true);
@@ -86,15 +84,20 @@ export function MapScreen() {
   return (
     <div className="mapscreen">
       <header className="topbar">
-        <strong className="brand">Lernagent</strong>
-        <span className="who">{view.session.userName}</span>
+        <BrandMark />
+        <span className="who">
+          <span className="avatar" aria-hidden="true">{view.session.userName.slice(0, 1).toUpperCase()}</span>
+          <span className="name">{view.session.userName}</span>
+        </span>
         <span className="spacer" />
         {view.session.planning && <span className="status planning" role="status">Agent plant …</span>}
         <span className={`status ${view.modelStatus}`} title="Ohne KI kommen Gesprächsantworten und Hinweise aus vorbereiteten Texten.">{STATUS[view.modelStatus]}</span>
-        <button className="btn secondary small" onClick={() => setAdding(true)}>Bereich hinzufügen</button>
-        <button className="time" onClick={() => setDrawer(true)}>Noch {view.remainingMin} Min.</button>
-        <button className="btn quiet small" onClick={() => setDrawer(true)}>Profil und Verlauf</button>
-        <button className="btn quiet small" onClick={() => { logout(); nav('/'); }}>Abmelden</button>
+        <button className="btn primary small" onClick={() => setAdding(true)} aria-label="Bereich hinzufügen">
+          <Icon name="plus" size={16} /><span className="label-wide">Bereich hinzufügen</span>
+        </button>
+        <button className="icon-btn" onClick={() => setSettings(true)} aria-label="Einstellungen" title="Einstellungen">
+          <Icon name="settings" size={20} />
+        </button>
       </header>
 
       <main className="map-area">
@@ -129,15 +132,14 @@ export function MapScreen() {
                 setFocusId(null);
                 if (id) requestAnimationFrame(() => setFocusId(id));
               }}
-              onMoreTime={async () => setView(await api.patch(view.session.id, { timeBudgetMin: view.session.timeBudgetMin + 10 }))}
             />
           )}
         </aside>
       </main>
 
-      {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
+      {toast && <div className="toast" role="status" aria-live="polite"><Icon name="sparkle" />{toast}</div>}
       {lessonNode && <LessonOverlay nodeId={lessonNode} onClose={closeLesson} />}
-      {drawer && <ProfileDrawer onClose={() => setDrawer(false)} />}
+      {settings && <Settings onClose={() => setSettings(false)} onLogout={() => { logout(); nav('/'); }} />}
       {adding && (
         <AddTrack
           onClose={() => setAdding(false)}
@@ -151,5 +153,14 @@ export function MapScreen() {
         />
       )}
     </div>
+  );
+}
+
+export function BrandMark() {
+  return (
+    <span className="brand-mark">
+      <span className="logo"><Icon name="map" size={18} /></span>
+      Lernagent
+    </span>
   );
 }

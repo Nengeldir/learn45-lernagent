@@ -6,7 +6,7 @@ import type { DccLevel, LearningEvent, Lesson, LessonType, MapNode, PlannerRun, 
 import { DCC_LEVELS } from '@l45/shared';
 import { RULE_NAME } from './agent.ts';
 import { GENERATED_PER_SESSION, LESSON_TYPES, generateLesson } from './generator.ts';
-import { allLessons, checkPlan, reachableIds, remaining, type Plan } from './guard.ts';
+import { allLessons, checkPlan, reachableIds, type Plan } from './guard.ts';
 import { ruleLesson } from './ownlessons.ts';
 import { callAgent, type AgentBlock, type AgentMessage, type AgentTool } from './provider.ts';
 import { RECORD_KINDS, RecordError, addRecord, addReference, dueReviews, lernstand, type RecordInput } from './records.ts';
@@ -47,13 +47,13 @@ Ablauf:
 4. Wenn die Belege es tragen: write_learning_record, update_reference, note_preference.
 5. Zum Schluss genau einmal recommend: Knoten, Alternative (leer lassen, wenn ausser dem Knoten keiner erreichbar ist), eine kurze Begründung (1 bis 2 Sätze, duzen, Schweizer Schreibweise ohne ß) und basedOn mit IDs von Lerneinträgen (LR-…) oder Ereignissen (ev-…).
 
-Regeln prüfen deine Empfehlung: Der Knoten muss erreichbar sein und in die Restzeit passen, eine Alternative muss es geben, sobald ein anderer Knoten erreichbar ist, und die Begründung muss Belege nennen. Sonst gilt der Plan der Regeln. Du hast höchstens ${LIMITS.steps} Schritte.`;
+Regeln prüfen deine Empfehlung: Der Knoten muss erreichbar sein, eine Alternative muss es geben, sobald ein anderer Knoten erreichbar ist, und die Begründung muss Belege nennen. Sonst gilt der Plan der Regeln. Du hast höchstens ${LIMITS.steps} Schritte.`;
 
 const str = { type: 'string' } as const;
 const TOOLS: AgentTool[] = [
   {
     name: 'get_learner_state',
-    description: 'Lernstand in diesem Bereich: Mission, DCC-Stufe nur dieses Bereichs, aktive Lerneinträge, die letzten 5 Ergebnisse, fällige Wiederholungen, Restzeit, Karte und Plan der Regeln.',
+    description: 'Lernstand in diesem Bereich: Mission, DCC-Stufe nur dieses Bereichs, aktive Lerneinträge, die letzten 5 Ergebnisse, fällige Wiederholungen, Karte und Plan der Regeln.',
     input_schema: { type: 'object', properties: { trackId: str }, required: ['trackId'] },
   },
   {
@@ -195,7 +195,6 @@ function learnerState(ctx: Ctx) {
       missed: [...new Set(e.result.criteria.filter((c) => c.status === 'missed').map((c) => c.key))],
     })),
     dueReviews: dueReviews(st, trackId).map((q) => ({ criterion: q.criterion, recordId: q.recordId })),
-    remainingMin: remaining(s),
     preferences: st.notes,
     merkblatt: (st.reference[trackId] ?? []).map((e) => e.title),
     trackNodeId: `t-${trackId}`,
@@ -459,7 +458,7 @@ export async function runPlanner(st: Stored, ev: LearningEvent): Promise<void> {
       alternativeNodeId: plan.alternativeNodeId || undefined,
       observation: observation(ctx, plan.basedOn),
       reason: plan.reason,
-      why: 'Der Agent hat ein Ziel aus deiner Mission und deinen Lerneinträgen gewählt. Die Regeln haben den Plan geprüft: erreichbar, passt in die Zeit, mit Alternative und Belegen.',
+      why: 'Der Agent hat ein Ziel aus deiner Mission und deinen Lerneinträgen gewählt. Die Regeln haben den Plan geprüft: erreichbar, mit Alternative und Belegen.',
       tags: ['model', 'rule'],
       status: 'open',
       basedOn: plan.basedOn,

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DccLevel, Lesson, SessionView } from '@l45/shared';
 import { api } from '../lib/api.ts';
+import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
 
 const PRIOR: { level: DccLevel; label: string }[] = [
@@ -55,7 +56,7 @@ export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (
             <h2 id="add-track-title">Was willst du lernen?</h2>
             <p className="muted">Der Agent plant nur für Bereiche, die du wählst. Du kannst später weitere hinzufügen.</p>
           </div>
-          <button className="btn quiet" disabled={Boolean(busy)} onClick={onClose}>Schliessen</button>
+          <button className="icon-btn" disabled={Boolean(busy)} onClick={onClose} aria-label="Schliessen" title="Schliessen"><Icon name="close" size={20} /></button>
         </header>
         {error && <p className="error" role="alert">{error}</p>}
 
@@ -87,7 +88,7 @@ export function AddTrack({ onClose, onAdded }: { onClose: () => void; onAdded: (
                 </div>
               </fieldset>
               <div className="row">
-                <button className="btn primary" disabled={!view.canCreateTracks || topic.trim().length < 3 || Boolean(busy)}>Bereich planen</button>
+                <button className="btn primary" disabled={!view.canCreateTracks || topic.trim().length < 3 || Boolean(busy)}><Icon name="sparkle" size={16} />Bereich planen</button>
               </div>
               {busy === 'own' && (
                 <p className="planning" role="status"><span className="dot-pulse" aria-hidden="true" />Der Agent plant «{topic.trim()}» und erstellt einen Einstieg. Das dauert bis zu einer Minute.</p>

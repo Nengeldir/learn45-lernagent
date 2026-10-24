@@ -32,7 +32,7 @@ export function MissionCard({ track, onDone }: { track: Track; onDone: () => voi
     <div className="mission-card">
       <p className="small muted">Neu im Bereich «{track.name}»</p>
       <h3>Wofür brauchst du das?</h3>
-      <p>Der Agent richtet die Beispiele danach aus. Du kannst die Mission später im Profil ändern.</p>
+      <p>Der Agent richtet die Beispiele danach aus. Du kannst die Mission später in den Einstellungen unter «Profil» ändern.</p>
       <div className="choices">
         {suggestions.map((s) => (
           <button key={s} className="choice" aria-pressed={text === s} onClick={() => setText(s)}>{s}</button>
