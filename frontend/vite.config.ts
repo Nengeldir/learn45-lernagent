@@ -16,20 +16,20 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/owl.svg', 'icons/learn45.png'],
+      includeAssets: ['icons/icon.svg'],
       manifest: {
-        name: 'Owl for Learn45',
-        short_name: 'Owl for Learn45',
+        name: 'Lernagent für Learn45 (Prototyp)',
+        short_name: 'Lernagent',
         description: 'Prototyp: Login mit DCC-Profil, Lernkarte als Mindmap, begründete nächste Schritte.',
         lang: 'de-CH',
         start_url: '/',
         display: 'standalone',
-        background_color: '#F7F5F4',
-        theme_color: '#DA291C',
+        background_color: '#EEF1EC',
+        theme_color: '#1F2B26',
         icons: [
-          { src: 'icons/owl-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icons/owl-512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icons/owl-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
