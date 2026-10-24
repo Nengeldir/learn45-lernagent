@@ -2,9 +2,9 @@
 
 Prototyp für den Zentral Hack 2026 (Challenge CoreTeam AG). Eine PWA mit Frontend und Backend.
 
-Standardmässig zeigt die App einen **Lernpfad**: ein Thema als eine Linie von Lektionen, von oben nach unten. Erledigte Lektionen haben ein Häkchen, die nächste ist gross und gelb und hat den Knopf «Starten», spätere sind blass. Oben wechselt man zwischen den eigenen Themen. Mit KI schreibt der Agent die nächste Lektion erst nach dem Ergebnis der aktuellen; ein gestrichelter Platzhalter zeigt, dass der Pfad weitergeht. Die Reihenfolge: erledigte Lektionen in der Reihenfolge, in der sie geschafft wurden, dann der nächste Schritt, dann der Rest des Plans (`frontend/src/path/order.ts`).
+Die Startseite ist eine Liste: «Was möchtest du lernen?» mit den Bereichen (Digitale Kompetenz, Mathematik, Naturwissenschaften, Eigene Themen) und ihren Themen, etwa «Kommunikation und Zusammenarbeit». Ein Tipp auf ein Thema öffnet es; ein neues Thema kommt dabei dazu. Oben steht «Weiterlernen» mit dem zuletzt bearbeiteten Thema. Ein Thema ist eine gerade Linie: die geschafften Lektionen (in der Reihenfolge, in der sie geschafft wurden, `frontend/src/path/order.ts`), darunter «Wie geht es weiter?» mit der Themen- und Formatwahl (siehe «Nächstes Thema und Format wählen»).
 
-Unter «Alle Themen als Karte ansehen» gibt es die ganze Lernkarte. Die Lernkarte ist eine Mindmap mit dir in der Mitte. Sie beginnt leer: Du wählst, was du lernen willst. Das kann ein eigenes Thema sein, zum Beispiel «Security+ Prüfung bestehen». Dann plant der Agent den Bereich mit der KI. Oder du nimmst einen vorbereiteten Bereich: die fünf DigComp-Bereiche, Mathematik oder Naturwissenschaften. Geplante Lektionen sind blass. Der Agent hebt den nächsten Schritt hervor, begründet ihn und bietet eine Alternative an. Während du lernst, wächst die Karte: Der Agent hängt neue Knoten an, wenn etwas zweimal schwierig war oder zu leicht ist.
+Unter «Alles als Karte ansehen» gibt es die ganze Lernkarte. Die Lernkarte ist eine Mindmap mit dir in der Mitte. Sie beginnt leer: Du wählst, was du lernen willst. Das kann ein eigenes Thema sein, zum Beispiel «Security+ Prüfung bestehen». Dann plant der Agent den Bereich mit der KI. Oder du nimmst einen vorbereiteten Bereich: die fünf DigComp-Bereiche, Mathematik oder Naturwissenschaften. Geplante Lektionen sind blass. Der Agent hebt den nächsten Schritt hervor, begründet ihn und bietet eine Alternative an. Während du lernst, wächst die Karte: Der Agent hängt neue Knoten an, wenn etwas zweimal schwierig war oder zu leicht ist.
 
 Mit KI arbeitet der Agent wie eine Lehrperson (nach dem Skill «teach» von mattpocock/skills). Pro Bereich kennt er deine Mission, schreibt Lerneinträge mit Belegen und erzeugt kurze Lektionen, die zu dir passen. Die Regeln bleiben als Prüfung und als Rückfall. Dein Fortschritt liegt auf der Festplatte und übersteht einen Neustart.
 
@@ -89,7 +89,7 @@ Das DCC ist die einzige Quelle für Stufen. Lernen in der App ändert das DCC-Pr
 
 ## Bereiche wählen
 
-Nach der Anmeldung ist die Karte leer. Mit «Neues Thema» kommt dazu:
+Nach der Anmeldung ist die Karte leer. Aus der Liste auf der Startseite kommt dazu:
 
 - **Eigenes Thema**: Thema und dein Vorwissen. Der Agent plant den Bereich mit der KI: einen Namen, 3 bis 6 Kriterien mit Faustregeln, drei Missionsvorschläge, die passenden Lektionsarten und 2 bis 5 Quellen. Der Server prüft den Entwurf. Von den Quellen bleiben nur Adressen, die beim Anlegen antworten (404 und 410 fallen weg). Danach erzeugt der Generator den ersten Einstieg, auf der Stufe deines Vorwissens. Erst wenn Entwurf und Einstieg gültig sind, kommt der Bereich auf die Karte. Die Mission fragt die App beim ersten Start einer Lektion.
 - **Vorbereiteter Bereich**: aus `data/skills.json`, mit geprüften Quellen und vorbereiteten Lektionen. Das geht auch ohne KI. Mehrere auf einmal sind möglich, zum Beispiel alle fünf DigComp-Bereiche.
@@ -111,7 +111,7 @@ Die Ableitungslektion liegt unter Mathematik → Ableitung auf der Lernkarte. Ab
 
 ### Videos für eigene Themen und vorbereitete Lektionen
 
-Unter **Neues Thema → Eigenes Thema** das Thema eingeben und **Los geht's** wählen. Eigene Themen beginnen immer mit einem Erklärvideo mit Fragen. Der Textanbieter plant den Bereich mit Quellen und schreibt eine neue Video-Lektion. Danach öffnet sich das Video; der Server erzeugt beim ersten Öffnen Sprache und Animation, zeigt den Fortschritt und speichert das Ergebnis. Die gleichen Fragenpausen, Untertitel, Spulfunktionen und die Bewertung funktionieren auch für diese Lektionen. Die KI liefert strukturierte Szenen und Beschriftungen, keinen ausführbaren Animationscode.
+Auf der Startseite **Eigenes Thema anlegen**, das Thema eingeben und **Los geht's** wählen. Der Textanbieter plant den Bereich mit Quellen. Danach wählt die Person Thema und Format der ersten Lektion, zum Beispiel ein Erklärvideo. Beim ersten Öffnen eines Videos erzeugt der Server erzeugt beim ersten Öffnen Sprache und Animation, zeigt den Fortschritt und speichert das Ergebnis. Die gleichen Fragenpausen, Untertitel, Spulfunktionen und die Bewertung funktionieren auch für diese Lektionen. Die KI liefert strukturierte Szenen und Beschriftungen, keinen ausführbaren Animationscode.
 
 Für **neue Inhalte** müssen `MODEL_PROVIDER=anthropic` mit `ANTHROPIC_API_KEY` oder `MODEL_PROVIDER=openai` mit `OPENAI_API_KEY` und `OPENAI_MODEL` eingerichtet sein. ElevenLabs erzeugt nur die Sprache und ersetzt das Textmodell nicht. Ohne Textmodell bleiben neue Themen gesperrt; alle mitgelieferten Video-Lektionen lassen sich abspielen. Fehlende oder ausgefallene Spracherzeugung bietet weiterhin das Storyboard an.
 
@@ -129,11 +129,11 @@ Fertige Katalogvideos liegen in `frontend/public/videos/<lesson-id>/`. Neue Vide
 
 Ein fehlgeschlagener oder unklar beendeter kostenpflichtiger Sprachaufruf wird nicht automatisch wiederholt. Bereits fertige Passagen bleiben erhalten. Nach Prüfung des Fehlers kann ein gezielter neuer Versuch mit `npm run videos:build -- <lesson-id> --retry-failed` ausgelöst werden. Ein Manifest wird erst veröffentlicht, wenn alle Szenen vertont, kompiliert und als renderbar geprüft sind. Die API liefert keine Fragenlösungen aus.
 
-### Podcast zu einem Bereich
+### Podcast als Lektion
 
-Einen Bereich auf der Karte anklicken und **Podcast erstellen** wählen. Zwei Stimmen, Mira und Jonas, sprechen etwa drei Minuten über die Faustregeln des Bereichs, die Mission und die Lektionen auf der eigenen Karte. Mit Textmodell schreibt die KI das Gespräch nur aus Kriterien, Faustregeln, Quellen und Lektionen, ohne Lösungen der Lektionen. Ohne Textmodell oder wenn die Antwort nicht passt, stellen die Regeln ein einfacheres Gespräch aus denselben Angaben zusammen. Die Abschrift lässt sich mitlesen; ein Klick auf einen Beitrag springt an diese Stelle.
+«Podcast» ist ein Format wie Video: Wer bei «Wie geht es weiter?» ein Thema wählt, kann es als Podcast lernen (mit KI-Verbindung, für jedes Thema). Die KI schreibt dazu ein kurzes Gespräch zwischen Mira und Jonas über genau dieses Thema, nur aus Kriterium, Faustregel und Quellen des Bereichs, und zwei bis drei Fragen dazu. Der Server prüft Länge (6 bis 16 Beiträge, höchstens 3000 Zeichen), beide Stimmen und die Fragen wie beim Video. Beim ersten Öffnen wird das Gespräch vertont; die Abschrift lässt sich mitlesen, ein Klick auf einen Beitrag springt an diese Stelle. Nach dem Gespräch kommen die Fragen; bewertet wird wie beim Video. Der Planer-Agent wählt Podcasts nicht von sich aus, nur die Person.
 
-Die Sprache kommt vom gleichen Anbieter wie bei den Videos, mit einer zweiten Stimme: `ELEVENLABS_SECOND_VOICE_ID` für ElevenLabs, `VIDEO_LOCAL_SECOND_VOICE` (Standard: Markus) für die lokale Stimme unter macOS. Fertige Podcasts liegen unter `backend/var/podcasts/<hash>/`, die Gesprächsskripte unter `backend/var/podcasts/scripts/`; `PODCAST_CACHE_DIR` ändert den Ort. Ein neues Skript entsteht nur, wenn sich der Inhalt des Bereichs ändert. Andere Stimmen vertonen das gespeicherte Skript neu, ohne die KI erneut zu fragen. Fällt die Vertonung aus, bleibt das Gespräch als Text lesbar.
+Die Sprache kommt vom gleichen Anbieter wie bei den Videos, mit einer zweiten Stimme: `ELEVENLABS_SECOND_VOICE_ID` für ElevenLabs, `VIDEO_LOCAL_SECOND_VOICE` (Standard: Markus) für die lokale Stimme unter macOS. Fertige Vertonungen liegen unter `backend/var/podcasts/<hash>/`; `PODCAST_CACHE_DIR` ändert den Ort. Die gleichen Beiträge mit den gleichen Stimmen werden nur einmal vertont. Fällt die Vertonung aus, bleibt das Gespräch lesbar und die Fragen gehen trotzdem.
 
 ### Ableitungsvideo neu erzeugen
 
@@ -170,7 +170,7 @@ Lösungen bleiben im Backend. Der Browser bekommt die Lektionen ohne Lösungen.
 
 ## Nächstes Thema und Format wählen
 
-Die Lernkarte bietet im Seitenbereich drei kurze Themenvorschläge (einen davon empfohlen) und «Eigenes Thema vorschlagen». Auf der Karte erscheinen sie als mögliche Verzweigungen. Zuerst wird das Thema gewählt, danach eines der bestehenden Formate, die der Themenplan dafür als passend nennt: Video, Mit der KI, Text prüfen oder Webseite prüfen. Bei erzeugten Lektionen sind auch Formate verfügbar, für die der Bereich noch kein vorbereitetes Beispiel hat. Diese Änderung führt keinen zusätzlichen Text- oder Podcast-Lektionstyp ein; die Podcast-Übersicht pro Bereich bleibt verfügbar.
+Ein geöffnetes Thema (und auf der Lernkarte der Seitenbereich) bietet unter «Wie geht es weiter?» drei kurze Themenvorschläge (einen davon empfohlen) und «Etwas anderes vorschlagen». Auf der Karte erscheinen sie als mögliche Verzweigungen. Zuerst wird das Thema gewählt, danach eines der Formate, die der Themenplan dafür als passend nennt: Video, Mit der KI, Text prüfen oder Webseite prüfen; mit KI ist zusätzlich immer Podcast dabei. Ein Tipp auf das Format startet die Lektion; hat ein Thema nur ein Format, startet es gleich. Bei erzeugten Lektionen sind auch Formate verfügbar, für die der Bereich noch kein vorbereitetes Beispiel hat.
 
 Die Vorschläge sind reine Vorschauen. Erst «Lektion starten» erzeugt genau die gewählte Lektion im gewählten Format oder verwendet eine dazu passende vorhandene Lektion. Auch nach dem Abschliessen einer Lektion wird keine vollständige Folgelektion automatisch erzeugt. Neue eigene Bereiche werden in diesem Ablauf zuerst nur mit Lernzielen und Quellen geplant; die erste Lektion entsteht ebenfalls erst nach der Auswahl.
 

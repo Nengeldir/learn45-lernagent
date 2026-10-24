@@ -2,7 +2,7 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Answer, ChatTurn, ContentBundle, VideoLesson } from '@l45/shared';
+import type { Answer, ChatTurn, ContentBundle, Lesson, PodcastLesson, VideoLesson } from '@l45/shared';
 import { content } from './content.ts';
 import { InputError, profileFromFile, profileFromManual } from './dcc.ts';
 import { modelStatus, providerName } from './provider.ts';
@@ -10,9 +10,7 @@ import {
   HttpError, addTracks, chat, clearCache, complete, createTrack, generatedPublic, get, hint, login, nextLesson, partialCheck, patch, publicLesson,
   setMission, startNode, view,
 } from './sessions.ts';
-import { PodcastService, type PodcastRequest } from './podcast/service.ts';
-import { sourcesOf } from './resources.ts';
-import { missionOf, trackIn } from './tracks.ts';
+import { PodcastService } from './podcast/service.ts';
 import { VideoService } from './video/service.ts';
 import { chooseTopic, getTopics, suggestTopic } from './nextTopics.ts';
 
@@ -31,6 +29,7 @@ function parseAnswer(body: unknown): Answer {
     case 'mock-site':
       return { type: a.type, marked: Array.isArray(a.marked) ? a.marked.map(String) : [], verdict: a.verdict === 'phishing' || a.verdict === 'echt' ? a.verdict : null };
     case 'video':
+    case 'podcast':
       return { type: a.type, answers: a.answers ?? {} };
     case 'ai-chat':
       return { type: a.type, turns: parseTurns(a.turns) };
@@ -130,12 +129,21 @@ export function createApp(options: { videoService?: VideoService; podcastService
     const r = startNode(st, p(req, 'node'));
     res.json({ ...r, view: view(st) });
   }));
-  const videoOf = (sessionId: string, nodeId: string): VideoLesson => {
+  const lessonOf = (sessionId: string, nodeId: string): Lesson => {
     const st = get(sessionId);
     const node = st.session.nodes.find(n => n.id === nodeId && n.kind === 'lesson');
     const lesson = [...content.lessons, ...st.session.generatedLessons].find(l => l.id === node?.lessonId);
     if (!lesson) throw new HttpError(404, 'Lektion nicht gefunden');
+    return lesson;
+  };
+  const videoOf = (sessionId: string, nodeId: string): VideoLesson => {
+    const lesson = lessonOf(sessionId, nodeId);
     if (lesson.type !== 'video') throw new HttpError(400, 'Diese Lektion ist kein Video.');
+    return lesson;
+  };
+  const podcastOf = (sessionId: string, nodeId: string): PodcastLesson => {
+    const lesson = lessonOf(sessionId, nodeId);
+    if (lesson.type !== 'podcast') throw new HttpError(400, 'Diese Lektion ist kein Podcast.');
     return lesson;
   };
   app.post('/api/sessions/:id/nodes/:node/video', h(async (req, res) => {
@@ -145,27 +153,13 @@ export function createApp(options: { videoService?: VideoService; podcastService
   app.get('/api/sessions/:id/nodes/:node/video', h(async (req, res) => {
     res.json(await videos.status(videoOf(p(req, 'id'), p(req, 'node'))));
   }));
-  // A podcast covers the learner's own map of a track: its criteria, sources and the lessons placed there.
-  const podcastOf = (sessionId: string, trackId: string): PodcastRequest => {
-    const st = get(sessionId);
-    const track = trackIn(st, trackId);
-    if (!track) throw new HttpError(404, 'Bereich nicht gefunden');
-    const all = [...content.lessons, ...st.session.generatedLessons];
-    const lessons = st.session.nodes
-      .filter(n => n.kind === 'lesson' && n.trackId === trackId)
-      .flatMap(n => all.filter(l => l.id === n.lessonId));
-    return {
-      input: { track, mission: missionOf(st, trackId)?.text, sources: sourcesOf(track), lessons },
-      useModel: !st.session.simulation && providerName() !== 'none',
-      onCall: (c) => st.session.modelCalls.push(c),
-    };
-  };
-  app.post('/api/sessions/:id/tracks/:track/podcast', h(async (req, res) => {
-    const result = await podcasts.prepare(podcastOf(p(req, 'id'), p(req, 'track')));
+  // The audio of a podcast lesson is narrated the first time it is opened.
+  app.post('/api/sessions/:id/nodes/:node/podcast', h(async (req, res) => {
+    const result = await podcasts.prepare(podcastOf(p(req, 'id'), p(req, 'node')));
     res.status(result.state === 'building' ? 202 : result.state === 'error' ? 503 : 200).json(result);
   }));
-  app.get('/api/sessions/:id/tracks/:track/podcast', h(async (req, res) => {
-    res.json(await podcasts.status(podcastOf(p(req, 'id'), p(req, 'track'))));
+  app.get('/api/sessions/:id/nodes/:node/podcast', h(async (req, res) => {
+    res.json(await podcasts.status(podcastOf(p(req, 'id'), p(req, 'node'))));
   }));
   app.post('/api/sessions/:id/nodes/:node/check', h((req, res) => res.json(partialCheck(get(p(req, 'id')), p(req, 'node'), parseAnswer(req.body)))));
   app.post('/api/sessions/:id/nodes/:node/hint', h(async (req, res) => res.json(await hint(get(p(req, 'id')), p(req, 'node'), parseAnswer(req.body)))));

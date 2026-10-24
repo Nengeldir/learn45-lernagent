@@ -310,7 +310,7 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .result.gap { background: var(--warn-soft); }
 .result.gap strong, .result.gap h3 { color: var(--warn); }
 .result p:last-of-type { margin-bottom: 4px; }
-/* Podcast in the track panel */
+/* Podcast lesson */
 .podcast { display: grid; gap: 10px; padding: 14px; border-radius: var(--radius); background: var(--surface-2); }
 .podcast p { margin: 0; }
 .podcast-head { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 17px; }
@@ -542,7 +542,7 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .topic-option { text-align: left; display: grid; gap: 5px; width: 100%; padding: 14px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); cursor: pointer; transition: background .15s, border-color .15s; overflow-wrap: anywhere; }
 .topic-option:hover:not(:disabled) { background: var(--surface-2); border-color: var(--ink-3); }
 .topic-option.recommended { background: var(--trail-soft); border-color: var(--trail-dark); }
-.topic-recommended { display: inline-flex; align-items: center; gap: 5px; color: var(--trail-dark); font-size: 12px; font-weight: 600; }
+.topic-recommended { display: inline-flex; align-items: center; gap: 5px; color: var(--trail-dark); font-size: 15px; font-weight: 600; }
 .topic-option.own { border-style: dashed; }
 .topic-option.own strong { display: flex; align-items: center; gap: 6px; }
 .topic-option:disabled { cursor: not-allowed; opacity: .6; }
@@ -550,56 +550,60 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .topic-summary p { margin: 4px 0 0; }
 .format-options { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; min-width: 0; }
 .format-options legend { font-size: 14px; font-weight: 600; padding: 0 0 8px; }
-.format-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid var(--line-strong); border-radius: var(--radius); cursor: pointer; }
+.format-option { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; text-align: left; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); cursor: pointer; transition: background-color .15s, border-color .15s; }
+.format-option:hover:not(:disabled) { background: var(--surface-2); border-color: var(--ink-3); }
+.format-option:disabled { opacity: .6; cursor: not-allowed; }
+.format-icon { flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--surface-3); color: var(--ink); }
+.format-text { display: grid; gap: 2px; }
 .format-option.selected { border-color: var(--ink); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--ink); }
 .format-option input { margin-top: 5px; accent-color: var(--ink); }
 .format-option > span { display: grid; gap: 3px; }
-.format-preferred { color: var(--ok); font-size: 12px; }
+.format-preferred { margin-left: 8px; color: var(--ok); font-size: 14px; font-weight: 500; }
 .own-topic { display: grid; gap: 12px; }
 .own-topic p { margin: 0; }
 .node.topic-preview .lesson-disc { stroke-dasharray: 3 3; }
-/* --- Learning path: the default view, one topic as a winding line of lessons --- */
+
+/* --- Home: Bereiche with their topics; one topic as a straight line of lessons --- */
 .path-area { overflow: auto; min-height: 0; }
-.path-inner { max-width: 640px; margin: 0 auto; padding: 28px 20px 56px; display: grid; gap: 20px; }
-.path-empty { justify-items: start; padding-top: 64px; }
-.path-title { font-size: 32px; margin: 0; }
-.path-topics { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px; margin: -4px; }
-.topic-chip { display: inline-flex; align-items: center; gap: 8px; flex: none; min-height: 48px; padding: 8px 16px; border-radius: 999px; border: 2px solid var(--line-strong); background: var(--surface); cursor: pointer; font-weight: 600; white-space: nowrap; transition: border-color 0.15s, background-color 0.15s; }
-.topic-chip:hover { border-color: var(--tc); }
-.topic-chip[aria-pressed='true'] { border-color: var(--tc); background: color-mix(in srgb, var(--tc) 12%, var(--surface)); }
-.topic-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--tc); flex: none; }
-.topic-count { font-size: 15px; font-weight: 500; color: var(--ink-2); }
-.path-head { display: grid; gap: 8px; }
-.path-head p { margin: 0; }
-.path-progress { height: 14px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
-.path-progress span { display: block; height: 100%; background: var(--tc); border-radius: inherit; transition: width 0.4s ease-out; }
-.path { list-style: none; margin: 0; padding: 8px 0; display: grid; gap: 18px; }
-.step { display: grid; gap: 12px; }
-/* The heads wind sideways; the open card stays full width below its head. */
-.step-head { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 16px; margin-left: calc(var(--wave) + 26px); padding: 4px; border-radius: 18px; cursor: pointer; }
-.step-head:focus-visible { outline: 2px solid var(--c-info); outline-offset: 2px; }
-.step-head:hover .step-node { transform: translateY(-2px); }
-.step-node { flex: none; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; font-size: 22px; font-weight: 700; background: var(--surface); color: var(--ink-2); border: 3px solid color-mix(in srgb, var(--tc) 40%, var(--line-strong)); box-shadow: 0 4px 0 color-mix(in srgb, var(--tc) 25%, var(--line-strong)); transition: transform 0.15s; }
-.step.done .step-node { background: var(--tc); border-color: var(--tc); color: #fff; box-shadow: 0 4px 0 color-mix(in srgb, var(--tc) 65%, #000); }
-.step.current .step-node { width: 80px; height: 80px; background: var(--trail); border-color: var(--trail); color: #1f2b26; box-shadow: 0 5px 0 var(--trail-dark), 0 0 0 9px var(--trail-soft); }
-.step-node .icon { stroke-width: 3; }
-.step-text { display: grid; gap: 2px; min-width: 0; }
-.step-label { font-size: 19px; font-weight: 600; line-height: 1.3; }
-.step.later .step-label { color: var(--ink-2); font-weight: 500; }
-.step-meta { font-size: 16px; color: var(--ink-2); }
-.step-card { display: grid; gap: 12px; justify-items: start; padding: 18px 20px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-md); animation: rise 0.2s ease-out; }
-.step-card > p { margin: 0; }
-.step-card .why, .step-card .more { justify-self: stretch; }
-.step.current .step-card { border-color: var(--trail); }
-.path-end { display: grid; gap: 12px; justify-items: start; padding: 20px; border-radius: var(--radius-lg); background: var(--ok-soft); }
-.path-end h2 { font-size: 22px; margin: 0; }
+.home, .track-view { max-width: 680px; margin: 0 auto; padding: 28px 20px 56px; display: grid; gap: 22px; }
+.home-title { font-size: 32px; margin: 0; }
+.continue-card { display: flex; align-items: center; gap: 16px; width: 100%; padding: 18px 20px; text-align: left; border: 2px solid var(--trail); border-radius: var(--radius-lg); background: var(--trail-soft); cursor: pointer; }
+.continue-card:hover { box-shadow: var(--shadow-md); }
+.continue-icon { flex: none; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--trail); color: #1f2b26; }
+.continue-card strong { font-size: 20px; }
+.area { display: grid; gap: 10px; }
+.area-title { font-size: 22px; margin: 0; }
+.topic-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.topic-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 12px 16px; text-align: left; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); cursor: pointer; transition: background-color .15s, border-color .15s, box-shadow .15s; }
+.topic-row:hover:not(:disabled) { border-color: var(--tc, var(--ink-3)); box-shadow: var(--shadow-sm); }
+.topic-row:disabled { opacity: .6; cursor: not-allowed; }
+.topic-row > .icon:last-child { color: var(--ink-3); }
+.topic-row.new { border-style: dashed; }
+.topic-dot { flex: none; width: 16px; height: 16px; border-radius: 50%; background: var(--tc); }
+.topic-plus { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--surface-3); }
+.topic-row-text { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.topic-row-text strong { font-size: 18px; font-weight: 600; }
 .path-map { justify-self: center; font-size: 17px; padding: 12px; }
+.track-head { display: grid; gap: 6px; }
+.track-head p { margin: 0; }
+/* The line: finished lessons and the next step, joined by a line in the topic colour */
+.line { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.line-step.done::after { content: ''; position: absolute; left: 21px; top: 45px; height: calc(100% - 45px + 14px); width: 3px; background: color-mix(in srgb, var(--tc) 35%, var(--line)); }
+.line-step { position: relative; display: flex; align-items: center; gap: 14px; }
+.line-step.next { align-items: flex-start; }
+.line-mark { flex: none; z-index: 1; display: grid; place-items: center; width: 45px; height: 45px; border-radius: 50%; background: var(--tc); color: #fff; }
+.line-mark .icon { stroke-width: 3; }
+.line-step.next .line-mark { background: var(--trail); color: #1f2b26; box-shadow: 0 0 0 6px var(--trail-soft); }
+.line-text { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.line-text strong { font-size: 18px; font-weight: 600; }
+.line-card { flex: 1; min-width: 0; padding: 18px 20px; border: 2px solid var(--trail); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-md); }
+.line-card .next-topics h2 { margin: 0; }
+.podcast-questions { display: grid; gap: 14px; }
+.podcast-questions h3 { margin: 0; }
+.podcast-question { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+.podcast-question legend { font-weight: 600; padding: 0 0 8px; }
 @media (max-width: 600px) {
-  .path-inner { padding: 20px 16px 48px; }
-  .path-title { font-size: 26px; }
-  .path-topics { flex-wrap: nowrap; overflow-x: auto; }
-  .step-head { margin-left: calc(var(--wave) * 0.4 + 10px); }
+  .home, .track-view { padding: 20px 16px 48px; }
+  .home-title { font-size: 26px; }
+  .line-card { padding: 14px; }
 }
-.step.ghost .step-head { cursor: default; }
-.step.ghost .step-node { border-style: dashed; box-shadow: none; color: var(--ink-3); background: transparent; }
-.step.ghost .step-label { color: var(--ink-2); font-weight: 500; font-size: 17px; }

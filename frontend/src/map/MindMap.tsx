@@ -328,6 +328,7 @@ function Node({
       {lesson?.type === 'ai-chat' && n.state !== 'done' && <path d="M-6 -4 h12 v7 h-7 l-3 3 v-3 h-2 z" className="glyph" />}
       {lesson?.type === 'mock-site' && n.state !== 'done' && <rect x={-6} y={-5} width={12} height={10} rx={1.5} className="glyph" />}
       {lesson?.type === 'mark-evidence' && n.state !== 'done' && <path d="M-5 -3 h10 M-5 0 h10 M-5 3 h6" className="glyph-line" />}
+      {lesson?.type === 'podcast' && n.state !== 'done' && <path d="M-6 3 v-2 a6 6 0 0 1 12 0 v2 M-6 1 v4 M6 1 v4" className="glyph-line" />}
       {n.state === 'recommended' && <Flag y={-33} kind="next" text={n.topicId ? 'Empfohlen' : 'Als Nächstes'} />}
       {n.state === 'alternative' && <Flag y={-31} kind="alt" text="zur Wahl" />}
       {n.addedByAgent && n.state !== 'done' && n.state !== 'recommended' && n.state !== 'alternative' && <Flag y={-30} kind="new" text="neu" />}

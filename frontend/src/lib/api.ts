@@ -46,8 +46,8 @@ export const api = {
     call<{ trackId: string; view: SessionView; generated: Lesson[] }>('POST', `${s(id)}/own-tracks`, body),
   nextLesson: (id: string, trackId: string) =>
     call<{ view: SessionView; generated: Lesson[] }>('POST', `${s(id)}/tracks/${encodeURIComponent(trackId)}/next`, {}),
-  /** POST starts the podcast if it does not exist yet, GET only reports where it stands. */
-  podcast: (id: string, trackId: string, method: 'GET' | 'POST') => call<PodcastStatus>(method, `${s(id)}/tracks/${encodeURIComponent(trackId)}/podcast`),
+  /** Audio of a podcast lesson. POST narrates it if that has not happened yet, GET only reports where it stands. */
+  podcast: (id: string, node: string, method: 'GET' | 'POST') => call<PodcastStatus>(method, `${n(id, node)}/podcast`),
   topics: (id: string, trackId: string) =>
     call<{ choices: TopicChoices; view: SessionView }>('POST', `${s(id)}/tracks/${encodeURIComponent(trackId)}/topics`, {}),
   suggestTopic: (id: string, body: { choiceSetId: string; topic: string }) =>
