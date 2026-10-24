@@ -91,7 +91,7 @@ export const IT: Record<string, string> = {
   "Mit 10 Minuten mehr gäbe es noch einen Schritt.": "Con 10 minuti in più ci sarebbe ancora un passo.",
   "10 Minuten mehr": "10 minuti in più",
   "Zurück zum nächsten Schritt": "Torna al passo successivo",
-  "Diesen Knoten hat der Agent nach deinen Ergebnissen neu hinzugefügt.": "L’agente ha aggiunto questo nodo in base ai tuoi risultati.",
+  "Diese Lektion hat der Agent nach deinen Ergebnissen neu hinzugefügt.": "L’agente ha aggiunto questa lezione in base ai tuoi risultati.",
   "Geplant. Du kannst sie freiwillig jederzeit starten.": "Previsto. Puoi iniziarlo quando vuoi.",
   "Gelöst": "Risolto",
   "Mit Lücken": "Con lacune",
