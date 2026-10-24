@@ -10,6 +10,9 @@ import {
   HttpError, addTracks, chat, clearCache, complete, createTrack, generatedPublic, get, hint, login, nextLesson, partialCheck, patch, publicLesson,
   setMission, startNode, view,
 } from './sessions.ts';
+import { PodcastService, type PodcastRequest } from './podcast/service.ts';
+import { sourcesOf } from './resources.ts';
+import { missionOf, trackIn } from './tracks.ts';
 import { VideoService } from './video/service.ts';
 
 type Handler = (req: Request, res: Response) => unknown;
@@ -42,7 +45,7 @@ function parseTurns(turns: unknown): ChatTurn[] {
     .map((t) => ({ role: t.role, text: String(t.text ?? '').slice(0, 2000), source: t.source }));
 }
 
-export function createApp(options: { videoService?: VideoService } = {}) {
+export function createApp(options: { videoService?: VideoService; podcastService?: PodcastService } = {}) {
   // A new app starts like a restarted server: nothing in memory, everything is read from disk.
   clearCache();
   const app = express();
@@ -50,6 +53,10 @@ export function createApp(options: { videoService?: VideoService } = {}) {
     output: process.env.VIDEO_CACHE_DIR ?? join(import.meta.dirname, '..', 'var', 'videos'),
     speechCache: process.env.VIDEO_SPEECH_CACHE_DIR ?? join(import.meta.dirname, '..', 'var', 'video-speech'),
     published: join(import.meta.dirname, '..', '..', 'frontend', 'public', 'videos'),
+  });
+  const podcasts = options.podcastService ?? new PodcastService({
+    output: process.env.PODCAST_CACHE_DIR ?? join(import.meta.dirname, '..', 'var', 'podcasts'),
+    speechCache: videos.options.speechCache,
   });
   app.use(express.json({ limit: '200kb' }));
 
@@ -121,6 +128,28 @@ export function createApp(options: { videoService?: VideoService } = {}) {
   app.get('/api/sessions/:id/nodes/:node/video', h(async (req, res) => {
     res.json(await videos.status(videoOf(p(req, 'id'), p(req, 'node'))));
   }));
+  // A podcast covers the learner's own map of a track: its criteria, sources and the lessons placed there.
+  const podcastOf = (sessionId: string, trackId: string): PodcastRequest => {
+    const st = get(sessionId);
+    const track = trackIn(st, trackId);
+    if (!track) throw new HttpError(404, 'Bereich nicht gefunden');
+    const all = [...content.lessons, ...st.session.generatedLessons];
+    const lessons = st.session.nodes
+      .filter(n => n.kind === 'lesson' && n.trackId === trackId)
+      .flatMap(n => all.filter(l => l.id === n.lessonId));
+    return {
+      input: { track, mission: missionOf(st, trackId)?.text, sources: sourcesOf(track), lessons },
+      useModel: !st.session.simulation && providerName() !== 'none',
+      onCall: (c) => st.session.modelCalls.push(c),
+    };
+  };
+  app.post('/api/sessions/:id/tracks/:track/podcast', h(async (req, res) => {
+    const result = await podcasts.prepare(podcastOf(p(req, 'id'), p(req, 'track')));
+    res.status(result.state === 'building' ? 202 : result.state === 'error' ? 503 : 200).json(result);
+  }));
+  app.get('/api/sessions/:id/tracks/:track/podcast', h(async (req, res) => {
+    res.json(await podcasts.status(podcastOf(p(req, 'id'), p(req, 'track'))));
+  }));
   app.post('/api/sessions/:id/nodes/:node/check', h((req, res) => res.json(partialCheck(get(p(req, 'id')), p(req, 'node'), parseAnswer(req.body)))));
   app.post('/api/sessions/:id/nodes/:node/hint', h(async (req, res) => res.json(await hint(get(p(req, 'id')), p(req, 'node'), parseAnswer(req.body)))));
   app.post('/api/sessions/:id/nodes/:node/chat', h(async (req, res) => res.json(await chat(get(p(req, 'id')), p(req, 'node'), parseTurns(req.body?.turns)))));
@@ -134,6 +163,8 @@ export function createApp(options: { videoService?: VideoService } = {}) {
   // Completed runtime videos and bundled videos share the same public asset URL shape.
   app.use('/videos', express.static(videos.options.output), express.static(videos.options.published));
   app.use('/videos', (_req, res) => res.status(404).json({ error: 'Video-Datei nicht gefunden' }));
+  app.use('/podcasts', express.static(podcasts.options.output));
+  app.use('/podcasts', (_req, res) => res.status(404).json({ error: 'Podcast-Datei nicht gefunden' }));
 
   // Built frontend
   const dist = process.env.FRONTEND_DIST ?? join(import.meta.dirname, '..', '..', 'frontend', 'dist');

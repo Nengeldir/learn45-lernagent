@@ -1,4 +1,4 @@
-import type { Answer, ChatTurn, ContentBundle, DccLevel, Lesson, LessonResult, PartialCheck, SessionView, Source } from '@l45/shared';
+import type { Answer, ChatTurn, ContentBundle, DccLevel, Lesson, LessonResult, PartialCheck, PodcastStatus, SessionView, Source } from '@l45/shared';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public body: Record<string, unknown> = {}) {
@@ -46,6 +46,8 @@ export const api = {
     call<{ trackId: string; view: SessionView; generated: Lesson[] }>('POST', `${s(id)}/own-tracks`, body),
   nextLesson: (id: string, trackId: string) =>
     call<{ view: SessionView; generated: Lesson[] }>('POST', `${s(id)}/tracks/${encodeURIComponent(trackId)}/next`, {}),
+  /** POST starts the podcast if it does not exist yet, GET only reports where it stands. */
+  podcast: (id: string, trackId: string, method: 'GET' | 'POST') => call<PodcastStatus>(method, `${s(id)}/tracks/${encodeURIComponent(trackId)}/podcast`),
   mission: (id: string, trackId: string, body: { text?: string; skip?: boolean; confirm?: boolean }) =>
     call<SessionView>('PUT', `${s(id)}/missions/${encodeURIComponent(trackId)}`, body),
   start: (id: string, node: string) => call<{ lesson: Lesson; switched?: string; view: SessionView }>('POST', `${n(id, node)}/start`, {}),

@@ -5,6 +5,7 @@ import { LERNSTAND_LABEL, MODE_LABEL, SOURCE_LABEL, TYPE_LABEL } from '@l45/shar
 import { api } from '../lib/api.ts';
 import { Icon } from '../lib/icons.tsx';
 import { useStore } from '../lib/store.tsx';
+import { Podcast } from './Podcast.tsx';
 
 const LEVEL_TEXT: Record<string, string> = { Grundstufe: 'keins oder wenig', Mittelstufe: 'etwas', Fortgeschritten: 'viel' };
 
@@ -238,6 +239,7 @@ export function NodePanel({
           ) : 'Kein DCC-Bereich. Der Agent plant hier nur aus deinem Lernverlauf.'}
         </p>
         <p className="small"><strong>Mission:</strong> {mission ? mission.text : <span className="muted">noch offen, wird beim ersten Start gefragt</span>}</p>
+        {track && <Podcast key={track.id} sessionId={session.id} track={track} />}
         <h3 className="small-head">Lernstand (aus dem Lernen, kein DCC)</h3>
         <ul className="lernstand">
           {stand.map((l) => (
