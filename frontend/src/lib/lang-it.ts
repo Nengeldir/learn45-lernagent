@@ -503,4 +503,9 @@ export const IT: Record<string, string> = {
   "Beim ersten Öffnen kann das etwas dauern. Danach ist das Video gespeichert.": "La prima apertura può richiedere un po’. Poi il video è salvato.",
   "Die Vertonung ist gerade nicht möglich. Du kannst die Lektion als Storyboard ansehen.": "Il doppiaggio non è possibile ora. Puoi vedere la lezione come storyboard.",
   "Erklärvideo wird vorbereitet …": "Preparazione del video esplicativo …",
+  "Berg {n}": "Montagna {n}",
+  "Noch {n} Lektionen bis zum Gipfel": "Ancora {n} lezioni fino alla vetta",
+  "Noch 1 Lektion bis zum Gipfel": "Ancora 1 lezione fino alla vetta",
+  "{done} von {total} Lektionen": "{done} lezioni su {total}",
+  "Geschaffte Berge": "Montagne scalate",
 };

@@ -504,4 +504,9 @@ export const RM: Record<string, string> = {
   "Beim ersten Öffnen kann das etwas dauern. Danach ist das Video gespeichert.": "L’emprima giada po quai durar in mument. Suenter è il video memorisà.",
   "Die Vertonung ist gerade nicht möglich. Du kannst die Lektion als Storyboard ansehen.": "La sonorisaziun n’è ussa betg pussaivla. Ti pos guardar la lecziun sco storyboard.",
   "Erklärvideo wird vorbereitet …": "Il video explicativ vegn preparà …",
+  "Berg {n}": "Muntogna {n}",
+  "Noch {n} Lektionen bis zum Gipfel": "Anc {n} lecziuns fin al piz",
+  "Noch 1 Lektion bis zum Gipfel": "Anc 1 lecziun fin al piz",
+  "{done} von {total} Lektionen": "{done} da {total} lecziuns",
+  "Geschaffte Berge": "Muntognas cuntanschidas",
 };

@@ -557,6 +557,12 @@ const EN: Record<string, string> = {
   'Beim ersten Öffnen kann das etwas dauern. Danach ist das Video gespeichert.': 'The first time can take a moment. After that the video is saved.',
   'Die Vertonung ist gerade nicht möglich. Du kannst die Lektion als Storyboard ansehen.': 'The voice-over isn’t possible right now. You can view the lesson as a storyboard.',
   'Erklärvideo wird vorbereitet …': 'Preparing the explainer video …',
+  // The climb in a topic
+  'Berg {n}': 'Mountain {n}',
+  'Noch {n} Lektionen bis zum Gipfel': '{n} more lessons to the peak',
+  'Noch 1 Lektion bis zum Gipfel': '1 more lesson to the peak',
+  '{done} von {total} Lektionen': '{done} of {total} lessons',
+  'Geschaffte Berge': 'Mountains climbed',
 };
 
 function fill(s: string, vars?: Record<string, string | number>) {

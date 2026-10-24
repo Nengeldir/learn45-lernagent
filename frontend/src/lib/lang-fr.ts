@@ -503,4 +503,9 @@ export const FR: Record<string, string> = {
   "Beim ersten Öffnen kann das etwas dauern. Danach ist das Video gespeichert.": "La première ouverture peut prendre un moment. Ensuite la vidéo est enregistrée.",
   "Die Vertonung ist gerade nicht möglich. Du kannst die Lektion als Storyboard ansehen.": "Le doublage n’est pas possible pour l’instant. Tu peux voir la leçon en storyboard.",
   "Erklärvideo wird vorbereitet …": "Préparation de la vidéo explicative …",
+  "Berg {n}": "Montagne {n}",
+  "Noch {n} Lektionen bis zum Gipfel": "Encore {n} leçons jusqu’au sommet",
+  "Noch 1 Lektion bis zum Gipfel": "Encore 1 leçon jusqu’au sommet",
+  "{done} von {total} Lektionen": "{done} leçons sur {total}",
+  "Geschaffte Berge": "Montagnes gravies",
 };
