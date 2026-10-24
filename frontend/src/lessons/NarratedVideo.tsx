@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { Player } from '@l45/animlib';
 import type { Answer, NarratedVideoManifest, VideoLesson } from '@l45/shared';
 import { VideoPlayback, type PlaybackState } from './videoPlayback.ts';
@@ -8,13 +8,18 @@ const initial: PlaybackState = { scene: 0, time: 0, playing: false, asking: null
 const subscribeLoading = () => () => {};
 const getLoading = () => initial;
 const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+const scrollTo = (element: Element | null) => element?.scrollIntoView({
+  behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start',
+});
 
 export default function NarratedVideo({ lesson, onComplete, onFallback }: {
   lesson: VideoLesson; onComplete: (answer: Answer) => Promise<void>; onFallback: () => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const screen = useRef<HTMLDivElement>(null);
+  const checkpoint = useRef<HTMLElement>(null);
   const questionHeading = useRef<HTMLHeadingElement>(null);
+  const playButton = useRef<HTMLButtonElement>(null);
   const [controller, setController] = useState<VideoPlayback>();
   const [manifest, setManifest] = useState<NarratedVideoManifest>();
   const [error, setError] = useState('');
@@ -67,23 +72,44 @@ export default function NarratedVideo({ lesson, onComplete, onFallback }: {
     };
   }, [manifestUrl, lesson, questions]);
 
-  useEffect(() => { if (state.asking !== null) questionHeading.current?.focus({ preventScroll: true }); }, [state.asking]);
+  const showQuestion = useCallback(() => {
+    questionHeading.current?.focus({ preventScroll: true });
+    scrollTo(checkpoint.current);
+  }, []);
+  useEffect(() => { if (state.asking !== null) showQuestion(); }, [state.asking, showQuestion]);
+  const answerQuestion = async (option: number) => {
+    await controller!.answer(option);
+    const next = controller!.getState();
+    if (next.asking === null && !next.ended) {
+      playButton.current?.focus({ preventScroll: true });
+      scrollTo(screen.current);
+    }
+  };
   const scene = manifest?.scenes[state.scene];
   const caption = scene?.captions.find(cue => state.time >= cue.start && state.time < cue.end)?.text ?? '';
   const problem = error || state.error;
   const ready = Boolean(controller && manifest);
+  const questionId = `checkpoint-${lesson.id}`;
 
   return (
     <div className="narrated-video" ref={screen}>
-      <div className="narrated-stage" ref={host} hidden={Boolean(error) && !ready} />
+      <div className="narrated-stage" hidden={Boolean(error) && !ready}>
+        <div className="narrated-canvas" ref={host} />
+        {state.asking !== null && <div className="video-pause-notice" role="status">
+          <strong>Video pausiert</strong>
+          <span>Frage {state.asking + 1} von {questions.length} wartet auf dich.</span>
+          <span>Beantworte die Frage unten.</span>
+        </div>}
+      </div>
       {!ready && !problem && <p role="status">Erklärvideo wird geladen …</p>}
       {problem && <div className="note" role="alert"><p>{problem}</p><button className="btn secondary" onClick={onFallback}>Storyboard ansehen</button></div>}
       {ready && (
         <>
           <p className="video-scene-label">{state.scene + 1} / {manifest!.scenes.length} · {scene?.title}</p>
           <div className="video-controls" role="group" aria-label="Videosteuerung">
-            <button className="btn primary" disabled={state.asking !== null} onClick={() => state.playing ? controller!.pause() : void controller!.play()}>
-              {state.playing ? 'Pause' : state.ended ? 'Nochmals abspielen' : 'Abspielen'}
+            <button ref={playButton} className="btn primary" aria-controls={state.asking !== null ? questionId : undefined}
+              onClick={() => state.asking !== null ? showQuestion() : state.playing ? controller!.pause() : void controller!.play()}>
+              {state.asking !== null ? 'Zur Frage' : state.playing ? 'Pause' : state.ended ? 'Nochmals abspielen' : 'Abspielen'}
             </button>
             <button className="btn quiet" aria-pressed={muted} onClick={() => { engine.current?.setMuted(!muted); setMuted(!muted); }}>{muted ? 'Ton einschalten' : 'Ton ausschalten'}</button>
             <button className="btn quiet" aria-pressed={captions} onClick={() => setCaptions(!captions)}>Untertitel</button>
@@ -97,11 +123,14 @@ export default function NarratedVideo({ lesson, onComplete, onFallback }: {
           </div>
           {captions && <p className="video-caption" lang="de">{caption || '\u00a0'}</p>}
           {state.asking !== null && (
-            <section className="panel video-checkpoint" aria-label={`Frage ${state.asking + 1}`}>
-              <p className="small muted">Kurze Denkpause · Frage {state.asking + 1} von {questions.length}</p>
+            <section ref={checkpoint} id={questionId} className="panel video-checkpoint" aria-label={`Frage ${state.asking + 1}`}>
+              <p className="video-checkpoint-label">Video pausiert · Frage {state.asking + 1} von {questions.length}</p>
               <h3 ref={questionHeading} tabIndex={-1}>{questions[state.asking].prompt}</h3>
+              <p>{state.scene === manifest!.scenes.length - 1
+                ? 'Wähle eine Antwort. Danach kannst du die Lektion abschliessen.'
+                : 'Wähle eine Antwort. Danach läuft das Video automatisch weiter.'}</p>
               <div className="choices">
-                {questions[state.asking].options.map((option, i) => <button className="choice" key={i} onClick={() => void controller!.answer(i)}>{option}</button>)}
+                {questions[state.asking].options.map((option, i) => <button className="choice" key={i} onClick={() => void answerQuestion(i)}>{option}</button>)}
               </div>
             </section>
           )}
