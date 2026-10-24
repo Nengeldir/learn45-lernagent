@@ -1086,6 +1086,9 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .is-correct .option-letter { background: var(--ok); border-color: var(--ok); color: var(--surface); }
 .question-option.is-missed { border-color: var(--warn); background: var(--warn-soft); box-shadow: none; }
 .question-option:disabled { cursor: default; }
+/* Feedback, pending messages and errors share a reserved slot in every state. */
+.question-response { flex: none; height: 144px; overflow: auto; overscroll-behavior: contain; }
+.question-actions .is-placeholder { visibility: hidden; pointer-events: none; }
 .answer-feedback { display: flex; align-items: flex-start; gap: 11px; padding: 12px; border-radius: 12px; animation: answer-arrive .25s ease-out both; }
 .answer-feedback.correct { background: var(--ok-soft); color: var(--ok); }
 .answer-feedback.learning { background: var(--warn-soft); color: var(--warn); }
