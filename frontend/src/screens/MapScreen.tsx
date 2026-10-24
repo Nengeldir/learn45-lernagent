@@ -144,6 +144,7 @@ export function MapScreen() {
           ? <button className="btn secondary small" onClick={back}><Icon name="back" size={18} />{t('Alle Themen')}</button>
           : <BrandMark />}
         <span className="spacer" />
+        <span className="header-xp" aria-label={`Level ${view.rewards.level}, ${view.rewards.xp} XP`}><Icon name="star" size={18} /><strong>Level {view.rewards.level}</strong><span>{view.rewards.xp} XP</span></span>
         <button className="btn quiet small who" onClick={() => setSettings(true)} aria-label={t('Mein Konto ({name})', { name: view.session.userName })}>
           <span className="avatar" aria-hidden="true">{view.session.userName.slice(0, 1).toUpperCase()}</span>
           <span className="name">{t('Mein Konto')}</span>

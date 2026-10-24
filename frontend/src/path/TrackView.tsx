@@ -2,6 +2,7 @@
 // step, then the mountains already topped, each named after what its lessons covered.
 import { useState, type CSSProperties } from 'react';
 import type { MapNode, SessionView } from '@l45/shared';
+import { TopicLevel } from '../rewards/Rewards.tsx';
 import { NextTopics } from '../lessons/NextTopics.tsx';
 import { useI18n } from '../lib/i18n.tsx';
 import { Icon } from '../lib/icons.tsx';
@@ -27,14 +28,13 @@ export function TrackView({ view, trackId, onStart }: {
   const current = mountains.at(-1)!;
   const topped = mountains.slice(0, -1).reverse();
   const left = STEPS_PER_MOUNTAIN - current.lessons.length;
-  const mission = view.workspace.missions.find((m) => m.trackId === track.id);
   const color = trackColors(session.nodes).get(track.id) ?? 'var(--ink)';
 
   return (
     <div className="track-view" style={{ ['--tc' as string]: color } as CSSProperties}>
       <header className="track-head">
         <h1 className="home-title">{trackName(track.id, track.name)}</h1>
-        {mission && <p className="small"><strong>{t('Dein Ziel:')}</strong> {t(mission.text)}</p>}
+        <TopicLevel progress={view.rewards.tracks[track.id]} name={trackName(track.id, track.name)} />
       </header>
 
       <section className="climb" aria-labelledby="climb-title">

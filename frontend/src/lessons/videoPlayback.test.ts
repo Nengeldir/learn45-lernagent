@@ -35,15 +35,13 @@ describe('narrated lesson checkpoints', () => {
     player.end();
     expect(playback.getState().asking).toBe(0);
     expect(player.state.status).toBe('paused');
-    await playback.play();
-    expect(player.state.status).toBe('paused');
     await playback.answer(2);
     expect(player.state.scene).toBe('scene-2');
     player.end(); await settle();
     expect(player.state.scene).toBe('scene-3');
     player.end();
     expect(playback.getState().asking).toBe(1);
-    expect(playback.getState().ended).toBe(false);
+    expect(playback.getState().ended).toBe(true);
     await playback.answer(1);
     expect(playback.getState()).toMatchObject({ ended: true, answers: { 0: 2, 1: 1 } });
     await playback.play();
@@ -52,18 +50,59 @@ describe('narrated lesson checkpoints', () => {
     playback.dispose();
     expect(player.disposed).toBe(true);
   });
-  it('clamps seeking to the first unanswered checkpoint, including while paused', async () => {
+  it('allows rewinding and playing with a question open without replacing it', async () => {
     const { player, playback } = setup();
-    await playback.seek(100);
-    expect(player.state.scene).toBe('scene-1');
-    expect(playback.position).toBe(20);
+    await playback.seek(20);
     expect(playback.getState().asking).toBe(0);
-    await playback.seek(0);
-    expect(playback.position).toBe(20);
+    await playback.seek(4);
+    expect(playback.position).toBe(4);
+    expect(playback.getState().asking).toBe(0);
+    await playback.play();
+    expect(player.state.status).toBe('playing');
+    player.end(); await settle();
+    player.end(); await settle();
+    expect(playback.getState()).toMatchObject({ scene: 2, asking: 0, playing: true });
+    await playback.answer(2);
+    expect(playback.getState()).toMatchObject({ scene: 2, time: 0, asking: null, playing: true, answers: { 0: 2 } });
+  });
+  it('keeps a rewound position when submitting an answer instead of jumping ahead', async () => {
+    const { playback } = setup();
+    await playback.seek(20);
+    await playback.seek(3);
     await playback.answer(0);
-    playback.pause();
+    expect(playback.getState()).toMatchObject({ scene: 0, time: 3, asking: null, playing: false, answers: { 0: 0 } });
+  });
+  it('can resume forward playback at a checkpoint before answering', async () => {
+    const { player, playback } = setup();
+    await playback.seek(20);
+    await playback.play();
+    expect(playback.getState()).toMatchObject({ scene: 2, asking: 0, playing: true });
+    player.end(); await settle(); player.end();
+    expect(playback.getState()).toMatchObject({ scene: 3, asking: 0, ended: true });
+    await playback.answer(2);
+    expect(playback.getState().asking).toBe(1);
+    await playback.answer(1);
+    expect(playback.getState()).toMatchObject({ asking: null, ended: true, answers: { 0: 2, 1: 1 } });
+  });
+  it('allows seeking to the end but requires every outstanding question in order', async () => {
+    const { playback } = setup();
     await playback.seek(100);
-    expect(playback.getState()).toMatchObject({ scene: 3, asking: 1, ended: false });
+    expect(playback.position).toBe(40);
+    expect(playback.getState()).toMatchObject({ scene: 3, asking: 0, ended: true });
+    await playback.answer(2);
+    expect(playback.getState().asking).toBe(1);
+    await playback.answer(1);
+    expect(playback.getState()).toMatchObject({ asking: null, ended: true, answers: { 0: 2, 1: 1 } });
+  });
+  it('does not mark a rewound video complete when its final answer is submitted', async () => {
+    const { playback } = setup();
+    await playback.seek(40);
+    await playback.answer(2);
+    await playback.seek(2);
+    await playback.answer(1);
+    expect(playback.getState()).toMatchObject({ scene: 0, time: 2, asking: null, ended: false, answers: { 0: 2, 1: 1 } });
+    await playback.seek(40);
+    expect(playback.getState()).toMatchObject({ ended: true, asking: null });
   });
   it('handles consecutive questions at one boundary without skipping either', async () => {
     const { playback } = setup([{ ...questions[0], afterScene: 1 }, { ...questions[1], afterScene: 1 }]);
@@ -77,7 +116,7 @@ describe('narrated lesson checkpoints', () => {
     const player = new FakePlayer();
     const fractional = scenes.map((scene, i) => ({ ...scene, duration: (i + 1) / 10 }));
     const playback = new VideoPlayback(player as unknown as Player, fractional, questions);
-    await playback.seek(999);
+    await playback.seek(0.1 + 0.2);
     expect(playback.getState()).toMatchObject({ scene: 1, asking: 0, time: 0.2, ended: false });
     expect(player.state.scene).toBe('scene-1');
   });

@@ -1,4 +1,4 @@
-import type { Answer, ChatTurn, ContentBundle, DccLevel, Lesson, LessonResult, LessonType, NextTopic, TopicChoices, PartialCheck, PodcastStatus, SessionView, Source } from '@l45/shared';
+import type { LessonAnswerCheck, LessonAnswerFeedback, CompletionReward, Answer, ChatTurn, ContentBundle, DccLevel, Lesson, LessonResult, LessonType, NextTopic, TopicChoices, PartialCheck, PodcastStatus, SessionView, Source } from '@l45/shared';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public body: Record<string, unknown> = {}) {
@@ -57,9 +57,10 @@ export const api = {
   mission: (id: string, trackId: string, body: { text?: string; skip?: boolean; confirm?: boolean }) =>
     call<SessionView>('PUT', `${s(id)}/missions/${encodeURIComponent(trackId)}`, body),
   start: (id: string, node: string) => call<{ lesson: Lesson; switched?: string; view: SessionView }>('POST', `${n(id, node)}/start`, {}),
+  answerFeedback: (id: string, node: string, check: LessonAnswerCheck) => call<LessonAnswerFeedback>('POST', `${n(id, node)}/answer-feedback`, check),
   check: (id: string, node: string, answer: Answer) => call<PartialCheck>('POST', `${n(id, node)}/check`, { answer }),
   hint: (id: string, node: string, answer: Answer) => call<{ text: string; source: Source }>('POST', `${n(id, node)}/hint`, { answer }),
   chat: (id: string, node: string, turns: ChatTurn[]) => call<{ text: string; source: Source }>('POST', `${n(id, node)}/chat`, { turns }),
   complete: (id: string, node: string, answer: Answer, durationMin: number) =>
-    call<{ result: LessonResult; view: SessionView; generated: Lesson[] }>('POST', `${n(id, node)}/complete`, { answer, durationMin }),
+    call<{ result: LessonResult; reward: CompletionReward; view: SessionView; generated: Lesson[] }>('POST', `${n(id, node)}/complete`, { answer, durationMin }),
 };

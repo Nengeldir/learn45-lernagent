@@ -2,9 +2,9 @@
 // (map, events, records, missions, generated lessons) lives on disk and survives a restart.
 import type {
   Answer, ChatTurn, DccLevel, DccProfile, DccSnapshot, LearnerProfile, LearningEvent, Lesson, LessonResult, LoginConflict, MapNode,
-  Mission, MockPart, PartialCheck, Recommendation, Session, SessionView, Source, Track,
+  LessonAnswerFeedback, Mission, MockPart, PartialCheck, Recommendation, Session, SessionView, Source, Track,
 } from '@l45/shared';
-import { CUSTOM_SKILL, DCC_LEVELS } from '@l45/shared';
+import { CUSTOM_SKILL, DCC_LEVELS, learningProgress } from '@l45/shared';
 import { decide, planTrack, updateObservations, type Decision } from './agent.ts';
 import { content } from './content.ts';
 import { designTrack } from './designer.ts';
@@ -459,6 +459,27 @@ export function startNode(st: Stored, nodeId: string): { lesson: Lesson; switche
   return { lesson: publicLesson(lessonById(s, node.lessonId)), switched };
 }
 
+/** Checks one committed response without exposing the other questions or changing the final result. */
+export function answerFeedback(st: Stored, nodeId: string, input: unknown): LessonAnswerFeedback {
+  const lesson = lessonById(st.session, nodeById(st.session, nodeId).lessonId);
+  if (!input || typeof input !== 'object') throw new HttpError(400, 'Antwort fehlt');
+  const check = input as Record<string, unknown>;
+  if ((lesson.type === 'video' || lesson.type === 'podcast') && check.type === 'quiz') {
+    const index = check.questionIndex;
+    const option = check.option;
+    if (typeof index !== 'number' || !Number.isInteger(index) || index < 0 || index >= lesson.content.questions.length) throw new HttpError(400, 'Frage nicht gefunden');
+    const question = lesson.content.questions[index];
+    if (typeof option !== 'number' || !Number.isInteger(option) || option < 0 || option >= question.options.length) throw new HttpError(400, 'Ungültige Antwort');
+    return { correct: option === question.correct, correctOption: question.correct, explanation: question.explanation };
+  }
+  if (lesson.type === 'mark-evidence' && check.type === 'mark-evidence') {
+    const item = lesson.content.summary.find((item) => item.id === check.itemId);
+    if (!item || (check.mark !== 'belegt' && check.mark !== 'erfunden')) throw new HttpError(400, 'Ungültige Antwort');
+    return { correct: check.mark === item.verdict, correctOption: item.verdict === 'belegt' ? 0 : 1, explanation: [item.explanation, item.correction ? `Korrekt wäre: «${item.correction}»` : ''].filter(Boolean).join(' ') };
+  }
+  throw new HttpError(400, 'Diese Antwort passt nicht zur Lektion');
+}
+
 export function partialCheck(st: Stored, nodeId: string, a: Answer): PartialCheck {
   const s = st.session;
   const l = lessonById(s, nodeById(s, nodeId).lessonId);
@@ -575,6 +596,7 @@ export function view(st: Stored): SessionView {
   const { generatedLessons: _g, ...session } = st.session;
   return {
     session,
+    rewards: learningProgress(st.session.events, allLessons(st.session)),
     dcc: st.dcc,
     recommendation: openRecommendation(st.session),
     modelStatus: modelStatus(st.session.simulation),

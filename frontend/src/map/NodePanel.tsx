@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import type { Lesson, MapNode, Recommendation, SessionView, Track } from '@l45/shared';
 import { LERNSTAND_LABEL } from '@l45/shared';
+import { TopicLevel } from '../rewards/Rewards.tsx';
 import { NextTopics } from '../lessons/NextTopics.tsx';
 import { api } from '../lib/api.ts';
 import { localeOf, useI18n } from '../lib/i18n.tsx';
@@ -180,6 +181,7 @@ export function NodePanel({
         <BackLink onClick={() => onSelect(null)} />
         <p className="eyebrow">{trackName(selected.trackId)}</p>
         <h2>{labelOf(selected)}</h2>
+        <TopicLevel progress={view.rewards.tracks[selected.trackId!]} name={labelOf(selected)} />
         <LessonFacts node={selected} />
         <p>{lesson.intro}</p>
         <LessonSource lesson={lesson} />
@@ -217,6 +219,7 @@ export function NodePanel({
       <div className="panel-inner">
         <BackLink onClick={() => onSelect(null)} />
         <h2>{labelOf(selected)}</h2>
+        <TopicLevel progress={view.rewards.tracks[selected.trackId!]} name={labelOf(selected)} />
         <p>
           {skill?.dccBased ? (
             <>{t('DCC-Position:')} <strong>{level(lv)}</strong> <span className="muted small">{t('(aus dem DCC, wird hier nicht verändert)')}</span></>
@@ -224,7 +227,7 @@ export function NodePanel({
             <>{t('Eigenes Thema: «{topic}». Vorwissen nach deiner Angabe: {level}.', { topic: track.custom.topic, level: t(LEVEL_TEXT[track.custom.selfLevel]) })} <span className="muted small">{t('Kriterien und Quellen hat die KI vorgeschlagen.')}</span></>
           ) : t('Kein DCC-Bereich. Der Agent plant hier nur aus deinem Lernverlauf.')}
         </p>
-        <p className="small"><strong>{t('Mission:')}</strong> {mission ? mission.text : <span className="muted">{t('noch offen, wird beim ersten Start gefragt')}</span>}</p>
+        {mission && <p className="small"><strong>{t('Dein Ziel:')}</strong> {t(mission.text)}</p>}
         <h3 className="small-head">{t('Lernstand (aus dem Lernen, kein DCC)')}</h3>
         <ul className="lernstand">
           {stand.map((l) => (
@@ -273,6 +276,7 @@ export function NodePanel({
       <div className="panel-inner">
         <BackLink onClick={() => onSelect(null)} />
         <h2>{labelOf(selected)}</h2>
+        <TopicLevel progress={view.rewards.tracks[selected.trackId!]} name={labelOf(selected)} />
         <p>{text}</p>
         <button className="btn secondary block" onClick={onAddTrack}><Icon name="plus" size={16} />{t('Bereich hinzufügen')}</button>
       </div>

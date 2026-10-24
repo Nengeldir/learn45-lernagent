@@ -12,7 +12,7 @@ export interface PlaybackState {
   error: string;
 }
 
-/** Owns checkpoints; the animation engine owns the audio clock and seeking. */
+/** Checkpoints pause once; an open question never locks playback or seeking. */
 export class VideoPlayback {
   private state: PlaybackState = { scene: 0, time: 0, playing: false, asking: null, answers: {}, ended: false, error: '' };
   private listeners = new Set<() => void>();
@@ -41,14 +41,11 @@ export class VideoPlayback {
     });
     return this.operations;
   }
-  private pending(scene: number, answers = this.state.answers) {
-    return this.questions.findIndex((q, i) => q.afterScene === scene && answers[i] === undefined);
+  private pendingThrough(scene: number, answers = this.state.answers) {
+    return this.questions.reduce((first, q, i) => q.afterScene <= scene && answers[i] === undefined &&
+      (first < 0 || q.afterScene < this.questions[first].afterScene) ? i : first, -1);
   }
-  /** Seeking may review earlier content, but cannot skip an unanswered checkpoint. */
-  get seekLimit() {
-    const last = this.questions.reduce((first, q, i) => this.state.answers[i] === undefined ? Math.min(first, q.afterScene) : first, this.scenes.length - 1);
-    return this.scenes.slice(0, last + 1).reduce((sum, s) => sum + s.duration, 0);
-  }
+  private get atBoundary() { return this.state.time >= this.scenes[this.state.scene].duration - 0.000001; }
   get duration() { return this.scenes.reduce((sum, s) => sum + s.duration, 0); }
   get position() { return this.scenes.slice(0, this.state.scene).reduce((sum, s) => sum + s.duration, 0) + this.state.time; }
   private accept(engine: PlayerState) {
@@ -60,12 +57,13 @@ export class VideoPlayback {
     const key = `${scene}:${Object.keys(this.state.answers).length}`;
     if (this.handledEnd === key) return;
     this.handledEnd = key;
-    const q = this.pending(scene);
-    if (q >= 0) {
+    const q = this.pendingThrough(scene);
+    const ended = scene === this.scenes.length - 1;
+    if (this.state.asking === null && q >= 0) {
       this.wantsPlay = false;
       this.player.pause();
-      this.update({ asking: q, playing: false });
-    } else if (scene === this.scenes.length - 1) {
+      this.update({ asking: q, ended, playing: false });
+    } else if (ended) {
       this.wantsPlay = false;
       this.update({ ended: true, playing: false });
     } else if (this.wantsPlay) void this.run(() => this.go(scene + 1, 0, true));
@@ -76,24 +74,21 @@ export class VideoPlayback {
     try {
       await this.player.seek({ scene: this.scenes[scene].id, time });
       this.handledEnd = '';
-      this.update({ scene, time, playing: false, ended: false, asking: null, error: '' });
+      // Preserve the question (and its mounted answer feedback) while reviewing.
+      this.update({ scene, time, playing: false, ended: false, error: '' });
     } finally { this.navigating = false; }
     if (!this.disposed && play && this.wantsPlay) await this.player.play();
   }
   play() {
-    if (this.state.asking !== null || this.disposed) return Promise.resolve();
-    // Resume audio directly in the click handler, before queued asynchronous work.
+    if (this.disposed) return Promise.resolve();
     const unlock = this.player.unlockAudio();
     this.wantsPlay = true;
     return this.run(async () => {
       await unlock;
       this.update({ error: '' });
       if (this.state.ended) await this.go(0, 0, true);
-      else if (this.state.time >= this.scenes[this.state.scene].duration) {
-        const q = this.pending(this.state.scene);
-        if (q >= 0) { this.wantsPlay = false; this.update({ asking: q }); }
-        else await this.go(Math.min(this.state.scene + 1, this.scenes.length - 1), 0, true);
-      } else if (this.wantsPlay) await this.player.play();
+      else if (this.atBoundary) await this.go(Math.min(this.state.scene + 1, this.scenes.length - 1), 0, true);
+      else if (this.wantsPlay) await this.player.play();
     });
   }
   pause() { this.wantsPlay = false; this.player.pause(); this.update({ playing: false }); }
@@ -101,30 +96,31 @@ export class VideoPlayback {
     const q = this.state.asking;
     if (q === null || !Number.isInteger(option) || option < 0 || option >= this.questions[q].options.length) return Promise.resolve();
     const answers = { ...this.state.answers, [q]: option };
-    const next = this.pending(this.state.scene, answers);
+    const next = this.pendingThrough(this.state.scene - (this.atBoundary ? 0 : 1), answers);
     this.update({ answers, asking: next >= 0 ? next : null });
-    if (next >= 0) return Promise.resolve();
-    if (this.state.scene === this.scenes.length - 1) { this.update({ ended: true }); return Promise.resolve(); }
+    if (next >= 0 || this.state.ended || !this.atBoundary) return Promise.resolve();
+    const nextScene = this.state.scene + 1;
     const unlock = this.player.unlockAudio();
     this.wantsPlay = true;
-    return this.run(async () => { await unlock; await this.go(this.state.scene + 1, 0, true); });
+    return this.run(async () => { await unlock; await this.go(nextScene, 0, true); });
   }
   seek(time: number) {
-    if (!Number.isFinite(time) || this.state.asking !== null) return Promise.resolve();
+    if (!Number.isFinite(time)) return Promise.resolve();
     const play = this.wantsPlay;
     return this.run(async () => {
-      let remaining = Math.max(0, Math.min(time, this.seekLimit));
+      let remaining = Math.max(0, Math.min(time, this.duration));
       let index = 0;
-      // Measured audio durations are fractional. Summing/subtracting them can put
-      // an exact checkpoint a few floating-point bits into the following scene.
       const epsilon = 0.000001;
       while (index < this.scenes.length - 1 && remaining > this.scenes[index].duration + epsilon) remaining -= this.scenes[index++].duration;
       const atEnd = remaining >= this.scenes[index].duration - epsilon;
       remaining = atEnd ? this.scenes[index].duration : remaining;
-      const q = atEnd ? this.pending(index) : -1;
-      await this.go(index, remaining, play && q < 0);
-      if (q >= 0) { this.wantsPlay = false; this.update({ asking: q }); }
-      else if (atEnd && index === this.scenes.length - 1) { this.wantsPlay = false; this.update({ ended: true, playing: false }); }
+      const q = this.state.asking === null ? this.pendingThrough(index - (atEnd ? 0 : 1)) : -1;
+      const ended = atEnd && index === this.scenes.length - 1;
+      await this.go(index, remaining, play && q < 0 && !ended);
+      if (q >= 0 || ended) {
+        this.wantsPlay = false;
+        this.update({ ...(q >= 0 ? { asking: q } : {}), ended, playing: false });
+      }
     });
   }
   dispose() { this.disposed = true; this.wantsPlay = false; this.unsubscribe(); this.listeners.clear(); this.player.dispose(); }

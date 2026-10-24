@@ -1,3 +1,5 @@
+import type { LearningProgress } from './rewards.ts';
+
 // Shared types. Three separate data areas: diagnostics (DCC), learning (map, results), transfer.
 
 export type DccLevel = 'Grundstufe' | 'Mittelstufe' | 'Fortgeschritten';
@@ -293,6 +295,17 @@ export interface LessonResult {
   judgedBy: 'rule' | 'model' | 'keywords';
 }
 
+/** Feedback is revealed only after submitting this individual answer. */
+export type LessonAnswerCheck =
+  | { type: 'quiz'; questionIndex: number; option: number }
+  | { type: 'mark-evidence'; itemId: string; mark: 'belegt' | 'erfunden' };
+
+export interface LessonAnswerFeedback {
+  correct: boolean;
+  explanation: string;
+  correctOption: number;
+}
+
 export interface PartialCheck {
   complete: boolean;
   message: string;
@@ -550,6 +563,8 @@ export interface WorkspaceView {
 
 /** What the browser gets: session and the read-only DCC profile, kept apart */
 export interface SessionView {
+  /** Game progress from learning history; independent of the diagnostic DCC levels. */
+  rewards: LearningProgress;
   session: Omit<Session, 'generatedLessons'>;
   dcc: DccProfile;
   recommendation: Recommendation | null;
