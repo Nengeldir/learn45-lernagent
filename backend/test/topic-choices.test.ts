@@ -157,6 +157,10 @@ describe('Topic previews followed by an explicit format choice', () => {
     const id = (await choose(v, peak, 0).expect(201)).body.nodeId;
     const prompt = calls.filter(c => c.purpose === 'generate').at(-1)!.messages[0].content;
     expect(prompt).toContain('Gipfelprüfung');
+    // Exam coverage must not depend on the one-day spaced review deadline having elapsed.
+    const queued = get(v.session.id).session.reviewQueue;
+    expect(queued.some(q => q.criterion === 'adresse')).toBe(true);
+    expect(queued.every(q => q.dueAt && Date.parse(q.dueAt) > Date.now())).toBe(true);
     // The five lessons trained link and adresse, so the exam brings back both.
     expect(prompt).toMatch(/- link: /);
     expect(prompt).toMatch(/- adresse: /);

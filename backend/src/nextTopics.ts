@@ -68,7 +68,11 @@ function peakCriteria(st: Stored, track: Track): string[] | null {
   if (!nextIsPeak(done.length)) return null;
   const count = new Map<string, number>();
   for (const n of done.slice(-(STEPS_PER_MOUNTAIN - 1))) {
-    for (const c of allLessons(st.session).find(l => l.id === n.lessonId)?.targets ?? []) count.set(c, (count.get(c) ?? 0) + 1);
+    const targets = allLessons(st.session).find(l => l.id === n.lessonId)?.targets ?? [];
+    // A lesson can assess more concepts than its requested target. Include those even when
+    // their first spaced review is still a day away; exams cover the whole mountain.
+    const assessed = n.result?.criteria.map(c => c.key) ?? [];
+    for (const c of new Set([...targets, ...assessed])) count.set(c, (count.get(c) ?? 0) + 1);
   }
   // Sorting is stable, so a tie keeps the order of the track, which goes from basic to demanding.
   const trained = track.criteria.map(c => c.id).filter(c => count.has(c)).sort((a, b) => count.get(b)! - count.get(a)!);
