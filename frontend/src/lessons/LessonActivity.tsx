@@ -78,6 +78,7 @@ export function QuestionCard({ prompt, options, index, total, check, onContinue,
         </button>;
       })}
     </div>
+    <div className="question-response" tabIndex={feedback || error ? 0 : undefined}>
     {feedback && <div className={`answer-feedback ${feedback.correct ? 'correct' : 'learning'}`} role="status">
       <span className="answer-feedback-icon"><Icon name={feedback.correct ? 'star' : 'book'} size={23} /></span>
       <div><strong>{feedback.correct ? 'Richtig!' : 'Richtige Antwort'}</strong>{(feedback.explanation || !feedback.correct) && <p>{feedback.explanation || options[feedback.correctOption]}</p>}</div>
@@ -85,7 +86,10 @@ export function QuestionCard({ prompt, options, index, total, check, onContinue,
     </div>}
     {error && <p className="error small" role="alert">{error}</p>}
     {busy && !feedback && <p className="answer-pending small muted" role="status">Wird geprüft …</p>}
-    {feedback ? <div className="question-actions"><button ref={continueButton} className="btn primary" disabled={busy} onClick={() => void next()}><ButtonLabel variants={['Weiter', 'Nächste Frage', 'Nächster Satz', 'Lektion abschliessen', 'Einen Moment …', continueLabel]}>{busy ? 'Einen Moment …' : continueLabel}</ButtonLabel><Icon name="chevron" size={17} /></button></div>
-      : error && selected !== null && <div className="question-actions"><button className="btn secondary" disabled={busy} onClick={() => void submit(selected)}>Erneut versuchen</button></div>}
+    </div>
+    <div className="question-actions">
+      {error && !feedback && selected !== null ? <button className="btn secondary" disabled={busy} onClick={() => void submit(selected)}>Erneut versuchen</button>
+        : <button ref={continueButton} className={`btn primary${feedback ? '' : ' is-placeholder'}`} aria-hidden={!feedback} tabIndex={feedback ? undefined : -1} disabled={busy || !feedback} onClick={() => void next()}><ButtonLabel variants={['Weiter', 'Nächste Frage', 'Nächster Satz', 'Lektion abschliessen', 'Einen Moment …', continueLabel]}>{busy ? 'Einen Moment …' : continueLabel}</ButtonLabel><Icon name="chevron" size={17} /></button>}
+    </div>
   </section>;
 }
