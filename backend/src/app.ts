@@ -7,7 +7,8 @@ import { content } from './content.ts';
 import { InputError, profileFromFile, profileFromManual } from './dcc.ts';
 import { modelStatus, providerName } from './provider.ts';
 import {
-  HttpError, chat, clearCache, complete, generatedPublic, get, hint, login, partialCheck, patch, publicLesson, setMission, startNode, view,
+  HttpError, addTracks, chat, clearCache, complete, createTrack, generatedPublic, get, hint, login, nextLesson, partialCheck, patch, publicLesson,
+  setMission, startNode, view,
 } from './sessions.ts';
 
 type Handler = (req: Request, res: Response) => unknown;
@@ -70,6 +71,23 @@ export function createApp() {
     const st = get(p(req, 'id'));
     patch(st, req.body ?? {});
     res.json(view(st));
+  }));
+
+  // The map starts empty. Prepared tracks from the catalog, own tracks from a topic (the model designs them).
+  app.post('/api/sessions/:id/tracks', h((req, res) => {
+    const st = get(p(req, 'id'));
+    addTracks(st, req.body?.trackIds);
+    res.status(201).json({ view: view(st), generated: generatedPublic(st) });
+  }));
+  app.post('/api/sessions/:id/own-tracks', h(async (req, res) => {
+    const st = get(p(req, 'id'));
+    const track = await createTrack(st, req.body ?? {});
+    res.status(201).json({ trackId: track.id, view: view(st), generated: generatedPublic(st) });
+  }));
+  app.post('/api/sessions/:id/tracks/:track/next', h(async (req, res) => {
+    const st = get(p(req, 'id'));
+    await nextLesson(st, p(req, 'track'));
+    res.json({ view: view(st), generated: generatedPublic(st) });
   }));
 
   app.put('/api/sessions/:id/missions/:track', h((req, res) => {

@@ -1,5 +1,5 @@
 // The learning agent. Rules decide, the model only writes (chat replies, hints, judging free text).
-// 1. From the DCC profile it plans lessons per track (the faded nodes on the mind map).
+// 1. For each track the learner adds it plans lessons from the DCC profile (the faded nodes on the mind map).
 // 2. After every lesson it picks the next step, explains why and offers an alternative.
 // 3. It grows the map: new nodes when something was hard twice or too easy.
 // It never changes the DCC profile, and missing DCC values are treated as unknown, not low.
@@ -33,6 +33,7 @@ export const RULE_NAME: Record<RuleId, string> = {
   R5: 'Alternative gewählt',
   R6: 'Hilfe in der Aufgabe',
   R7: 'Bereich abgeschlossen',
+  R8: 'Bereich gewählt',
   A1: 'Agent-Plan',
 };
 
@@ -53,30 +54,10 @@ export function planTrack(track: Track, level: DccLevel | null | undefined, less
   return [...F, ...M].slice(0, 2);
 }
 
-/** starterOnly: with the planner agent, each track starts with one lesson; the agent grows the rest. */
-export function buildMap(userName: string, skills: Skill[], dcc: DccProfile, lessons: Lesson[], starterOnly = false): MapNode[] {
-  const nodes: MapNode[] = [{ id: 'start', kind: 'start', parentId: null, label: userName }];
-  for (const skill of skills) {
-    const sid = `s-${skill.id}`;
-    nodes.push({ id: sid, kind: 'skill', parentId: 'start', label: skill.name, skillId: skill.id });
-    for (const track of skill.tracks) {
-      const tid = `t-${track.id}`;
-      nodes.push({ id: tid, kind: 'track', parentId: sid, label: track.name, skillId: skill.id, trackId: track.id });
-      let parent = tid;
-      const plan = planTrack(track, skill.dccBased ? dcc.levels[track.id] ?? null : undefined, lessons);
-      for (const lesson of starterOnly ? plan.slice(0, 1) : plan) {
-        const id = `n-${lesson.id}`;
-        nodes.push({ id, kind: 'lesson', parentId: parent, label: lesson.title, skillId: skill.id, trackId: track.id, lessonId: lesson.id, state: 'planned' });
-        parent = id;
-      }
-    }
-  }
-  return nodes;
-}
-
 // --- Decisions ---------------------------------------------------------------------------------
 
 export interface AgentInput {
+  /** The learner's skills with the tracks on their map */
   skills: Skill[];
   dcc: DccProfile;
   nodes: MapNode[];
@@ -86,6 +67,8 @@ export interface AgentInput {
   remainingMin: number;
   /** For unique ids of agent-created lessons */
   counter: number;
+  /** A track the learner just added or asked a new lesson for: go there (R8) */
+  focusTrackId?: string;
 }
 
 const levelRank = (l: DccLevel) => DCC_LEVELS.indexOf(l);
@@ -221,15 +204,56 @@ function coreDecision(input: AgentInput): Decision {
   const base = { newNodes: [] as MapNode[], newLessons: [] as Lesson[] };
   const last = input.events.at(-1);
 
+  // R8: the learner just chose a track (added it, or asked for a new lesson there) -> go there.
+  const chosen = input.focusTrackId ? frontier(input, input.focusTrackId)[0] : undefined;
+  if (chosen) {
+    const t = trackOf(input, input.focusTrackId!);
+    const other = tracksByPriority(input, t.id)[0];
+    const fresh = !input.events.some((e) => e.trackId === t.id);
+    return {
+      ...base,
+      ruleId: 'R8',
+      ruleName: RULE_NAME.R8,
+      nodeId: chosen.id,
+      alternativeNodeId: other ? frontier(input, other)[0]?.id : undefined,
+      observation: fresh ? `«${t.name}» ist neu auf deiner Karte.` : `Neue Lektion in «${t.name}» angefordert.`,
+      reason: fresh ? `Du hast «${t.name}» eben hinzugefügt. Der Einstieg zeigt, wo du anfängst.` : `Weiter in «${t.name}» mit dem, was als Nächstes dran ist.`,
+      why: fresh
+        ? 'Ein kurzer Einstieg sammelt erste Belege. Danach plant der Agent die nächsten Schritte nach deinen Ergebnissen.'
+        : 'Die Regeln haben das Ziel aus deinen letzten Ergebnissen gewählt: was zuletzt gefehlt hat, sonst etwas ohne Belege.',
+      tags: ['rule'],
+    };
+  }
+
   // R3: nothing done yet -> start where the DCC profile shows the largest need.
   if (!last) {
     const order = tracksByPriority(input);
     const first = order[0];
-    if (!first) return { ...base, ruleId: 'R7', ruleName: RULE_NAME.R7, observation: 'Keine Lektionen geplant.', reason: 'Es gibt nichts zu tun.', why: '', tags: ['rule'] };
+    if (!first) {
+      return {
+        ...base, ruleId: 'R7', ruleName: RULE_NAME.R7, tags: ['rule'],
+        observation: 'Noch kein Bereich auf der Karte.',
+        reason: 'Füge einen Bereich hinzu: ein eigenes Thema oder einen vorbereiteten Bereich.',
+        why: 'Der Agent plant nur für Bereiche, die du gewählt hast.',
+      };
+    }
     const node = frontier(input, first)[0];
     const alt = order[1] ? frontier(input, order[1])[0] : undefined;
-    const level = input.dcc.levels[first];
     const t = trackOf(input, first);
+    if (!input.skills.find((s) => s.tracks.includes(t))?.dccBased) {
+      return {
+        ...base,
+        ruleId: 'R3',
+        ruleName: RULE_NAME.R3,
+        nodeId: node.id,
+        alternativeNodeId: alt?.id,
+        observation: `«${t.name}» hat keine DCC-Position.`,
+        reason: `Start mit dem Einstieg in «${t.name}».`,
+        why: 'Ein kurzer Einstieg sammelt erste Belege. Danach plant der Agent nach deinen Ergebnissen.',
+        tags: ['rule'],
+      };
+    }
+    const level = input.dcc.levels[first];
     const notAssessed = level === null || level === undefined;
     return {
       ...base,
@@ -361,7 +385,7 @@ function coreDecision(input: AgentInput): Decision {
       tags: ['rule'],
     };
   }
-  return { ...base, ruleId: 'R7', ruleName: RULE_NAME.R7, observation: 'Alle geplanten Lektionen erledigt.', reason: 'Du hast alles auf deiner Karte erledigt.', why: 'Mit einem neuen DCC-Resultat plant der Agent die nächsten Schritte.', tags: ['rule'] };
+  return { ...base, ruleId: 'R7', ruleName: RULE_NAME.R7, observation: 'Alle geplanten Lektionen erledigt.', reason: 'Du hast alles auf deiner Karte erledigt.', why: 'Füge einen neuen Bereich hinzu, oder lass in einem eigenen Bereich eine neue Lektion erzeugen.', tags: ['rule'] };
 }
 
 // --- Observations ---------------------------------------------------------------------------

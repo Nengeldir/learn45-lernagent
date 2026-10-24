@@ -5,6 +5,7 @@ import { api } from '../lib/api.ts';
 import { useStore } from '../lib/store.tsx';
 import { MindMap } from '../map/MindMap.tsx';
 import { NodePanel } from '../map/NodePanel.tsx';
+import { AddTrack } from './AddTrack.tsx';
 import { ProfileDrawer } from './ProfileDrawer.tsx';
 
 const STATUS: Record<string, string> = { online: 'KI an', offline: 'Ohne KI', simulation: 'KI simuliert aus' };
@@ -29,6 +30,8 @@ export function MapScreen() {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [lessonNode, setLessonNode] = useState<string | null>(null);
   const [drawer, setDrawer] = useState(false);
+  // The map starts empty: the first thing to do is to choose what to learn.
+  const [adding, setAdding] = useState(() => Boolean(view && !view.skills.length));
   const [sheetOpen, setSheetOpen] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -88,6 +91,7 @@ export function MapScreen() {
         <span className="spacer" />
         {view.session.planning && <span className="status planning" role="status">Agent plant …</span>}
         <span className={`status ${view.modelStatus}`} title="Ohne KI kommen Gesprächsantworten und Hinweise aus vorbereiteten Texten.">{STATUS[view.modelStatus]}</span>
+        <button className="btn secondary small" onClick={() => setAdding(true)}>Bereich hinzufügen</button>
         <button className="time" onClick={() => setDrawer(true)}>Noch {view.remainingMin} Min.</button>
         <button className="btn quiet small" onClick={() => setDrawer(true)}>Profil und Verlauf</button>
         <button className="btn quiet small" onClick={() => { logout(); nav('/'); }}>Abmelden</button>
@@ -96,7 +100,7 @@ export function MapScreen() {
       <main className="map-area">
         <MindMap
           nodes={view.session.nodes}
-          skills={content.skills}
+          skills={view.skills}
           dcc={view.dcc}
           lessonOf={lessonOf}
           selectedId={selectedId}
@@ -119,6 +123,12 @@ export function MapScreen() {
                 if (id) setFocusId(id);
               }}
               onStart={(id) => setLessonNode(id)}
+              onAddTrack={() => setAdding(true)}
+              onFocus={(id) => {
+                setSelectedId(null);
+                setFocusId(null);
+                if (id) requestAnimationFrame(() => setFocusId(id));
+              }}
               onMoreTime={async () => setView(await api.patch(view.session.id, { timeBudgetMin: view.session.timeBudgetMin + 10 }))}
             />
           )}
@@ -128,6 +138,18 @@ export function MapScreen() {
       {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
       {lessonNode && <LessonOverlay nodeId={lessonNode} onClose={closeLesson} />}
       {drawer && <ProfileDrawer onClose={() => setDrawer(false)} />}
+      {adding && (
+        <AddTrack
+          onClose={() => setAdding(false)}
+          onAdded={(nodeId) => {
+            setAdding(false);
+            setSelectedId(null);
+            setSheetOpen(true);
+            setFocusId(null);
+            if (nodeId) requestAnimationFrame(() => setFocusId(nodeId));
+          }}
+        />
+      )}
     </div>
   );
 }

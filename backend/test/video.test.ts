@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { compileSource, evaluateScene, validateRenderableScene } from '@l45/animlib/core';
 import type { NarratedVideoManifest } from '@l45/shared';
 import { createApp } from '../src/app.ts';
+import { addTracks, node as nodeOf } from './helpers.ts';
 
 const root = new URL('../../', import.meta.url);
 const manifest = JSON.parse(readFileSync(new URL('frontend/public/videos/math-v1/manifest.json', root), 'utf8')) as NarratedVideoManifest;
@@ -41,8 +42,9 @@ describe('Was ist eine Ableitung?', () => {
     expect(lesson.content.questions.every((q: { correct: number; explanation: string }) => q.correct === -1 && q.explanation === '')).toBe(true);
     expect(JSON.stringify(manifest)).not.toContain('"correct"');
     const login = await request(app).post('/api/login').send({ name: 'Video-Test', timeBudgetMin: 30, levels: {} }).expect(201);
-    const before = login.body;
-    const node = before.session.nodes.find((n: { lessonId: string }) => n.lessonId === 'math-v1');
+    // The map starts empty: the learner adds the math track first.
+    const before = await addTracks(app, login.body, ['t-analysis']);
+    const node = nodeOf(before, 'math-v1');
     expect(node).toBeDefined();
     await request(app).post(`/api/sessions/${before.session.id}/nodes/${node.id}/start`).expect(200);
     const done = await request(app).post(`/api/sessions/${before.session.id}/nodes/${node.id}/complete`)

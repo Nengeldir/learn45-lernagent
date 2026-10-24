@@ -1,25 +1,32 @@
 // Sessions and the actions on them. A session is one sitting of a learner; the learner's workspace
 // (map, events, records, missions, generated lessons) lives on disk and survives a restart.
 import type {
-  Answer, ChatTurn, DccProfile, DccSnapshot, LearnerProfile, LearningEvent, Lesson, LessonResult, LoginConflict, MapNode, Mission,
-  MockPart, PartialCheck, Recommendation, Session, SessionView, Source,
+  Answer, ChatTurn, DccLevel, DccProfile, DccSnapshot, LearnerProfile, LearningEvent, Lesson, LessonResult, LoginConflict, MapNode,
+  Mission, MockPart, PartialCheck, Recommendation, Session, SessionView, Source, Track,
 } from '@l45/shared';
-import { buildMap, decide, planTrack, updateObservations, type Decision } from './agent.ts';
-import { allTracks, content, criterionLabel, getTrack, skillOf } from './content.ts';
+import { CUSTOM_SKILL, DCC_LEVELS } from '@l45/shared';
+import { decide, planTrack, updateObservations, type Decision } from './agent.ts';
+import { content } from './content.ts';
+import { designTrack } from './designer.ts';
+import { GENERATED_PER_SESSION } from './generator.ts';
 import { allLessons, checkPlan, remaining } from './guard.ts';
 import {
   judgeMarkEvidence, judgeMockSite, judgeVideo, partialMarkEvidence, partialMockSite,
 } from './judge.ts';
+import { firstLesson, generatedThisSession, ruleLesson } from './ownlessons.ts';
 import { modelStatus, providerName } from './provider.ts';
 import { addRecord, lernstandAll, recordFromEvent, settleReviews } from './records.ts';
 import { chatReply, hintMarkEvidence, hintMockSite, judgeChat, type Opts } from './services.ts';
+import { catalogTrack, criterionLabel, defaultMission, learnerSkills, learnerTracks, missionOf, skillIn, trackIn } from './tracks.ts';
 import { newId, nowIso } from './util.ts';
 import {
-  _wipe, findByName, findBySession, loadLearner, nextLessonNumber, readState, writeLesson, writeMission, writeProfile, writeState,
+  _wipe, findByName, findBySession, loadLearner, readState, storeLesson, writeMission, writeProfile, writeState, writeTrack,
   type Stored,
 } from './workspace.ts';
 
 export type { Stored } from './workspace.ts';
+export { storeLesson } from './workspace.ts';
+export { defaultMission, missionOf } from './tracks.ts';
 
 export class HttpError extends Error {
   constructor(public status: number, message: string, public body?: object) {
@@ -72,12 +79,6 @@ export function openRecommendation(s: Session): Recommendation | null {
   return r && r.status === 'open' ? r : null;
 }
 
-/** Saves a lesson made during learning to the workspace (lessons/0001-<slug>.json). */
-export function storeLesson(st: Stored, lesson: Lesson) {
-  st.session.generatedLessons.push(lesson);
-  writeLesson(st.profile.id, nextLessonNumber(st.profile.id), lesson);
-}
-
 // --- Login -------------------------------------------------------------------------------------
 
 const snapshot = (dcc: DccProfile): DccSnapshot => ({ at: nowIso(), source: dcc.source, fileName: dcc.fileName, profile: dcc });
@@ -116,8 +117,8 @@ function createLearner(name: string, input: LoginInput): Stored {
     timeBudgetMin: input.timeBudgetMin,
     usedMin: 0,
     simulation: false,
-    // With the agent: one starter lesson per track, the agent generates the rest. Without: the whole plan from the pool.
-    nodes: buildMap(name, content.skills, input.dcc, content.lessons, plannerProvider()),
+    // The map starts empty. The learner adds tracks: prepared ones or own topics (addTracks, createTrack).
+    nodes: [{ id: 'start', kind: 'start', parentId: null, label: name }],
     recommendations: [],
     observations: [],
     events: [],
@@ -131,7 +132,7 @@ function createLearner(name: string, input: LoginInput): Stored {
     plannerRuns: [],
     planning: false,
   };
-  const st: Stored = { session, dcc: input.dcc, profile, missions: [], records: [], reference: {}, notes: [] };
+  const st: Stored = { session, dcc: input.dcc, profile, tracks: [], missions: [], records: [], reference: {}, notes: [] };
   writeProfile(profile);
   recommend(st);
   save(st);
@@ -177,8 +178,8 @@ function resume(learnerId: string, input: LoginInput): Stored {
 /** Tracks without any finished lesson get a fresh branch for the new DCC level. Branches with progress stay. */
 function replanUntouched(st: Stored, before: DccProfile) {
   const s = st.session;
-  for (const track of allTracks()) {
-    const skill = skillOf(track.id);
+  for (const track of learnerTracks(st)) {
+    const skill = skillIn(st, track.id);
     if (!skill?.dccBased || before.levels[track.id] === st.dcc.levels[track.id]) continue;
     const branch = s.nodes.filter((n) => n.kind === 'lesson' && n.trackId === track.id);
     if (branch.some((n) => n.state === 'done') || s.events.some((e) => e.trackId === track.id)) continue;
@@ -189,13 +190,14 @@ function replanUntouched(st: Stored, before: DccProfile) {
 
 /**
  * Puts the pool lessons the DCC plan foresees for a track on the map, after the track's last lesson.
- * Used without the agent and when the agent fails. limit caps the lessons per track (1 = starter only).
+ * Used when a track is added, without the agent and when the agent fails. limit caps the lessons per track
+ * (1 = starter only). Only the learner's tracks; own tracks have no pool.
  */
 export function fillFromPool(st: Stored, trackId?: string, limit?: number): number {
   const s = st.session;
   let added = 0;
-  for (const track of allTracks().filter((t) => !trackId || t.id === trackId)) {
-    const skill = skillOf(track.id)!;
+  for (const track of learnerTracks(st).filter((t) => !trackId || t.id === trackId)) {
+    const skill = skillIn(st, track.id)!;
     const plan = planTrack(track, skill.dccBased ? st.dcc.levels[track.id] ?? null : undefined, content.lessons).slice(0, limit);
     const branch = () => s.nodes.filter((n) => n.kind === 'lesson' && n.trackId === track.id);
     for (const lesson of plan) {
@@ -248,8 +250,9 @@ function toRecommendation(d: Decision, provisional = false): Recommendation {
 /**
  * The rule engine decides. Also the fallback whenever the planner agent fails.
  * Without the agent the whole pool is on the map. A provisional plan marks the nodes it adds, so they can go again.
+ * focusTrackId: the learner just chose this track (R8).
  */
-export function recommend(st: Stored, provisional = false) {
+export function recommend(st: Stored, provisional = false, focusTrackId?: string) {
   const s = st.session;
   if (!agentAvailable(s)) fillFromPool(st);
   // The open plan is replaced: its nodes count as planned again before the rules decide.
@@ -257,7 +260,7 @@ export function recommend(st: Stored, provisional = false) {
   if (open) s.recommendations = s.recommendations.filter((r) => r.id !== open.id);
   for (const n of s.nodes) if (n.state === 'recommended' || n.state === 'alternative') n.state = 'planned';
   const d = decide({
-    skills: content.skills,
+    skills: learnerSkills(st),
     dcc: st.dcc,
     nodes: s.nodes,
     events: s.events,
@@ -265,6 +268,7 @@ export function recommend(st: Stored, provisional = false) {
     lessons: allLessons(s),
     remainingMin: remaining(s),
     counter: s.nodes.length,
+    focusTrackId,
   });
   const lastEvent = s.events.at(-1)?.id;
   for (const l of d.newLessons) {
@@ -278,31 +282,116 @@ export function recommend(st: Stored, provisional = false) {
 /** After a change of time or session: an open agent plan stays if it still passes the guardrails. */
 function keepOrRecommend(st: Stored) {
   const rec = openRecommendation(st.session);
-  if (rec?.ruleId === 'A1' && rec.alternativeNodeId) {
-    const problems = checkPlan(st, { nodeId: rec.nodeId, alternativeNodeId: rec.alternativeNodeId, reason: rec.reason, basedOn: rec.basedOn ?? [] });
+  if (rec?.ruleId === 'A1') {
+    const problems = checkPlan(st, { nodeId: rec.nodeId, alternativeNodeId: rec.alternativeNodeId ?? '', reason: rec.reason, basedOn: rec.basedOn ?? [] });
     if (!problems.length) return;
   }
   recommend(st);
 }
 
-// --- Missions ----------------------------------------------------------------------------------------
+// --- Tracks --------------------------------------------------------------------------------------------
 
-export const defaultMission = (trackId: string) => getTrack(trackId)?.mission?.default ?? `Ich will in «${getTrack(trackId)?.name ?? trackId}» sicherer werden.`;
-export const missionOf = (st: Stored, trackId: string): Mission | undefined => st.missions.find((m) => m.trackId === trackId);
+const MAX_OWN_TRACKS = 8;
+const generateMs = () => Number(process.env.GENERATE_TIMEOUT_MS ?? 30_000);
+
+/** Puts the skill node (once) and the track node on the map. */
+function placeTrack(s: Session, track: Track, skill: { id: string; name: string }) {
+  const sid = `s-${skill.id}`;
+  if (!s.nodes.some((n) => n.id === sid)) s.nodes.push({ id: sid, kind: 'skill', parentId: 'start', label: skill.name, skillId: skill.id });
+  s.nodes.push({ id: `t-${track.id}`, kind: 'track', parentId: sid, label: track.name, skillId: skill.id, trackId: track.id });
+}
+
+/**
+ * Adds prepared tracks from the catalog. With the agent each starts with one lesson, without it the whole plan.
+ * One track: the next step is its first lesson (R8). Several at once: the rules choose by the DCC profile (R3).
+ */
+export function addTracks(st: Stored, ids: unknown) {
+  const s = st.session;
+  const list = Array.isArray(ids) ? [...new Set(ids.map(String))] : [];
+  if (!list.length) throw new HttpError(400, 'Welche Bereiche? trackIds fehlt.');
+  for (const id of list) {
+    const t = catalogTrack(id);
+    if (!t) throw new HttpError(404, `Den Bereich ${id} gibt es nicht.`);
+    if (trackIn(st, id)) throw new HttpError(409, `«${t.name}» ist schon auf deiner Karte.`);
+  }
+  for (const id of list) {
+    placeTrack(s, catalogTrack(id)!, content.skills.find((x) => x.tracks.some((t) => t.id === id))!);
+    fillFromPool(st, id, agentAvailable(s) ? 1 : undefined);
+  }
+  recommend(st, false, list.length === 1 ? list[0] : undefined);
+  save(st);
+}
+
+const clean = (v: unknown) => String(v ?? '').replace(/ß/g, 'ss').replace(/\s+/g, ' ').trim();
+
+/**
+ * Creates a track from an own topic, e.g. "Security+ Prüfung bestehen". The model designs it (designer.ts),
+ * the generator writes its first lesson. Only if both are valid does the track go on the map.
+ */
+export async function createTrack(st: Stored, body: { topic?: unknown; goal?: unknown; selfLevel?: unknown }): Promise<Track> {
+  const s = st.session;
+  if (offline(s)) throw new HttpError(409, 'Eigene Bereiche plant der Agent mit KI. Ohne KI kannst du einen vorbereiteten Bereich wählen.');
+  const topic = clean(body.topic);
+  const goal = clean(body.goal);
+  if (topic.length < 3 || topic.length > 120) throw new HttpError(400, 'Das Thema braucht 3 bis 120 Zeichen.');
+  if (goal.length > 300) throw new HttpError(400, 'Wofür: höchstens 300 Zeichen.');
+  const selfLevel = (DCC_LEVELS as unknown[]).includes(body.selfLevel) ? (body.selfLevel as DccLevel) : 'Grundstufe';
+  if (st.tracks.length >= MAX_OWN_TRACKS) throw new HttpError(409, `Höchstens ${MAX_OWN_TRACKS} eigene Bereiche.`);
+  if (generatedThisSession(s) >= GENERATED_PER_SESSION) {
+    throw new HttpError(429, `In dieser Sitzung hat die KI schon ${GENERATED_PER_SESSION} Lektionen erstellt. In der nächsten Sitzung geht es weiter.`);
+  }
+
+  const design = await designTrack({ topic, goal: goal || undefined, selfLevel, timeoutMs: generateMs() }, (c) => s.modelCalls.push(c));
+  if (!design.ok) throw new HttpError(502, `Der Agent konnte «${topic}» nicht als Bereich planen: ${design.errors.join('; ')}`);
+  const { track } = design;
+  const first = await firstLesson(st, track, goal || undefined);
+  if (!first.ok) throw new HttpError(502, `Der Bereich «${track.name}» ist geplant, aber die erste Lektion war ungültig: ${first.errors.join('; ')}. Versuch es noch einmal.`);
+
+  st.tracks.push(track);
+  writeTrack(st.profile.id, track);
+  placeTrack(s, track, CUSTOM_SKILL);
+  storeLesson(st, first.lesson);
+  s.nodes.push({
+    id: `n-${first.lesson.id}`, kind: 'lesson', parentId: `t-${track.id}`, label: first.lesson.title,
+    skillId: CUSTOM_SKILL.id, trackId: track.id, lessonId: first.lesson.id, state: 'planned',
+  });
+  // What the learner wrote under "Wofür" is their mission; otherwise it is asked before the first lesson.
+  if (goal.length >= 3) setMission(st, track.id, { text: goal });
+  recommend(st, false, track.id);
+  save(st);
+  return track;
+}
+
+/** A new lesson in an own track with nothing left to do, e.g. after a break. The rules pick the target. */
+export async function nextLesson(st: Stored, trackId: string) {
+  const s = st.session;
+  const track = trackIn(st, trackId);
+  if (!track) throw new HttpError(404, 'Bereich nicht gefunden');
+  if (!track.custom) throw new HttpError(400, 'Neue Lektionen auf Wunsch gibt es nur in eigenen Bereichen.');
+  if (offline(s)) throw new HttpError(409, 'Neue Lektionen erzeugt der Agent mit KI.');
+  if (s.planning) throw new HttpError(409, 'Der Agent plant gerade deinen nächsten Schritt.');
+  if (!(await ruleLesson(st, trackId))) {
+    throw new HttpError(409, 'Gerade keine neue Lektion: Es ist noch eine offen, die Grenze für diese Sitzung ist erreicht, oder die KI hat keine gültige Lektion erstellt.');
+  }
+  recommend(st, false, trackId);
+  save(st);
+}
+
+// --- Missions ----------------------------------------------------------------------------------------
 
 /**
  * Sets the mission of a track. The first answer (or skipping) needs no confirmation.
  * A change of an existing mission needs `confirm` and is recorded as a mission-shift.
  */
 export function setMission(st: Stored, trackId: string, body: { text?: unknown; skip?: unknown; confirm?: unknown }): Mission {
-  const track = getTrack(trackId);
+  const track = trackIn(st, trackId);
   if (!track) throw new HttpError(404, 'Bereich nicht gefunden');
   const existing = missionOf(st, trackId);
   const at = nowIso();
   let mission: Mission;
   if (body.skip) {
     if (existing) return existing;
-    mission = { trackId, text: defaultMission(trackId), status: 'default', updatedAt: at };
+    mission = { trackId, text: defaultMission(st, trackId), status: 'default', updatedAt: at };
   } else {
     const text = String(body.text ?? '').replace(/ß/g, 'ss').replace(/\s+/g, ' ').trim();
     if (text.length < 3 || text.length > 300) throw new HttpError(400, 'Die Mission braucht 3 bis 300 Zeichen.');
@@ -398,11 +487,12 @@ export async function complete(st: Stored, nodeId: string, a: Answer, durationMi
   const s = st.session;
   const node = nodeById(s, nodeId);
   const l = lessonById(s, node.lessonId);
+  const track = trackIn(st, l.trackId);
   let result: LessonResult;
-  if (l.type === 'mark-evidence' && a.type === 'mark-evidence') result = judgeMarkEvidence(l, a);
-  else if (l.type === 'mock-site' && a.type === 'mock-site') result = judgeMockSite(l, a);
-  else if (l.type === 'video' && a.type === 'video') result = judgeVideo(l, a);
-  else if (l.type === 'ai-chat' && a.type === 'ai-chat') result = await judgeChat(l, a.turns.slice(-30), opts(s));
+  if (l.type === 'mark-evidence' && a.type === 'mark-evidence') result = judgeMarkEvidence(l, a, track);
+  else if (l.type === 'mock-site' && a.type === 'mock-site') result = judgeMockSite(l, a, track);
+  else if (l.type === 'video' && a.type === 'video') result = judgeVideo(l, a, track);
+  else if (l.type === 'ai-chat' && a.type === 'ai-chat') result = await judgeChat(l, a.turns.slice(-30), opts(s), track);
   else throw new HttpError(400, 'Antwort passt nicht zur Lektion');
 
   const helpUsed = Boolean(s.helpUsed[nodeId]);
@@ -418,7 +508,7 @@ export async function complete(st: Stored, nodeId: string, a: Answer, durationMi
     source: (usedModel ? 'model' : 'prepared') as Source,
   };
   s.events.push(event);
-  s.observations = updateObservations(s.observations, event, criterionLabel, () => newId('ob'));
+  s.observations = updateObservations(s.observations, event, (trackId, key) => criterionLabel(st, trackId, key), () => newId('ob'));
   s.usedMin += l.durationMin;
   if (l.transfer) s.transfer.push({ at, lessonTitle: l.title, text: l.transfer });
   settleReviews(st, event);
@@ -432,6 +522,8 @@ export async function complete(st: Stored, nodeId: string, a: Answer, durationMi
   Object.assign(node, { state: 'done', result, helpUsed });
   // The rules answer at once. With an agent, their plan is provisional until the agent is done.
   const withAgent = agentAvailable(s) && !s.plannerRuns.some((r) => r.eventId === event.id);
+  // Own tracks have no prepared lessons: without the agent, the rules let the generator write the next one.
+  if (!withAgent && !offline(s)) await ruleLesson(st, l.trackId);
   recommend(st, withAgent);
   if (withAgent) startPlanner(st, event);
   save(st);
@@ -480,12 +572,14 @@ export function view(st: Stored): SessionView {
     remainingMin: remaining(st.session),
     modelStatus: modelStatus(st.session.simulation),
     agentAvailable: agentAvailable(st.session),
+    canCreateTracks: !offline(st.session),
+    skills: learnerSkills(st),
     workspace: {
       missions: st.missions,
       records: st.records,
       reference: st.reference,
       notes: st.notes,
-      lernstand: lernstandAll(st, allTracks()),
+      lernstand: lernstandAll(st, learnerTracks(st)),
       dccSnapshots: st.profile.dccSnapshots.map(({ profile: _p, ...rest }) => rest),
     },
   };

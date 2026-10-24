@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type WheelEvent } from 'react';
 import type { DccProfile, Lesson, MapNode, Skill } from '@l45/shared';
 import { TYPE_LABEL } from '@l45/shared';
-import { TRACK_COLOR, bounds, layout, wrap, type Placed } from './layout.ts';
+import { bounds, layout, trackColors, wrap, type Placed } from './layout.ts';
 
 interface Cam {
   x: number;
@@ -16,6 +16,7 @@ export function MindMap({
   nodes, skills, dcc, lessonOf, selectedId, focusId, onSelect, rightInset = 0,
 }: {
   nodes: MapNode[];
+  /** The learner's skills and tracks */
   skills: Skill[];
   dcc: DccProfile;
   lessonOf: (id?: string) => Lesson | undefined;
@@ -30,6 +31,7 @@ export function MindMap({
   const [size, setSize] = useState({ w: 1200, h: 800 });
   const [cam, setCam] = useState<Cam>({ x: 600, y: 400, k: 1 });
   const placed = useMemo(() => layout(nodes), [nodes]);
+  const colors = useMemo(() => trackColors(nodes), [nodes]);
   const fitted = useRef(false);
   const seen = useRef<Set<string>>(new Set());
   const [fresh, setFresh] = useState<Set<string>>(new Set());
@@ -63,6 +65,7 @@ export function MindMap({
   }, [placed, size, rightInset]);
 
   // First view: the whole map if it is readable, otherwise readable and centred on the next step.
+  // A map with only the start node is fitted again as soon as the first track is added.
   useEffect(() => {
     if (fitted.current || placed.size === 0 || size.w < 50) return;
     const b = bounds(placed);
@@ -76,7 +79,7 @@ export function MindMap({
       const cy = rec ? (rec.y + 0) / 2 : 0;
       setCam({ k, x: w / 2 - cx * k, y: size.h / 2 - cy * k });
     }
-    fitted.current = true;
+    fitted.current = placed.size > 1;
   }, [fit, placed, size, rightInset]);
 
   // Smoothly move the camera to a node
@@ -162,6 +165,7 @@ export function MindMap({
   const edges = [...placed.values()].filter((p) => p.node.parentId);
   const trackDcc = (trackId?: string) => {
     const skill = skills.find((s) => s.tracks.some((t) => t.id === trackId));
+    if (skill?.id === 'custom') return 'eigenes Thema';
     if (!skill?.dccBased) return 'keine DCC-Position';
     const lv = trackId ? dcc.levels[trackId] : null;
     return lv ? `DCC: ${lv}` : 'DCC: nicht erhoben';
@@ -192,13 +196,14 @@ export function MindMap({
           {edges.map((p) => {
             const parent = placed.get(p.node.parentId!);
             if (!parent) return null;
-            return <Edge key={`e-${p.node.id}`} from={parent} to={p} />;
+            return <Edge key={`e-${p.node.id}`} from={parent} to={p} color={colors.get(p.node.trackId ?? '')} />;
           })}
           {[...placed.values()].map((p) => (
             <Node
               key={p.node.id}
               p={p}
               lesson={lessonOf(p.node.lessonId)}
+              color={colors.get(p.node.trackId ?? '') ?? 'var(--ink)'}
               selected={selectedId === p.node.id}
               fresh={fresh.has(p.node.id)}
               dccText={p.node.kind === 'track' ? trackDcc(p.node.trackId) : undefined}
@@ -216,9 +221,9 @@ export function MindMap({
   );
 }
 
-function Edge({ from, to }: { from: Placed; to: Placed }) {
+function Edge({ from, to, color: trackColor }: { from: Placed; to: Placed; color?: string }) {
   const n = to.node;
-  const color = n.kind === 'skill' ? 'var(--ink)' : TRACK_COLOR[n.trackId ?? ''] ?? 'var(--ink-2)';
+  const color = n.kind === 'skill' ? 'var(--ink)' : trackColor ?? 'var(--ink-2)';
   const mx = (from.x + to.x) / 2;
   const my = (from.y + to.y) / 2;
   const dx = to.x - from.x;
@@ -242,17 +247,17 @@ function Edge({ from, to }: { from: Placed; to: Placed }) {
 }
 
 function Node({
-  p, lesson, selected, fresh, dccText, onSelect,
+  p, lesson, color, selected, fresh, dccText, onSelect,
 }: {
   p: Placed;
   lesson?: Lesson;
+  color: string;
   selected: boolean;
   fresh: boolean;
   dccText?: string;
   onSelect: (id: string) => void;
 }) {
   const n = p.node;
-  const color = TRACK_COLOR[n.trackId ?? ''] ?? 'var(--ink)';
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();

@@ -3,7 +3,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Lesson, Skill, Track } from '@l45/shared';
+import type { Lesson, Skill } from '@l45/shared';
 import { validateLesson } from './validate.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -39,8 +39,5 @@ function load() {
 
 export const content = load();
 
-export const allTracks = (): Track[] => content.skills.flatMap((s) => s.tracks);
-export const getTrack = (id: string) => allTracks().find((t) => t.id === id);
-export const skillOf = (trackId: string) => content.skills.find((s) => s.tracks.some((t) => t.id === trackId));
-export const criterionLabel = (trackId: string, id: string) => getTrack(trackId)?.criteria.find((c) => c.id === id)?.label ?? id;
-export const ruleOfThumb = (trackId: string, id: string) => getTrack(trackId)?.criteria.find((c) => c.id === id)?.ruleOfThumb;
+/** A prepared track of the catalog. A learner's tracks (with their own) are in tracks.ts. */
+export const getTrack = (id: string) => content.skills.flatMap((s) => s.tracks).find((t) => t.id === id);

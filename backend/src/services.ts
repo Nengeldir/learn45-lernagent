@@ -1,6 +1,6 @@
 // Model-backed services, each with a prepared fallback. Only the lesson material and the learner's
 // own messages are sent; never the name or the DCC profile.
-import type { AiChatLesson, ChatTurn, CriterionResult, LessonResult, MarkEvidenceLesson, MockSiteLesson, ModelCall, Source } from '@l45/shared';
+import type { AiChatLesson, ChatTurn, CriterionResult, LessonResult, MarkEvidenceLesson, MockSiteLesson, ModelCall, Source, Track } from '@l45/shared';
 import { chatResult, judgeChatKeywords, learnerText } from './judge.ts';
 import { callModel } from './provider.ts';
 import { extractJson } from './util.ts';
@@ -44,9 +44,9 @@ export async function chatReply(lesson: AiChatLesson, turns: ChatTurn[], opts: O
   return { text: reply.text.trim(), source: 'model' };
 }
 
-export async function judgeChat(lesson: AiChatLesson, turns: ChatTurn[], opts: Opts): Promise<LessonResult> {
+export async function judgeChat(lesson: AiChatLesson, turns: ChatTurn[], opts: Opts, track?: Track): Promise<LessonResult> {
   const text = learnerText(turns);
-  if (opts.offline || !text.trim()) return judgeChatKeywords(lesson, turns);
+  if (opts.offline || !text.trim()) return judgeChatKeywords(lesson, turns, track);
   const system = [
     'Du beurteilst in einer Lern-App, was eine Person in einem Übungsgespräch geschrieben hat.',
     'Ein Kriterium ist nur erfüllt, wenn die Person es selbst ausdrücklich geschrieben hat (nicht die KI).',
@@ -62,17 +62,17 @@ export async function judgeChat(lesson: AiChatLesson, turns: ChatTurn[], opts: O
   ].join('\n');
   const reply = await callModel({ purpose: 'judge', system, messages: [{ role: 'user', content: user }], maxTokens: 500 });
   opts.onCall(reply.call);
-  if (!reply.ok) return judgeChatKeywords(lesson, turns);
+  if (!reply.ok) return judgeChatKeywords(lesson, turns, track);
   const parsed = extractJson<{ criteria?: { id: string; met: boolean; reason?: string }[] }>(reply.text);
   const byId = new Map((parsed?.criteria ?? []).map((c) => [c.id, c]));
-  if (!lesson.content.criteria.every((c) => typeof byId.get(c.id)?.met === 'boolean')) return judgeChatKeywords(lesson, turns);
+  if (!lesson.content.criteria.every((c) => typeof byId.get(c.id)?.met === 'boolean')) return judgeChatKeywords(lesson, turns, track);
   const criteria: CriterionResult[] = lesson.content.criteria.map((c) => ({
     key: c.id,
     label: c.label,
     status: byId.get(c.id)!.met ? 'met' : 'missed',
     note: (byId.get(c.id)!.reason ?? '').slice(0, 240),
   }));
-  return chatResult(lesson, criteria, 'model');
+  return chatResult(lesson, criteria, 'model', track);
 }
 
 // --- Hints after a first mistake (R6) -----------------------------------------------------------

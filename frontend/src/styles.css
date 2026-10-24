@@ -20,6 +20,12 @@
   --c-problem: #a0662f;
   --c-math: #1f7a7a;
   --c-science: #6b7a1f;
+  --c-own1: #c2410c;
+  --c-own2: #0f766e;
+  --c-own3: #9d174d;
+  --c-own4: #4d5bb5;
+  --c-own5: #7c6a0a;
+  --c-own6: #5b6b73;
   --font: 'Signika', 'Segoe UI', system-ui, sans-serif;
   color-scheme: light;
 }
@@ -41,6 +47,12 @@
     --c-problem: #d9a067;
     --c-math: #6cc4c4;
     --c-science: #b8c46a;
+    --c-own1: #f59e6b;
+    --c-own2: #5ec8bb;
+    --c-own3: #f08cb8;
+    --c-own4: #9aa6f0;
+    --c-own5: #d8c45a;
+    --c-own6: #a9b8bf;
     color-scheme: dark;
   }
 }
@@ -85,7 +97,7 @@ input[type='text'], input[type='number'], select, textarea { width: 100%; paddin
 .switch input { width: 20px; height: 20px; margin-top: 2px; }
 .seg { display: inline-flex; border: 1px solid var(--ink); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
 .seg button { border: 0; background: transparent; padding: 7px 14px; cursor: pointer; }
-.seg button[aria-selected='true'] { background: var(--ink); color: var(--paper); }
+.seg button[aria-selected='true'], .seg button[aria-checked='true'] { background: var(--ink); color: var(--paper); }
 table.levels { width: 100%; border-collapse: collapse; font-size: 15px; margin: 8px 0; }
 table.levels td { padding: 6px 0; border-bottom: 1px solid var(--line); }
 table.levels td:last-child { text-align: right; font-weight: 600; }
@@ -322,3 +334,21 @@ dl.reason dd { margin: 0; }
 .ls.sicher { border-color: var(--ok); color: var(--ok); }
 .lernstand-track summary { cursor: pointer; padding: 6px 0; }
 .merkblatt ul { padding-left: 18px; margin: 4px 0 10px; }
+
+/* --- Add a track --- */
+.add-track { max-width: 920px; }
+.add-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; align-items: start; }
+@media (max-width: 760px) { .add-grid { grid-template-columns: 1fr; } }
+.add-own { display: grid; gap: 12px; }
+.add-own .prior { border: 0; padding: 0; margin: 0; }
+.add-own .prior legend { font-size: 14px; color: var(--ink-2); margin-bottom: 4px; padding: 0; }
+.add-own .seg { margin-bottom: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -4px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 10px; font-size: 13px; cursor: pointer; }
+.chip:hover:not(:disabled) { border-color: var(--ink-2); }
+.catalog-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-top: 8px; }
+.catalog-head h4 { margin: 0; }
+.catalog { list-style: none; margin: 6px 0 12px; padding: 0; display: grid; gap: 6px; }
+.catalog .choice { width: 100%; display: grid; gap: 2px; }
+.catalog .choice:hover:not(:disabled) { border-color: var(--ink-2); }
+.sources { margin: 0; padding-left: 18px; display: grid; gap: 4px; }

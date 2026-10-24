@@ -1,11 +1,11 @@
 // The teaching workspace of a learner on disk, one folder per learner:
-//   profile.json, state.json, missions/<trackId>.md, learning-records/0001-<slug>.md,
+//   profile.json, state.json, tracks/<trackId>.json, missions/<trackId>.md, learning-records/0001-<slug>.md,
 //   lessons/0001-<slug>.json, reference/<trackId>.md, notes.md
 // Every write goes to a temp file first and is then renamed, so a crash never leaves half a file.
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { DccProfile, LearnerProfile, LearningRecord, Lesson, Mission, ReferenceEntry, Session } from '@l45/shared';
+import type { DccProfile, LearnerProfile, LearningRecord, Lesson, Mission, ReferenceEntry, Session, Track } from '@l45/shared';
 import { bullets, fromMd, section, slug, toMd } from './md.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -21,6 +21,8 @@ export interface Stored {
   session: Session;
   dcc: DccProfile;
   profile: LearnerProfile;
+  /** Tracks the learner created from own topics. Prepared tracks they added are only nodes on the map. */
+  tracks: Track[];
   missions: Mission[];
   records: LearningRecord[];
   reference: Record<string, ReferenceEntry[]>;
@@ -37,6 +39,7 @@ export function loadLearner(learnerId: string): Stored | null {
     session: { ...rest, userName: profile.name, generatedLessons: readLessons(learnerId), planning: false },
     dcc: Object.freeze({ ...dcc, levels: Object.freeze({ ...dcc.levels }) }),
     profile,
+    tracks: readTracks(learnerId),
     missions: readMissions(learnerId),
     records: readRecords(learnerId),
     reference: readReference(learnerId),
@@ -110,6 +113,19 @@ export function findBySession(sessionId: string): string | null {
   return learnerIds().find((id) => readState(id)?.id === sessionId) ?? null;
 }
 
+// --- Own tracks -------------------------------------------------------------------------------
+
+export function readTracks(learnerId: string): Track[] {
+  const d = dir(learnerId, 'tracks');
+  return list(d, '.json')
+    .map((f) => JSON.parse(readFileSync(join(d, f), 'utf8')) as Track)
+    .sort((a, b) => (a.custom?.createdAt ?? '').localeCompare(b.custom?.createdAt ?? ''));
+}
+
+export function writeTrack(learnerId: string, t: Track) {
+  atomicWrite(dir(learnerId, 'tracks', `${t.id}.json`), JSON.stringify(t, null, 2));
+}
+
 // --- Missions -----------------------------------------------------------------------------------
 
 export function readMissions(learnerId: string): Mission[] {
@@ -179,6 +195,12 @@ export function nextLessonNumber(learnerId: string): number {
 
 export function writeLesson(learnerId: string, n: number, l: Lesson) {
   atomicWrite(dir(learnerId, 'lessons', `${pad(n)}-${slug(l.title)}.json`), JSON.stringify(l, null, 2));
+}
+
+/** Saves a lesson made during learning to the workspace (lessons/0001-<slug>.json). */
+export function storeLesson(st: Stored, lesson: Lesson) {
+  st.session.generatedLessons.push(lesson);
+  writeLesson(st.profile.id, nextLessonNumber(st.profile.id), lesson);
 }
 
 /** Removes a lesson file, e.g. a rule template made only for a provisional plan the agent replaced. */

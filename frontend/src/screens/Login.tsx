@@ -44,7 +44,8 @@ export function Login() {
     if (f) readFile(f);
   };
 
-  const ready = name.trim().length > 0 && (mode === 'manual' || file);
+  // The DCC profile is optional: it only sets the levels of the prepared Digitale-Kompetenz tracks.
+  const ready = name.trim().length > 0;
 
   const submit = async (resume?: 'continue' | 'new') => {
     setBusy(true);
@@ -54,7 +55,7 @@ export function Login() {
         name,
         timeBudgetMin: time,
         resume,
-        ...(mode === 'file' && file ? { dccFile: file.data, fileName: file.name } : { levels }),
+        ...(mode === 'file' && file ? { dccFile: file.data, fileName: file.name } : { levels: mode === 'manual' ? levels : {} }),
       });
       setConflict(null);
       setView(v, resume === 'continue' ? await api.generated(v.session.id) : []);
@@ -73,7 +74,7 @@ export function Login() {
     <div className="login">
       <section className="login-intro">
         <h1>Lernagent</h1>
-        <p className="lead">Dein DCC-Profil wird zu einer Lernkarte. Der Agent plant Lektionen in allen fünf Bereichen, schlägt den nächsten Schritt vor und sagt, warum.</p>
+        <p className="lead">Du wählst, was du lernen willst: ein eigenes Thema wie «Security+ Prüfung bestehen» oder einen vorbereiteten Bereich. Der Agent plant die Lektionen, schlägt den nächsten Schritt vor und sagt, warum.</p>
         <MiniMap />
         <p className="small muted">Prototyp für Learn45. Anmeldung ohne Passwort, nur erfundene Daten.</p>
       </section>
@@ -92,7 +93,8 @@ export function Login() {
         </label>
 
         <fieldset className="dcc-box">
-          <legend>DCC-Profil</legend>
+          <legend>DCC-Profil (freiwillig)</legend>
+          <p className="small muted">Nur für die vorbereiteten Bereiche der Digitalen Kompetenz. Für eigene Themen brauchst du es nicht.</p>
           <div className="seg" role="tablist">
             <button role="tab" aria-selected={mode === 'file'} onClick={() => setMode('file')}>Resultat laden</button>
             <button role="tab" aria-selected={mode === 'manual'} onClick={() => setMode('manual')}>Stufen eingeben</button>

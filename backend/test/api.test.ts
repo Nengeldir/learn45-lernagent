@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { MapNode, SessionView } from '@l45/shared';
 import { createApp } from '../src/app.ts';
 import { _reset } from '../src/sessions.ts';
+import { addTracks, catalog } from './helpers.ts';
 
 process.env.MODEL_PROVIDER = 'none';
 const root = join(import.meta.dirname, '..', '..');
@@ -17,7 +18,7 @@ async function login(body: Record<string, unknown> = {}): Promise<SessionView> {
     .post('/api/login')
     .send({ name: 'Test', timeBudgetMin: 60, dccFile: sample('dcc-gemischt.json'), fileName: 'dcc-gemischt.json', ...body });
   expect(res.status).toBe(201);
-  return res.body;
+  return addTracks(app, res.body, catalog);
 }
 
 const lessonsOn = (v: SessionView, trackId: string) => v.session.nodes.filter((n) => n.kind === 'lesson' && n.trackId === trackId);

@@ -1,5 +1,5 @@
-// Radial mind-map layout, following the team sketch:
-// Start in the middle, "Digitale Kompetenz" above with its 5 tracks around it,
+// Radial mind-map layout. Start in the middle, the learner's skills evenly around it in the order they were
+// added (the first on top). With the three prepared skills this is the team sketch: "Digitale Kompetenz" above,
 // Mathematik bottom left, Naturwissenschaften bottom right. Lessons grow outward along each branch.
 import type { MapNode } from '@l45/shared';
 
@@ -14,13 +14,9 @@ export interface Placed {
 
 const deg = (d: number) => (d * Math.PI) / 180;
 
-const SKILL_POS: Record<string, [number, number]> = {
-  digital: [0, -210],
-  math: [-300, 190],
-  science: [300, 190],
-};
+const SKILL_RADIUS = 260;
 
-/** Angle of each digital track around the "Digitale Kompetenz" node, as in the sketch. */
+/** Angle of each digital track around the "Digitale Kompetenz" node when it sits on top, as in the sketch. */
 const TRACK_ANGLE: Record<string, number> = {
   't-info': -122,
   't-problem': -58,
@@ -38,6 +34,19 @@ export const TRACK_COLOR: Record<string, string> = {
   't-analysis': 'var(--c-math)',
   't-physik': 'var(--c-science)',
 };
+
+const OWN_COLORS = [1, 2, 3, 4, 5, 6].map((i) => `var(--c-own${i})`);
+
+/** Colour per track: fixed for prepared tracks, own tracks take the next colour in the order they were added. */
+export function trackColors(nodes: MapNode[]): Map<string, string> {
+  const out = new Map<string, string>();
+  let own = 0;
+  for (const n of nodes) {
+    if (n.kind !== 'track' || !n.trackId) continue;
+    out.set(n.trackId, TRACK_COLOR[n.trackId] ?? OWN_COLORS[own++ % OWN_COLORS.length]);
+  }
+  return out;
+}
 
 const LESSON_STEP = 132;
 /** Angle between two siblings at a fork. Wide enough that their labels do not touch. */
@@ -58,22 +67,27 @@ export function layout(nodes: MapNode[]): Map<string, Placed> {
   if (!start) return placed;
   placed.set(start.id, { node: start, x: 0, y: 0, dir: deg(-90), depth: 0 });
 
-  for (const skill of children.get(start.id) ?? []) {
-    const [sx, sy] = SKILL_POS[skill.skillId ?? ''] ?? [0, 300];
-    const skillDir = Math.atan2(sy, sx);
+  const skills = children.get(start.id) ?? [];
+  skills.forEach((skill, k) => {
+    // Counter-clockwise from the top: the second skill goes bottom left, the third bottom right.
+    const skillDir = deg(-90 - (k * 360) / skills.length);
+    const sx = Math.round(Math.cos(skillDir) * SKILL_RADIUS);
+    const sy = Math.round(Math.sin(skillDir) * SKILL_RADIUS);
     placed.set(skill.id, { node: skill, x: sx, y: sy, dir: skillDir, depth: 1 });
 
     const tracks = children.get(skill.id) ?? [];
+    const spread = tracks.length > 1 ? Math.min(40, 200 / (tracks.length - 1)) : 0;
     tracks.forEach((track, i) => {
+      // The sketch angles assume the skill on top; turned with the skill when it sits elsewhere.
       const angle = TRACK_ANGLE[track.trackId ?? ''] !== undefined
-        ? deg(TRACK_ANGLE[track.trackId!])
-        : skillDir + (i - (tracks.length - 1) / 2) * deg(40);
+        ? skillDir + deg(TRACK_ANGLE[track.trackId!] + 90)
+        : skillDir + (i - (tracks.length - 1) / 2) * deg(spread);
       const r = skill.skillId === 'digital' ? 235 : 165;
       const t: Placed = { node: track, x: sx + Math.cos(angle) * r, y: sy + Math.sin(angle) * r, dir: angle, depth: 2 };
       placed.set(track.id, t);
       placeLessons(t, children, placed);
     });
-  }
+  });
   return placed;
 }
 
