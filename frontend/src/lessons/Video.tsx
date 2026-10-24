@@ -1,3 +1,4 @@
+import { useI18n } from '../lib/i18n.tsx';
 import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { Answer, VideoLesson, VideoVisual } from '@l45/shared';
@@ -225,6 +226,7 @@ export function Video(props: { lesson: VideoLesson; prepareUrl?: string; onCompl
 
 
 function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComplete: (a: Answer) => Promise<void> }) {
+  const { t: ui } = useI18n();
   const { scenes, questions } = lesson.content;
   const [scene, setScene] = useState(0);
   const [revision, setRevision] = useState(0);
@@ -280,7 +282,7 @@ function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComple
   };
 
   return <div className="storyboard-video">
-    <LessonProgress completed={Object.keys(answers).length} total={questions.length} label="Deine Wissens-Checks" detail={`Abschnitt ${scene + 1} / ${scenes.length} · ${Object.keys(answers).length} / ${questions.length} Checks`} />
+    <LessonProgress completed={Object.keys(answers).length} total={questions.length} label={ui("Deine Wissens-Checks")} detail={`Abschnitt ${scene + 1} / ${scenes.length} · ${Object.keys(answers).length} / ${questions.length} Checks`} />
     <div className="video-workspace">
       <div className="video-player">
         <div className="stage storyboard-stage">
@@ -290,20 +292,20 @@ function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComple
         {!lesson.content.videoUrl && <>
           <p className="storyboard-caption" aria-live="polite">{scenes[scene].caption}</p>
           <div className="video-timeline">
-            <label className="sr-only" htmlFor={`scene-${lesson.id}`}>Abschnitt</label>
+            <label className="sr-only" htmlFor={`scene-${lesson.id}`}>{ui("Abschnitt")}</label>
             <input id={`scene-${lesson.id}`} type="range" min={1} max={scenes.length} step={1} value={scene + 1} onChange={event => go(Number(event.target.value) - 1)} />
             <span>{scene + 1} / {scenes.length}</span>
           </div>
-          <div className="video-controls" role="group" aria-label="Videosteuerung">
-            <button className="btn primary small" onClick={() => playing ? setPlaying(false) : atEnd ? go(ended ? 0 : Math.min(scene + 1, scenes.length - 1), true) : setPlaying(true)}><ButtonLabel variants={['Abspielen', 'Pause', 'Nochmals abspielen']}>{playing ? 'Pause' : ended ? 'Nochmals abspielen' : 'Abspielen'}</ButtonLabel></button>
-            <button className="btn quiet small" onClick={() => go(scene, true)}><Icon name="back" size={17} />Abschnitt wiederholen</button>
-            {!ended && <button className="btn quiet small" onClick={onSceneEnd}>Weiter<Icon name="chevron" size={16} /></button>}
+          <div className="video-controls" role="group" aria-label={ui("Videosteuerung")}>
+            <button className="btn primary small" onClick={() => playing ? setPlaying(false) : atEnd ? go(ended ? 0 : Math.min(scene + 1, scenes.length - 1), true) : setPlaying(true)}><ButtonLabel variants={['Abspielen', 'Pause', 'Nochmals abspielen']}>{playing ? ui('Pause') : ended ? ui('Nochmals abspielen') : ui('Abspielen')}</ButtonLabel></button>
+            <button className="btn quiet small" onClick={() => go(scene, true)}><Icon name="back" size={17} />{ui("Abschnitt wiederholen")}</button>
+            {!ended && <button className="btn quiet small" onClick={onSceneEnd}>{ui("Weiter")}<Icon name="chevron" size={16} /></button>}
           </div>
         </>}
       </div>
-      {asking !== null && <aside className="video-question-panel" aria-label="Wissens-Check"><QuestionCard key={asking} prompt={questions[asking].prompt} options={questions[asking].options} index={asking} total={questions.length}
-        check={(option) => ({ type: 'quiz', questionIndex: asking, option })} onContinue={answer} continueLabel={ended && Object.keys(answers).length + 1 === questions.length ? 'Lektion abschliessen' : 'Weiter'} /></aside>}
-      {ended && asking === null && <aside className="video-question-panel video-end-card"><span className="finish-disc"><Icon name="check" size={30} /></span><h3>Alle Abschnitte geschafft!</h3><button className="btn primary" disabled={busy || questions.some((_, i) => answers[i] === undefined)} onClick={async () => { setBusy(true); try { await onComplete({ type: 'video', answers }); } finally { setBusy(false); } }}>Lektion abschliessen</button></aside>}
+      {asking !== null && <aside className="video-question-panel" aria-label={ui("Wissens-Check")}><QuestionCard key={asking} prompt={questions[asking].prompt} options={questions[asking].options} index={asking} total={questions.length}
+        check={(option) => ({ type: 'quiz', questionIndex: asking, option })} onContinue={answer} continueLabel={ended && Object.keys(answers).length + 1 === questions.length ? ui('Lektion abschliessen') : ui('Weiter')} /></aside>}
+      {ended && asking === null && <aside className="video-question-panel video-end-card"><span className="finish-disc"><Icon name="check" size={30} /></span><h3>{ui("Alle Abschnitte geschafft!")}</h3><button className="btn primary" disabled={busy || questions.some((_, i) => answers[i] === undefined)} onClick={async () => { setBusy(true); try { await onComplete({ type: 'video', answers }); } finally { setBusy(false); } }}>{ui("Lektion abschliessen")}</button></aside>}
     </div>
   </div>;
 }

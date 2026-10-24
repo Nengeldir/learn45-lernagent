@@ -1,3 +1,4 @@
+import { useI18n } from '../lib/i18n.tsx';
 import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 // "Wie geht es weiter?": the learner picks the next topic of a track, then how to learn it. Tapping a format starts the
 // lesson; a topic with only one format starts right away. Topics are cheap previews; only the choice makes a lesson.
@@ -25,6 +26,7 @@ export function NextTopics({ trackId, initialTopicId, onStart, onFocus }: {
   onStart: (nodeId: string) => void;
   onFocus: (nodeId: string | null) => void;
 }) {
+  const { t: ui } = useI18n();
   const { view, setView, lessonOf } = useStore();
   const [choices, setChoices] = useState<TopicChoices | null>(null);
   const [selected, setSelected] = useState<NextTopic | null>(null);
@@ -106,64 +108,64 @@ export function NextTopics({ trackId, initialTopicId, onStart, onFocus }: {
   const formats = selected ? [...selected.formats].sort((a, b) => Number(b === preferred) - Number(a === preferred)) : [];
 
   return (
-    <section className="next-topics" aria-label="Nächste Lektionen" aria-busy={loading || busy}>
+    <section className="next-topics" aria-label={ui("Nächste Lektionen")} aria-busy={loading || busy}>
       {loading ? (
-        <p className="planning" role="status"><span className="dot-pulse" aria-hidden="true" />{planning ? 'Einen Moment …' : 'Lektionen werden geladen …'}</p>
+        <p className="planning" role="status"><span className="dot-pulse" aria-hidden="true" />{planning ? ui('Einen Moment …') : ui('Lektionen werden geladen …')}</p>
       ) : busy && !own ? (
-        <p className="planning" role="status"><span className="dot-pulse" aria-hidden="true" />Lektion wird vorbereitet …</p>
+        <p className="planning" role="status"><span className="dot-pulse" aria-hidden="true" />{ui("Lektion wird vorbereitet …")}</p>
       ) : selected ? (
         <>
-          <h2 ref={heading} tabIndex={-1}>Wie möchtest du lernen?</h2>
+          <h2 ref={heading} tabIndex={-1}>{ui("Wie möchtest du lernen?")}</h2>
           <p><strong>{selected.title}</strong></p>
           <div className="format-options">
             {formats.map((t) => (
               <button key={t} className="format-option" disabled={busy || stale} onClick={() => void start(selected, t)}>
                 <span className="format-icon" aria-hidden="true"><Icon name={FORMAT_ICON[t]} size={24} /></span>
                 <span className="format-text">
-                  <strong>{TYPE_LABEL[t]}{preferred === t && <span className="format-preferred">Zuletzt gewählt</span>}</strong>
-                  <span className="small muted">{FORMAT_HELP[t]}</span>
+                  <strong>{ui(TYPE_LABEL[t])}{preferred === t && <span className="format-preferred">{ui("Zuletzt gewählt")}</span>}</strong>
+                  <span className="small muted">{ui(FORMAT_HELP[t])}</span>
                 </span>
               </button>
             ))}
           </div>
-          <button className="btn quiet small back" disabled={busy} onClick={() => { setSelected(null); setError(null); }}><Icon name="back" size={18} />Anderes Thema</button>
+          <button className="btn quiet small back" disabled={busy} onClick={() => { setSelected(null); setError(null); }}><Icon name="back" size={18} />{ui("Anderes Thema")}</button>
         </>
       ) : own ? (
         <form className="own-topic" onSubmit={(e) => { e.preventDefault(); void suggest(); }}>
-          <h2 ref={heading} tabIndex={-1}>Was möchtest du als Nächstes lernen?</h2>
-          <label className="field"><span>Dein Wunsch</span><textarea autoFocus rows={3} minLength={3} maxLength={120} required value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Ich möchte verstehen, wie …" disabled={busy} /></label>
-          <button className="btn primary" disabled={busy || topic.trim().length < 3 || stale}><ButtonLabel variants={['Weiter', 'Einen Moment …']}>{busy ? 'Einen Moment …' : 'Weiter'}</ButtonLabel></button>
-          <button className="btn quiet small back" type="button" disabled={busy} onClick={() => { setOwn(false); setError(null); }}><Icon name="back" size={18} />Zurück</button>
+          <h2 ref={heading} tabIndex={-1}>{ui("Was möchtest du als Nächstes lernen?")}</h2>
+          <label className="field"><span>{ui("Dein Wunsch")}</span><textarea autoFocus rows={3} minLength={3} maxLength={120} required value={topic} onChange={(e) => setTopic(e.target.value)} placeholder={ui("Ich möchte verstehen, wie …")} disabled={busy} /></label>
+          <button className="btn primary" disabled={busy || topic.trim().length < 3 || stale}><ButtonLabel variants={['Weiter', 'Einen Moment …']}>{busy ? ui('Einen Moment …') : ui('Weiter')}</ButtonLabel></button>
+          <button className="btn quiet small back" type="button" disabled={busy} onClick={() => { setOwn(false); setError(null); }}><Icon name="back" size={18} />{ui("Zurück")}</button>
         </form>
       ) : choices ? (
         <>
-          <h2>Als Nächstes</h2>
+          <h2>{ui("Als Nächstes")}</h2>
           {choices.topics.length ? (
             <div className="topic-options">
               {choices.topics.map((t) => {
                 const lesson = lessonOf(t.lessonId);
                 return <button key={t.id} className={`topic-option${t.recommended ? ' recommended' : ''}`} title={t.reason} disabled={stale} onClick={() => pick(t)}>
                   <span className="topic-choice-text">
-                    {t.recommended && <span className="topic-recommended"><Icon name="sparkle" size={15} />Empfohlen</span>}
-                    <strong>{t.title}</strong>
-                    <span className="topic-choice-meta">{t.formats.length === 1 && <Icon name={FORMAT_ICON[t.formats[0]]} size={15} />}{t.formats.length === 1 ? TYPE_LABEL[t.formats[0]] : 'Format wählen'}{lesson && t.formats.length === 1 && lesson.type === t.formats[0] && ` · ${lesson.durationMin} Min.`}</span>
+                    {t.recommended && <span className="topic-recommended"><Icon name="sparkle" size={15} />{ui("Empfohlen")}</span>}
+                    <strong>{ui(t.title)}</strong>
+                    <span className="topic-choice-meta">{t.formats.length === 1 && <Icon name={FORMAT_ICON[t.formats[0]]} size={15} />}{t.formats.length === 1 ? ui(TYPE_LABEL[t.formats[0]]) : ui('Format wählen')}{lesson && t.formats.length === 1 && lesson.type === t.formats[0] && ` · ${lesson.durationMin} Min.`}</span>
                   </span>
                   <span className="topic-start" aria-hidden="true"><Icon name={t.formats.length === 1 ? 'play' : 'chevron'} size={17} /></span>
                 </button>;
               })}
               {choices.canSuggestOwn && (
                 <button className="topic-option own" disabled={stale} onClick={() => setOwn(true)}>
-                  <strong><Icon name="plus" size={18} />Etwas anderes vorschlagen</strong>
+                  <strong><Icon name="plus" size={18} />{ui("Etwas anderes vorschlagen")}</strong>
                 </button>
               )}
             </div>
           ) : (
-            <p>Alles geschafft. Wähle ein anderes Thema.</p>
+            <p>{ui("Alles geschafft. Wähle ein anderes Thema.")}</p>
           )}
         </>
       ) : null}
-      {error && <p className="error small" role="alert">{error}</p>}
-      {(!loading && !choices || stale) && <button className="btn secondary" disabled={busy} onClick={() => setRetry((n) => n + 1)}>Nochmals versuchen</button>}
+      {error && <p className="error small" role="alert">{ui(error)}</p>}
+      {(!loading && !choices || stale) && <button className="btn secondary" disabled={busy} onClick={() => setRetry((n) => n + 1)}>{ui("Nochmals versuchen")}</button>}
     </section>
   );
 }

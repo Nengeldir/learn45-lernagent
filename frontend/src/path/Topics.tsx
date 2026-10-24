@@ -75,7 +75,6 @@ export function Topics({ view, onOpen, onOwnTopic, onShowMap }: {
                     disabled={Boolean(busy)}
                     onClick={() => void open(tr.id)}
                   >
-                    <span className="topic-dot" aria-hidden="true" />
                     <span className="topic-level-disc" aria-hidden="true">{view.rewards.tracks[tr.id]?.level ?? 1}</span>
                     <span className="topic-row-text">
                       <strong>{trackName(tr.id, tr.name)}</strong>

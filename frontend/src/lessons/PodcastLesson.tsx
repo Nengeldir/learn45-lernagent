@@ -1,3 +1,4 @@
+import { useI18n } from '../lib/i18n.tsx';
 import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 // A podcast lesson: two voices talk about one topic, then a few questions. The audio is narrated the first time the
 // lesson is opened; if that fails, the conversation can still be read.
@@ -16,6 +17,7 @@ export function PodcastLesson({ lesson, sessionId, nodeId, onComplete }: {
   nodeId: string;
   onComplete: (a: Answer) => Promise<void>;
 }) {
+  const { t: ui } = useI18n();
   const [status, setStatus] = useState<PodcastStatus | null>(null);
   const [manifest, setManifest] = useState<PodcastManifest>();
   const [failed, setFailed] = useState(false);
@@ -75,19 +77,19 @@ export function PodcastLesson({ lesson, sessionId, nodeId, onComplete }: {
   })}</ol>;
 
   return <div className="podcast-lesson">
-    <LessonProgress completed={Object.keys(answers).length} total={questions.length} label="Deine Wissens-Checks" detail={quiz ? `${Object.keys(answers).length} / ${questions.length} Checks` : 'Zuerst zuhören, dann ausprobieren'} />
+    <LessonProgress completed={Object.keys(answers).length} total={questions.length} label={ui("Deine Wissens-Checks")} detail={quiz ? `${Object.keys(answers).length} / ${questions.length} Checks` : 'Zuerst zuhören, dann ausprobieren'} />
     <div className={`podcast${quiz ? ' is-quizzing' : ''}`}>
-      {!quiz && <p className="podcast-head"><Icon name="headphones" size={20} />{HOSTS.a} und {HOSTS.b} im Gespräch</p>}
-      {failed ? <p className="small muted">{unavailable}</p> : !manifest ? <div role="status" className="podcast-progress"><p className="small">Das Gespräch wird vorbereitet{status?.state === 'building' && status.total ? ` (${status.completed} von ${status.total})` : ''} …</p><progress max={status?.state === 'building' ? status.total : undefined} value={status?.state === 'building' ? status.completed : undefined} /></div>
+      {!quiz && <p className="podcast-head"><Icon name="headphones" size={20} />{HOSTS.a} {ui("und")} {HOSTS.b} {ui("im Gespräch")}</p>}
+      {failed ? <p className="small muted">{ui(unavailable)}</p> : !manifest ? <div role="status" className="podcast-progress"><p className="small">{ui("Das Gespräch wird vorbereitet")}{status?.state === 'building' && status.total ? ` (${status.completed} von ${status.total})` : ''} …</p><progress max={status?.state === 'building' ? status.total : undefined} value={status?.state === 'building' ? status.completed : undefined} /></div>
         : <audio ref={audio} controls preload="metadata" src={manifest.audioUrl} onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)} onEnded={() => setAsking(true)} onError={() => setFailed(true)} />}
-      <details className="podcast-transcript"><summary><ButtonLabel variants={['Gespräch nachlesen', 'Gespräch mitlesen']}>{quiz ? 'Gespräch nachlesen' : 'Gespräch mitlesen'}</ButtonLabel></summary>{transcript}</details>
+      <details className="podcast-transcript"><summary><ButtonLabel variants={['Gespräch nachlesen', 'Gespräch mitlesen']}>{quiz ? ui('Gespräch nachlesen') : ui('Gespräch mitlesen')}</ButtonLabel></summary>{transcript}</details>
     </div>
     {quiz && questions.length > 0 ? <QuestionCard key={questionIndex} prompt={questions[questionIndex].prompt} options={questions[questionIndex].options} index={questionIndex} total={questions.length}
-      check={(option) => ({ type: 'quiz', questionIndex, option })} continueLabel={questionIndex + 1 === questions.length ? 'Lektion abschliessen' : 'Nächste Frage'} onContinue={async (option) => {
+      check={(option) => ({ type: 'quiz', questionIndex, option })} continueLabel={questionIndex + 1 === questions.length ? ui('Lektion abschliessen') : ui('Nächste Frage')} onContinue={async (option) => {
         const next = { ...answers, [questionIndex]: option };
         setAnswers(next);
         if (questionIndex + 1 === questions.length) await onComplete({ type: 'podcast', answers: next });
         else setQuestionIndex(questionIndex + 1);
-      }} /> : <div className="activity-actions"><button className="btn primary" onClick={() => { audio.current?.pause(); setAsking(true); }}>Zum Wissens-Check<Icon name="chevron" size={17} /></button></div>}
+      }} /> : <div className="activity-actions"><button className="btn primary" onClick={() => { audio.current?.pause(); setAsking(true); }}>{ui("Zum Wissens-Check")}<Icon name="chevron" size={17} /></button></div>}
   </div>;
 }

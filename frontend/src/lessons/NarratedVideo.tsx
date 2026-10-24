@@ -1,3 +1,4 @@
+import { useI18n } from '../lib/i18n.tsx';
 import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { Player } from '@l45/animlib';
@@ -16,6 +17,7 @@ const clock = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.fl
 export default function NarratedVideo({ lesson, onComplete, onFallback }: {
   lesson: VideoLesson; onComplete: (answer: Answer) => Promise<void>; onFallback: () => void;
 }) {
+  const { t: ui } = useI18n();
   const host = useRef<HTMLDivElement>(null);
   const screen = useRef<HTMLDivElement>(null);
   const playButton = useRef<HTMLButtonElement>(null);
@@ -92,39 +94,39 @@ export default function NarratedVideo({ lesson, onComplete, onFallback }: {
 
   return (
     <div className="narrated-video" ref={screen}>
-      <LessonProgress completed={completed} total={questions.length} label="Deine Wissens-Checks" detail={ready ? `Abschnitt ${state.scene + 1} / ${manifest!.scenes.length} · ${completed} / ${questions.length} Checks` : 'Video wird geladen …'} />
+      <LessonProgress completed={completed} total={questions.length} label={ui("Deine Wissens-Checks")} detail={ready ? `Abschnitt ${state.scene + 1} / ${manifest!.scenes.length} · ${completed} / ${questions.length} Checks` : 'Video wird geladen …'} />
       <div className="video-workspace">
         <div className="video-player">
           <div className="narrated-stage" hidden={Boolean(error) && !ready}>
             <div className="narrated-canvas" ref={host} />
             {captions && caption && <p className="in-video-caption" lang="de">{caption}</p>}
           </div>
-          {!ready && !problem && <p role="status">Erklärvideo wird geladen …</p>}
-          {problem && <div className="note" role="alert"><p>{problem}</p><button className="btn secondary" onClick={onFallback}>Storyboard ansehen</button></div>}
+          {!ready && !problem && <p role="status">{ui("Erklärvideo wird geladen …")}</p>}
+          {problem && <div className="note" role="alert"><p>{ui(problem)}</p><button className="btn secondary" onClick={onFallback}>{ui("Storyboard ansehen")}</button></div>}
           {ready && <>
             <div className="video-timeline">
-              <label className="sr-only" htmlFor={`seek-${lesson.id}`}>Videoposition</label>
+              <label className="sr-only" htmlFor={`seek-${lesson.id}`}>{ui("Videoposition")}</label>
               <input id={`seek-${lesson.id}`} type="range" min={0} max={controller!.duration} step="any" value={controller!.position}
                 aria-valuetext={`${clock(controller!.position)} von ${clock(controller!.duration)}`} onChange={event => void controller!.seek(Number(event.target.value))} />
               <span>{clock(controller!.position)} / {clock(controller!.duration)}</span>
             </div>
-            <div className="video-controls" role="group" aria-label="Videosteuerung">
-              <button ref={playButton} className="btn primary small" onClick={() => state.playing ? controller!.pause() : void controller!.play()}><ButtonLabel variants={['Abspielen', 'Pause', 'Nochmals abspielen']}>{state.playing ? 'Pause' : state.ended ? 'Nochmals abspielen' : 'Abspielen'}</ButtonLabel></button>
-              <button className="btn quiet small" aria-label="10 Sekunden zurück" onClick={() => void controller!.seek(controller!.position - 10)}><Icon name="back" size={17} />10 s</button>
-              <button className="btn quiet small" aria-label={muted ? 'Ton einschalten' : 'Ton ausschalten'} aria-pressed={muted} onClick={() => { engine.current?.setMuted(!muted); setMuted(!muted); }}><Icon name="headphones" size={17} /><ButtonLabel variants={['Ton an', 'Ton aus']}>{muted ? 'Ton aus' : 'Ton an'}</ButtonLabel></button>
-              <button className="btn quiet small" aria-pressed={captions} onClick={() => setCaptions(!captions)}>Untertitel</button>
+            <div className="video-controls" role="group" aria-label={ui("Videosteuerung")}>
+              <button ref={playButton} className="btn primary small" onClick={() => state.playing ? controller!.pause() : void controller!.play()}><ButtonLabel variants={['Abspielen', 'Pause', 'Nochmals abspielen']}>{state.playing ? ui('Pause') : state.ended ? ui('Nochmals abspielen') : ui('Abspielen')}</ButtonLabel></button>
+              <button className="btn quiet small" aria-label={ui("10 Sekunden zurück")} onClick={() => void controller!.seek(controller!.position - 10)}><Icon name="back" size={17} />{ui("10 s")}</button>
+              <button className="btn quiet small" aria-label={muted ? ui('Ton einschalten') : ui('Ton ausschalten')} aria-pressed={muted} onClick={() => { engine.current?.setMuted(!muted); setMuted(!muted); }}><Icon name="headphones" size={17} /><ButtonLabel variants={['Ton an', 'Ton aus']}>{muted ? ui('Ton aus') : ui('Ton an')}</ButtonLabel></button>
+              <button className="btn quiet small" aria-pressed={captions} onClick={() => setCaptions(!captions)}>{ui("Untertitel")}</button>
             </div>
-            <details className="video-transcript"><summary>Text zum Mitlesen</summary>
+            <details className="video-transcript"><summary>{ui("Text zum Mitlesen")}</summary>
               {manifest!.scenes.map(scene => <section key={scene.id}><h3>{scene.title}</h3>{scene.captions.map((cue, i) => <p key={i}>{cue.text}</p>)}</section>)}
             </details>
           </>}
         </div>
-        {state.asking !== null && <aside className="video-question-panel" aria-label="Wissens-Check">
+        {state.asking !== null && <aside className="video-question-panel" aria-label={ui("Wissens-Check")}>
           <QuestionCard key={state.asking} prompt={questions[state.asking].prompt} options={questions[state.asking].options} index={state.asking} total={questions.length}
             check={(option) => ({ type: 'quiz', questionIndex: state.asking!, option })}
-            onContinue={answerQuestion} continueLabel={state.ended && completed + 1 === questions.length ? 'Lektion abschliessen' : 'Weiter'} />
+            onContinue={answerQuestion} continueLabel={state.ended && completed + 1 === questions.length ? ui('Lektion abschliessen') : ui('Weiter')} />
         </aside>}
-        {state.ended && state.asking === null && <aside className="video-question-panel video-end-card"><span className="finish-disc"><Icon name="check" size={32} /></span><h3>Alle Abschnitte geschafft!</h3><button className="btn primary" disabled={busy} onClick={() => void finish()}><ButtonLabel variants={['Wird geprüft …', 'Lektion abschliessen']}>{busy ? 'Wird geprüft …' : 'Lektion abschliessen'}</ButtonLabel><Icon name="star" size={18} /></button></aside>}
+        {state.ended && state.asking === null && <aside className="video-question-panel video-end-card"><span className="finish-disc"><Icon name="check" size={32} /></span><h3>{ui("Alle Abschnitte geschafft!")}</h3><button className="btn primary" disabled={busy} onClick={() => void finish()}><ButtonLabel variants={['Wird geprüft …', 'Lektion abschliessen']}>{busy ? ui('Wird geprüft …') : ui('Lektion abschliessen')}</ButtonLabel><Icon name="star" size={18} /></button></aside>}
       </div>
     </div>
   );

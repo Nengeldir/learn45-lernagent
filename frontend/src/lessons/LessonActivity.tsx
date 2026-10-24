@@ -1,3 +1,4 @@
+import { useI18n } from '../lib/i18n.tsx';
 import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { LessonAnswerCheck, LessonAnswerFeedback } from '@l45/shared';
@@ -28,6 +29,7 @@ export function QuestionCard({ prompt, options, index, total, check, onContinue,
   continueLabel?: string;
   onFeedback?: (feedback: LessonAnswerFeedback) => void;
 }) {
+  const { t: ui } = useI18n();
   const activity = useContext(Activity);
   const [selected, setSelected] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<LessonAnswerFeedback | null>(null);
@@ -66,9 +68,9 @@ export function QuestionCard({ prompt, options, index, total, check, onContinue,
   };
 
   return <section className={`question-card${feedback ? feedback.correct ? ' answer-correct' : ' answer-learning' : ''}`} aria-label={`Wissens-Check ${index + 1} von ${total}`} aria-busy={busy && !feedback}>
-    <div className="question-kicker"><span><Icon name="sparkle" size={15} />Frage</span><span>{index + 1} / {total}</span></div>
+    <div className="question-kicker"><span><Icon name="sparkle" size={15} />{ui("Frage")}</span><span>{index + 1} / {total}</span></div>
     <h3 ref={heading} tabIndex={-1}>{prompt}</h3>
-    <div className="question-options" role="group" aria-label="Antwort auswählen">
+    <div className="question-options" role="group" aria-label={ui("Antwort auswählen")}>
       {options.map((option, i) => {
         const correct = feedback?.correctOption === i;
         const wrong = Boolean(feedback && selected === i && !correct);
@@ -81,15 +83,15 @@ export function QuestionCard({ prompt, options, index, total, check, onContinue,
     <div className="question-response" tabIndex={feedback || error ? 0 : undefined}>
     {feedback && <div className={`answer-feedback ${feedback.correct ? 'correct' : 'learning'}`} role="status">
       <span className="answer-feedback-icon"><Icon name={feedback.correct ? 'star' : 'book'} size={23} /></span>
-      <div><strong>{feedback.correct ? 'Richtig!' : 'Richtige Antwort'}</strong>{(feedback.explanation || !feedback.correct) && <p>{feedback.explanation || options[feedback.correctOption]}</p>}</div>
+      <div><strong>{feedback.correct ? ui('Richtig!') : ui('Richtige Antwort')}</strong>{(feedback.explanation || !feedback.correct) && <p>{feedback.explanation || options[feedback.correctOption]}</p>}</div>
       {feedback.correct && <span className="answer-spark" aria-hidden="true"><Icon name="sparkle" size={22} /></span>}
     </div>}
-    {error && <p className="error small" role="alert">{error}</p>}
-    {busy && !feedback && <p className="answer-pending small muted" role="status">Wird geprüft …</p>}
+    {error && <p className="error small" role="alert">{ui(error)}</p>}
+    {busy && !feedback && <p className="answer-pending small muted" role="status">{ui("Wird geprüft …")}</p>}
     </div>
     <div className="question-actions">
-      {error && !feedback && selected !== null ? <button className="btn secondary" disabled={busy} onClick={() => void submit(selected)}>Erneut versuchen</button>
-        : <button ref={continueButton} className={`btn primary${feedback ? '' : ' is-placeholder'}`} aria-hidden={!feedback} tabIndex={feedback ? undefined : -1} disabled={busy || !feedback} onClick={() => void next()}><ButtonLabel variants={['Weiter', 'Nächste Frage', 'Nächster Satz', 'Lektion abschliessen', 'Einen Moment …', continueLabel]}>{busy ? 'Einen Moment …' : continueLabel}</ButtonLabel><Icon name="chevron" size={17} /></button>}
+      {error && !feedback && selected !== null ? <button className="btn secondary" disabled={busy} onClick={() => void submit(selected)}>{ui("Erneut versuchen")}</button>
+        : <button ref={continueButton} className={`btn primary${feedback ? '' : ' is-placeholder'}`} aria-hidden={!feedback} tabIndex={feedback ? undefined : -1} disabled={busy || !feedback} onClick={() => void next()}><ButtonLabel variants={['Weiter', 'Nächste Frage', 'Nächster Satz', 'Lektion abschliessen', 'Einen Moment …', continueLabel]}>{busy ? ui('Einen Moment …') : continueLabel}</ButtonLabel><Icon name="chevron" size={17} /></button>}
     </div>
   </section>;
 }
