@@ -1,16 +1,18 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { LangProvider, useI18n } from './lib/i18n.tsx';
 import { StoreProvider, useStore } from './lib/store.tsx';
 import { Login } from './screens/Login.tsx';
 import { MapScreen } from './screens/MapScreen.tsx';
 
 function Routed() {
   const { loading, error, content, view } = useStore();
-  if (loading) return <p className="center muted">Wird geladen …</p>;
+  const { t } = useI18n();
+  if (loading) return <p className="center muted">{t('Wird geladen …')}</p>;
   if (error && !content) {
     return (
       <div className="center">
-        <p className="error">{error}</p>
-        <button className="btn secondary" onClick={() => location.reload()}>Neu laden</button>
+        <p className="error">{t(error)}</p>
+        <button className="btn secondary" onClick={() => location.reload()}>{t('Neu laden')}</button>
       </div>
     );
   }
@@ -25,10 +27,12 @@ function Routed() {
 
 export function App() {
   return (
-    <StoreProvider>
-      <BrowserRouter>
-        <Routed />
-      </BrowserRouter>
-    </StoreProvider>
+    <LangProvider>
+      <StoreProvider>
+        <BrowserRouter>
+          <Routed />
+        </BrowserRouter>
+      </StoreProvider>
+    </LangProvider>
   );
 }
