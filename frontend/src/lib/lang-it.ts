@@ -548,4 +548,8 @@ export const IT: Record<string, string> = {
   "Fertig": "Fatto",
   "Nach dem Gespräch kommen {n} kurze Fragen.": "Dopo la conversazione ci sono {n} brevi domande.",
   "Direkt zu den Fragen": "Direttamente alle domande",
+  "Gipfelprüfung": "Esame della vetta",
+  "Alles von diesem Berg in einer Lektion": "Tutto di questa montagna in una lezione",
+  "Fünf Schritte sind geschafft. Die Gipfelprüfung mischt, was du auf diesem Berg geübt hast.": "Cinque passi sono fatti. L’esame della vetta mescola ciò che hai esercitato su questa montagna.",
+  "Als Letztes: die Gipfelprüfung": "Ultimo passo: l’esame della vetta",
 };

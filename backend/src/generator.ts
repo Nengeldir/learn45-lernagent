@@ -27,6 +27,8 @@ export interface GenerateInput {
   contextHint?: string;
   /** Mixed review: further criteria of the same track to bring back */
   reviewOf?: string[];
+  /** The exam on the peak of a mountain: one task per criterion, on a new example */
+  exam?: boolean;
   mission: string;
   preferences: string[];
   basedOn: string[];
@@ -118,7 +120,9 @@ export async function generateLesson(input: GenerateInput, onCall: (c: ModelCall
     `Bereich: ${track.name}`,
     `Lektionsart: ${input.type}`,
     `Stufe der Lektion: ${input.level}`,
-    review ? `Gemischte Wiederholung (Abrufen aus dem Gedächtnis), Kriterien:` : 'Lernziel (Kriterium):',
+    input.exam
+      ? 'Gipfelprüfung: Die Person hat auf diesem Berg fünf Lektionen zu diesen Kriterien geschafft. Prüfe jedes Kriterium mit einer eigenen Aufgabe, an einem neuen Beispiel. Der Rückblick bleibt kurz, der Schwerpunkt liegt auf den Aufgaben. Der Titel beginnt mit «Gipfelprüfung:». Kriterien:'
+      : review ? `Gemischte Wiederholung (Abrufen aus dem Gedächtnis), Kriterien:` : 'Lernziel (Kriterium):',
     ...targets.map((id) => {
       const c = track.criteria.find((x) => x.id === id)!;
       return `- ${c.id}: ${c.label}. Faustregel: ${c.ruleOfThumb}`;
@@ -184,6 +188,7 @@ export async function generateLesson(input: GenerateInput, onCall: (c: ModelCall
       basedOn: input.basedOn,
       sessionNo: input.sessionNo,
       ...(review ? { reviewOf: targets } : {}),
+      ...(input.exam ? { exam: true as const } : {}),
     },
     content,
   }) as Lesson;

@@ -548,4 +548,8 @@ export const FR: Record<string, string> = {
   "Fertig": "Terminé",
   "Nach dem Gespräch kommen {n} kurze Fragen.": "Après la conversation, il y a {n} courtes questions.",
   "Direkt zu den Fragen": "Directement aux questions",
+  "Gipfelprüfung": "Examen du sommet",
+  "Alles von diesem Berg in einer Lektion": "Tout ce qui vient de cette montagne en une leçon",
+  "Fünf Schritte sind geschafft. Die Gipfelprüfung mischt, was du auf diesem Berg geübt hast.": "Cinq étapes sont faites. L’examen du sommet mélange ce que tu as exercé sur cette montagne.",
+  "Als Letztes: die Gipfelprüfung": "Dernière étape : l’examen du sommet",
 };

@@ -630,6 +630,11 @@ const EN: Record<string, string> = {
   'Sag, worüber du mehr lernen willst.': 'Say what you want to learn more about.',
   'Passende Videos': 'Related videos',
   'Im Web': 'On the web',
+  // Peak exam
+  'Gipfelprüfung': 'Peak exam',
+  'Alles von diesem Berg in einer Lektion': 'Everything from this mountain in one lesson',
+  'Fünf Schritte sind geschafft. Die Gipfelprüfung mischt, was du auf diesem Berg geübt hast.': 'Five steps are done. The peak exam mixes what you practised on this mountain.',
+  'Als Letztes: die Gipfelprüfung': 'Last step: the peak exam',
 };
 
 function fill(s: string, vars?: Record<string, string | number>) {
