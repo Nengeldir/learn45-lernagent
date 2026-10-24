@@ -16,6 +16,7 @@ import { VideoService } from './video/service.ts';
 import { chooseTopic, getTopics, suggestTopic } from './nextTopics.ts';
 import { askOwl, owlMessages } from './owlChat.ts';
 import { learnMore } from './learnMore.ts';
+import { accessGate } from './access.ts';
 
 type Handler = (req: Request, res: Response) => unknown;
 const h = (fn: Handler) => (req: Request, res: Response, next: NextFunction) => {
@@ -61,7 +62,12 @@ export function createApp(options: { videoService?: VideoService; podcastService
     output: process.env.PODCAST_CACHE_DIR ?? join(import.meta.dirname, '..', 'var', 'podcasts'),
     speechCache: videos.options.speechCache,
   });
+  const gate = accessGate(process.env.ACCESS_USERS);
+  if (gate) app.use(gate);
   app.use(express.json({ limit: '200kb' }));
+
+  // The frontend navigates here on a 401 so the browser asks for the login; once past the gate, back to the app.
+  app.get('/api/auth', (_req, res) => res.redirect('/'));
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, provider: providerName(), modelStatus: modelStatus(false) }));
 
