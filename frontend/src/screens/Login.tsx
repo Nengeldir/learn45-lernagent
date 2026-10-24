@@ -1,3 +1,4 @@
+import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 import { useMemo, useState, type DragEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { DccLevel, DccResultFile, LoginConflict } from '@l45/shared';
@@ -180,7 +181,7 @@ export function Login() {
           </div>
         ) : (
           <button className="btn primary big block" disabled={!ready || busy} onClick={() => submit()}>
-            {busy ? t('Einen Moment …') : t("Los geht's")}
+            <ButtonLabel variants={["Los geht's", 'Einen Moment …']}>{busy ? t('Einen Moment …') : t("Los geht's")}</ButtonLabel>
           </button>
         )}
       </section>

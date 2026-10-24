@@ -1,3 +1,4 @@
+import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { LessonAnswerCheck, LessonAnswerFeedback } from '@l45/shared';
 import { api } from '../lib/api.ts';
@@ -72,8 +73,8 @@ export function QuestionCard({ prompt, options, index, total, check, onContinue,
         const correct = feedback?.correctOption === i;
         const wrong = Boolean(feedback && selected === i && !correct);
         return <button key={i} className={`question-option${correct ? ' is-correct' : wrong ? ' is-missed' : ''}`} disabled={busy || Boolean(feedback)} aria-label={feedback ? `${correct ? 'Richtige Antwort: ' : selected === i ? 'Deine Antwort: ' : ''}${option}` : undefined} aria-pressed={selected === i} onClick={() => void submit(i)}>
-          <span className="option-letter" aria-hidden="true">{correct ? <Icon name="check" size={17} /> : wrong ? <Icon name="back" size={16} /> : String.fromCharCode(65 + i)}</span>
-          <span>{option}</span>{selected === i && !feedback && <Icon name="check" size={17} />}
+          <span className="option-letter" aria-hidden="true">{correct || selected === i && !feedback ? <Icon name="check" size={17} /> : wrong ? <Icon name="back" size={16} /> : String.fromCharCode(65 + i)}</span>
+          <span>{option}</span>
         </button>;
       })}
     </div>
@@ -84,7 +85,7 @@ export function QuestionCard({ prompt, options, index, total, check, onContinue,
     </div>}
     {error && <p className="error small" role="alert">{error}</p>}
     {busy && !feedback && <p className="answer-pending small muted" role="status">Wird geprüft …</p>}
-    {feedback ? <div className="question-actions"><button ref={continueButton} className="btn primary" disabled={busy} onClick={() => void next()}>{busy ? 'Einen Moment …' : continueLabel}<Icon name="chevron" size={17} /></button></div>
+    {feedback ? <div className="question-actions"><button ref={continueButton} className="btn primary" disabled={busy} onClick={() => void next()}><ButtonLabel variants={['Weiter', 'Nächste Frage', 'Nächster Satz', 'Lektion abschliessen', 'Einen Moment …', continueLabel]}>{busy ? 'Einen Moment …' : continueLabel}</ButtonLabel><Icon name="chevron" size={17} /></button></div>
       : error && selected !== null && <div className="question-actions"><button className="btn secondary" disabled={busy} onClick={() => void submit(selected)}>Erneut versuchen</button></div>}
   </section>;
 }

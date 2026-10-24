@@ -1,3 +1,4 @@
+import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 // "Wie geht es weiter?": the learner picks the next topic of a track, then how to learn it. Tapping a format starts the
 // lesson; a topic with only one format starts right away. Topics are cheap previews; only the choice makes a lesson.
 import { useEffect, useRef, useState } from 'react';
@@ -131,7 +132,7 @@ export function NextTopics({ trackId, initialTopicId, onStart, onFocus }: {
         <form className="own-topic" onSubmit={(e) => { e.preventDefault(); void suggest(); }}>
           <h2 ref={heading} tabIndex={-1}>Was möchtest du als Nächstes lernen?</h2>
           <label className="field"><span>Dein Wunsch</span><textarea autoFocus rows={3} minLength={3} maxLength={120} required value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Ich möchte verstehen, wie …" disabled={busy} /></label>
-          <button className="btn primary" disabled={busy || topic.trim().length < 3 || stale}>{busy ? 'Einen Moment …' : 'Weiter'}</button>
+          <button className="btn primary" disabled={busy || topic.trim().length < 3 || stale}><ButtonLabel variants={['Weiter', 'Einen Moment …']}>{busy ? 'Einen Moment …' : 'Weiter'}</ButtonLabel></button>
           <button className="btn quiet small back" type="button" disabled={busy} onClick={() => { setOwn(false); setError(null); }}><Icon name="back" size={18} />Zurück</button>
         </form>
       ) : choices ? (

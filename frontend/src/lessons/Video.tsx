@@ -1,3 +1,4 @@
+import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { Answer, VideoLesson, VideoVisual } from '@l45/shared';
 import { LessonProgress, QuestionCard } from './LessonActivity.tsx';
@@ -294,7 +295,7 @@ function StoryboardVideo({ lesson, onComplete }: { lesson: VideoLesson; onComple
             <span>{scene + 1} / {scenes.length}</span>
           </div>
           <div className="video-controls" role="group" aria-label="Videosteuerung">
-            <button className="btn primary small" onClick={() => playing ? setPlaying(false) : atEnd ? go(ended ? 0 : Math.min(scene + 1, scenes.length - 1), true) : setPlaying(true)}>{playing ? 'Pause' : ended ? 'Nochmals abspielen' : 'Abspielen'}</button>
+            <button className="btn primary small" onClick={() => playing ? setPlaying(false) : atEnd ? go(ended ? 0 : Math.min(scene + 1, scenes.length - 1), true) : setPlaying(true)}><ButtonLabel variants={['Abspielen', 'Pause', 'Nochmals abspielen']}>{playing ? 'Pause' : ended ? 'Nochmals abspielen' : 'Abspielen'}</ButtonLabel></button>
             <button className="btn quiet small" onClick={() => go(scene, true)}><Icon name="back" size={17} />Abschnitt wiederholen</button>
             {!ended && <button className="btn quiet small" onClick={onSceneEnd}>Weiter<Icon name="chevron" size={16} /></button>}
           </div>

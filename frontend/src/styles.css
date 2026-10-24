@@ -204,7 +204,11 @@ p { margin: 0 0 10px; }
 
 /* --- Buttons and small parts --- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 10px 20px; border-radius: 12px; border: 1px solid transparent; background: transparent; cursor: pointer; font-weight: 600; text-decoration: none; white-space: nowrap; transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.05s; }
-.btn:active:not(:disabled) { transform: translateY(1px); }
+/* Label variants overlap in one grid cell so every state has the same footprint. */
+.button-label { display: inline-grid; vertical-align: middle; }
+.button-label > span { grid-area: 1 / 1; }
+.button-label-reserve { visibility: hidden; pointer-events: none; }
+.btn > .button-label, .btn > .icon { flex-shrink: 0; }
 .btn.primary { background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-sm); }
 .btn.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 86%, var(--paper)); }
 .btn.secondary, .btn:not(.primary):not(.quiet):not(.icon-btn) { background: var(--surface); border-color: var(--line-strong); box-shadow: var(--shadow-sm); }
@@ -1148,8 +1152,7 @@ dl.reason .tag:first-of-type { margin-left: 6px; }
 .inspection-navigation .btn[aria-pressed='true'] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
 .inspection-activity .mock { margin: 0; font-size: 15px; }
 .inspection-activity .mock-body { padding: 10px 14px; }
-.inspection-activity .hot { position: relative; padding: 6px 9px; margin-bottom: 4px; font-size: 15px; line-height: 1.35; }
-.inspection-activity .hot[aria-pressed='true'] { padding-right: 30px; }
+.inspection-activity .hot { position: relative; padding: 6px 30px 6px 9px; margin-bottom: 4px; font-size: 15px; line-height: 1.35; }
 .inspection-check { position: absolute; right: 6px; top: 8px; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; color: #fff; background: #23774a; }
 .inspection-activity .mock .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
 .inspection-activity .mock hr { margin: 5px 0; }

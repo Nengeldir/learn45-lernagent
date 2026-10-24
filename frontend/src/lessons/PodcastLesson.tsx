@@ -1,3 +1,4 @@
+import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 // A podcast lesson: two voices talk about one topic, then a few questions. The audio is narrated the first time the
 // lesson is opened; if that fails, the conversation can still be read.
 import { useEffect, useRef, useState } from 'react';
@@ -79,7 +80,7 @@ export function PodcastLesson({ lesson, sessionId, nodeId, onComplete }: {
       {!quiz && <p className="podcast-head"><Icon name="headphones" size={20} />{HOSTS.a} und {HOSTS.b} im Gespräch</p>}
       {failed ? <p className="small muted">{unavailable}</p> : !manifest ? <div role="status" className="podcast-progress"><p className="small">Das Gespräch wird vorbereitet{status?.state === 'building' && status.total ? ` (${status.completed} von ${status.total})` : ''} …</p><progress max={status?.state === 'building' ? status.total : undefined} value={status?.state === 'building' ? status.completed : undefined} /></div>
         : <audio ref={audio} controls preload="metadata" src={manifest.audioUrl} onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)} onEnded={() => setAsking(true)} onError={() => setFailed(true)} />}
-      <details className="podcast-transcript"><summary>{quiz ? 'Gespräch nachlesen' : 'Gespräch mitlesen'}</summary>{transcript}</details>
+      <details className="podcast-transcript"><summary><ButtonLabel variants={['Gespräch nachlesen', 'Gespräch mitlesen']}>{quiz ? 'Gespräch nachlesen' : 'Gespräch mitlesen'}</ButtonLabel></summary>{transcript}</details>
     </div>
     {quiz && questions.length > 0 ? <QuestionCard key={questionIndex} prompt={questions[questionIndex].prompt} options={questions[questionIndex].options} index={questionIndex} total={questions.length}
       check={(option) => ({ type: 'quiz', questionIndex, option })} continueLabel={questionIndex + 1 === questions.length ? 'Lektion abschliessen' : 'Nächste Frage'} onContinue={async (option) => {

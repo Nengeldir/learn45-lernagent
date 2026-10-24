@@ -1,3 +1,4 @@
+import { ButtonLabel } from '../lib/ButtonLabel.tsx';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { Player } from '@l45/animlib';
 import type { Answer, NarratedVideoManifest, VideoLesson } from '@l45/shared';
@@ -108,9 +109,9 @@ export default function NarratedVideo({ lesson, onComplete, onFallback }: {
               <span>{clock(controller!.position)} / {clock(controller!.duration)}</span>
             </div>
             <div className="video-controls" role="group" aria-label="Videosteuerung">
-              <button ref={playButton} className="btn primary small" onClick={() => state.playing ? controller!.pause() : void controller!.play()}>{state.playing ? 'Pause' : state.ended ? 'Nochmals abspielen' : 'Abspielen'}</button>
+              <button ref={playButton} className="btn primary small" onClick={() => state.playing ? controller!.pause() : void controller!.play()}><ButtonLabel variants={['Abspielen', 'Pause', 'Nochmals abspielen']}>{state.playing ? 'Pause' : state.ended ? 'Nochmals abspielen' : 'Abspielen'}</ButtonLabel></button>
               <button className="btn quiet small" aria-label="10 Sekunden zurück" onClick={() => void controller!.seek(controller!.position - 10)}><Icon name="back" size={17} />10 s</button>
-              <button className="btn quiet small" aria-label={muted ? 'Ton einschalten' : 'Ton ausschalten'} aria-pressed={muted} onClick={() => { engine.current?.setMuted(!muted); setMuted(!muted); }}><Icon name="headphones" size={17} />{muted ? 'Ton aus' : 'Ton an'}</button>
+              <button className="btn quiet small" aria-label={muted ? 'Ton einschalten' : 'Ton ausschalten'} aria-pressed={muted} onClick={() => { engine.current?.setMuted(!muted); setMuted(!muted); }}><Icon name="headphones" size={17} /><ButtonLabel variants={['Ton an', 'Ton aus']}>{muted ? 'Ton aus' : 'Ton an'}</ButtonLabel></button>
               <button className="btn quiet small" aria-pressed={captions} onClick={() => setCaptions(!captions)}>Untertitel</button>
             </div>
             <details className="video-transcript"><summary>Text zum Mitlesen</summary>
@@ -123,7 +124,7 @@ export default function NarratedVideo({ lesson, onComplete, onFallback }: {
             check={(option) => ({ type: 'quiz', questionIndex: state.asking!, option })}
             onContinue={answerQuestion} continueLabel={state.ended && completed + 1 === questions.length ? 'Lektion abschliessen' : 'Weiter'} />
         </aside>}
-        {state.ended && state.asking === null && <aside className="video-question-panel video-end-card"><span className="finish-disc"><Icon name="check" size={32} /></span><h3>Alle Abschnitte geschafft!</h3><button className="btn primary" disabled={busy} onClick={() => void finish()}>{busy ? 'Wird geprüft …' : 'Lektion abschliessen'}<Icon name="star" size={18} /></button></aside>}
+        {state.ended && state.asking === null && <aside className="video-question-panel video-end-card"><span className="finish-disc"><Icon name="check" size={32} /></span><h3>Alle Abschnitte geschafft!</h3><button className="btn primary" disabled={busy} onClick={() => void finish()}><ButtonLabel variants={['Wird geprüft …', 'Lektion abschliessen']}>{busy ? 'Wird geprüft …' : 'Lektion abschliessen'}</ButtonLabel><Icon name="star" size={18} /></button></aside>}
       </div>
     </div>
   );
