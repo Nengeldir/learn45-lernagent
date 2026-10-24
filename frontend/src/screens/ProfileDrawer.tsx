@@ -103,7 +103,8 @@ export function ProfileDrawer({ onClose }: { onClose: () => void }) {
   if (!view || !content) return null;
   const { session, dcc } = view;
   const ws = view.workspace;
-  const tracks = content.skills.flatMap((s) => s.tracks);
+  // The learner's tracks: prepared ones they added and their own. The DCC table below lists the whole DCC.
+  const tracks = view.skills.flatMap((s) => s.tracks);
   const tname = (id: string) => tracks.find((t) => t.id === id)?.name ?? id;
   const node = (id: string) => session.nodes.find((n) => n.id === id);
 
@@ -156,6 +157,7 @@ export function ProfileDrawer({ onClose }: { onClose: () => void }) {
         <section>
           <h3>Lernstand (aus dem Lernen, kein DCC)</h3>
           <p className="small muted">Aus deinen Lerneinträgen. «unbekannt» heisst: noch keine Belege, nicht: schwach. Die DCC-Stufen oben bleiben davon unberührt.</p>
+          {tracks.length === 0 && <p className="small muted">Noch keine Bereiche auf deiner Karte.</p>}
           {tracks.map((t) => {
             const stand = ws.lernstand.filter((l) => l.trackId === t.id);
             const known = stand.filter((l) => l.state !== 'unbekannt').length;
@@ -178,6 +180,7 @@ export function ProfileDrawer({ onClose }: { onClose: () => void }) {
         <section>
           <h3>Mission pro Bereich</h3>
           <p className="small muted">{MISSION_PRIVACY}</p>
+          {tracks.length === 0 && <p className="small muted">Eine Mission gehört zu einem Bereich. Füge zuerst einen hinzu.</p>}
           <ul className="log">
             {tracks.map((t) => {
               const m = ws.missions.find((x) => x.trackId === t.id);

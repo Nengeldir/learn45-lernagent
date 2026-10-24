@@ -8,10 +8,21 @@ import type { AgentBlock, AgentRequest } from '../src/provider.ts';
 /** Sicherheit is the only track in the Grundstufe, so the map starts there (R3). */
 export const levels = { 't-info': 'Fortgeschritten', 't-komm': 'Fortgeschritten', 't-inhalte': 'Fortgeschritten', 't-sicherheit': 'Grundstufe', 't-problem': 'Fortgeschritten' };
 
+/** All prepared tracks of the catalog (data/skills.json). */
+export const catalog = ['t-info', 't-komm', 't-inhalte', 't-sicherheit', 't-problem', 't-analysis', 't-physik'];
+
+/** Login. The map starts empty; unless it has tracks already (resume), all prepared tracks are added in one go. */
 export async function login(app: Express, body: Record<string, unknown> = {}, status = 201): Promise<SessionView> {
   const res = await request(app).post('/api/login').send({ name: 'Test', timeBudgetMin: 60, levels, ...body });
   expect(res.status, JSON.stringify(res.body)).toBe(status);
-  return res.body;
+  if (status !== 201 || res.body.session.nodes.some((n: MapNode) => n.kind === 'track')) return res.body;
+  return addTracks(app, res.body, catalog);
+}
+
+export async function addTracks(app: Express, v: SessionView, trackIds: string[]): Promise<SessionView> {
+  const res = await request(app).post(`/api/sessions/${v.session.id}/tracks`).send({ trackIds });
+  expect(res.status, JSON.stringify(res.body)).toBe(201);
+  return res.body.view;
 }
 
 export const node = (v: SessionView, lessonId: string) => v.session.nodes.find((n) => n.lessonId === lessonId)!;

@@ -2,15 +2,16 @@
 // picks one target in the zone of proximal development, may generate a lesson for it and plans the next step.
 // The rule engine checks the plan (guard.ts); if anything fails, the rule plan stays and the reason is logged.
 // The model never sees the name, the learner id or the DCC levels of other tracks.
-import type { DccLevel, LearningEvent, LessonType, MapNode, PlannerRun, Recommendation } from '@l45/shared';
+import type { DccLevel, LearningEvent, Lesson, LessonType, MapNode, PlannerRun, Recommendation } from '@l45/shared';
 import { DCC_LEVELS } from '@l45/shared';
 import { RULE_NAME } from './agent.ts';
-import { getTrack, skillOf } from './content.ts';
-import { LESSON_TYPES, generateLesson } from './generator.ts';
-import { allLessons, checkPlan, remaining, type Plan } from './guard.ts';
+import { GENERATED_PER_SESSION, LESSON_TYPES, generateLesson } from './generator.ts';
+import { allLessons, checkPlan, reachableIds, remaining, type Plan } from './guard.ts';
+import { ruleLesson } from './ownlessons.ts';
 import { callAgent, type AgentBlock, type AgentMessage, type AgentTool } from './provider.ts';
 import { RECORD_KINDS, RecordError, addRecord, addReference, dueReviews, lernstand, type RecordInput } from './records.ts';
-import { applyRecommendation, defaultMission, fillFromPool, missionOf, openRecommendation, recommend, save, storeLesson } from './sessions.ts';
+import { applyRecommendation, fillFromPool, openRecommendation, recommend, save, storeLesson } from './sessions.ts';
+import { defaultMission, missionOf, skillIn, trackIn } from './tracks.ts';
 import { newId, nowIso } from './util.ts';
 import { deleteLesson, writeNotes, type Stored } from './workspace.ts';
 
@@ -20,7 +21,7 @@ export const LIMITS = {
   callMs: () => Number(process.env.PLANNER_CALL_MS ?? 20_000),
   mapAdds: 2,
   generateCalls: 2,
-  generatedPerSession: 10,
+  generatedPerSession: GENERATED_PER_SESSION,
   records: 3,
   references: 2,
   notes: 1,
@@ -36,7 +37,7 @@ So lehrst du:
 - Abrufen, Abstand und Mischen: Fällige Wiederholungen haben Vorrang. Eine Wiederholung ist kurz und mischt Kriterien dieses Bereichs (reviewOf).
 - Behandelt ist nicht gelernt. Lerneinträge nur mit Belegen (Ereignis-IDs).
 - Fehlende Belege heissen «unbekannt», nicht «schwach».
-- Verlass dich nie auf eigenes Wissen. Inhalte kommen nur aus den Quellen des Bereichs, seinen Kriterien und Faustregeln. Es gibt nur die Lektionsarten video, mark-evidence, mock-site und ai-chat.
+- Verlass dich nie auf eigenes Wissen. Inhalte kommen nur aus den Quellen des Bereichs, seinen Kriterien und Faustregeln. Es gibt nur die Lektionsarten video, mark-evidence, mock-site und ai-chat. Nennt der Bereich lessonTypes, nur diese.
 - Die DCC-Stufe änderst du nie. Sie kommt nur aus dem DCC.
 
 Ablauf:
@@ -44,9 +45,9 @@ Ablauf:
 2. Erzeuge mit generate_lesson eine Lektion, die zur Mission passt. Bei Fehlern höchstens ein zweiter Versuch. Vorbereitete Lektionen (list_pool_lessons) darfst du nur anhängen, wenn die Erzeugung scheitert oder die Grenze erreicht ist.
 3. Neue Knoten mit add_to_map anhängen (höchstens 2), an den zuletzt erledigten Knoten oder an den Bereichsknoten.
 4. Wenn die Belege es tragen: write_learning_record, update_reference, note_preference.
-5. Zum Schluss genau einmal recommend: Knoten, Alternative, eine kurze Begründung (1 bis 2 Sätze, duzen, Schweizer Schreibweise ohne ß) und basedOn mit IDs von Lerneinträgen (LR-…) oder Ereignissen (ev-…).
+5. Zum Schluss genau einmal recommend: Knoten, Alternative (leer lassen, wenn ausser dem Knoten keiner erreichbar ist), eine kurze Begründung (1 bis 2 Sätze, duzen, Schweizer Schreibweise ohne ß) und basedOn mit IDs von Lerneinträgen (LR-…) oder Ereignissen (ev-…).
 
-Regeln prüfen deine Empfehlung: Der Knoten muss erreichbar sein und in die Restzeit passen, die Alternative muss es geben, und die Begründung muss Belege nennen. Sonst gilt der Plan der Regeln. Du hast höchstens ${LIMITS.steps} Schritte.`;
+Regeln prüfen deine Empfehlung: Der Knoten muss erreichbar sein und in die Restzeit passen, eine Alternative muss es geben, sobald ein anderer Knoten erreichbar ist, und die Begründung muss Belege nennen. Sonst gilt der Plan der Regeln. Du hast höchstens ${LIMITS.steps} Schritte.`;
 
 const str = { type: 'string' } as const;
 const TOOLS: AgentTool[] = [
@@ -126,11 +127,11 @@ const TOOLS: AgentTool[] = [
       type: 'object',
       properties: {
         nodeId: str,
-        alternativeNodeId: str,
+        alternativeNodeId: { type: 'string', description: 'Ein anderer erreichbarer Knoten. Leer, wenn es keinen gibt.' },
         reason: str,
         basedOn: { type: 'array', items: str, description: 'IDs von Lerneinträgen (LR-…) oder Ereignissen (ev-…)' },
       },
-      required: ['nodeId', 'alternativeNodeId', 'reason', 'basedOn'],
+      required: ['nodeId', 'reason', 'basedOn'],
     },
   },
 ];
@@ -145,6 +146,8 @@ interface Ctx {
   count: Record<'mapAdds' | 'generateCalls' | 'records' | 'references' | 'notes', number>;
   /** A generate_lesson call failed in this run: only then may the agent fall back to pool lessons */
   generationFailed: boolean;
+  /** Valid lessons the agent generated in this run */
+  generated: Lesson[];
 }
 
 class ToolError extends Error {}
@@ -160,7 +163,7 @@ function sameTrack(ctx: Ctx, trackId: unknown) {
 function learnerState(ctx: Ctx) {
   const { st, trackId } = ctx;
   const s = st.session;
-  const track = getTrack(trackId)!;
+  const track = trackIn(st, trackId)!;
   const lessons = allLessons(s);
   const lessonOf = (id?: string) => lessons.find((l) => l.id === id);
   const level = st.dcc.levels[trackId];
@@ -173,10 +176,12 @@ function learnerState(ctx: Ctx) {
   };
   const generated = s.generatedLessons.filter((l) => l.provenance?.by === 'model' && l.provenance.sessionNo === s.sessionNo).length;
   return {
-    track: { id: track.id, name: track.name, criteria: track.criteria },
-    mission: mission ? { text: mission.text, status: mission.status } : { text: defaultMission(trackId), status: 'default' },
+    track: { id: track.id, name: track.name, criteria: track.criteria, ...(track.custom ? { lessonTypes: track.custom.lessonTypes } : {}) },
+    mission: mission ? { text: mission.text, status: mission.status } : { text: defaultMission(st, trackId), status: 'default' },
     // Only this track's level, from the DCC. Read-only.
-    dccLevel: skillOf(trackId)?.dccBased ? level ?? 'nicht erhoben' : 'kein DCC-Bereich',
+    dccLevel: skillIn(st, trackId)?.dccBased ? level ?? 'nicht erhoben' : 'kein DCC-Bereich',
+    // Own tracks: what the learner said about their prior knowledge when they made the track. Not a DCC level.
+    ...(track.custom ? { selfAssessment: track.custom.selfLevel } : {}),
     lernstand: track.criteria.map((c) => ({ criterion: c.id, state: lernstand(st, trackId, c.id).state })),
     activeRecords: st.records.filter((r) => r.trackId === trackId && r.status === 'active').map((r) => ({ id: r.id, kind: r.kind, criterion: r.criterion, title: r.title })),
     lastResults: s.events.filter((e) => e.trackId === trackId).slice(-5).map((e) => ({
@@ -240,12 +245,12 @@ async function runTool(ctx: Ctx, name: string, input: Record<string, unknown>): 
       ];
       const r = await generateLesson({
         type: String(input.type) as LessonType,
-        trackId,
+        track: trackIn(st, trackId)!,
         criterion,
         level: String(input.level) as DccLevel,
         contextHint: input.contextHint ? String(input.contextHint).slice(0, 300) : undefined,
         reviewOf,
-        mission: missionOf(st, trackId)?.text ?? defaultMission(trackId),
+        mission: missionOf(st, trackId)?.text ?? defaultMission(st, trackId),
         preferences: st.notes,
         basedOn,
         sessionNo: s.sessionNo,
@@ -254,6 +259,7 @@ async function runTool(ctx: Ctx, name: string, input: Record<string, unknown>): 
       if (!r.ok) ctx.generationFailed = true;
       if (!r.ok) throw new ToolError(`Lektion ungültig und verworfen: ${r.errors.join('; ')}`);
       storeLesson(st, r.lesson);
+      ctx.generated.push(r.lesson);
       return { lessonId: r.lesson.id, title: r.lesson.title, type: r.lesson.type, minutes: r.lesson.durationMin, primarySource: r.lesson.primarySource?.title };
     }
 
@@ -273,7 +279,7 @@ async function runTool(ctx: Ctx, name: string, input: Record<string, unknown>): 
         kind: 'lesson',
         parentId: parent.id,
         label: lesson.title,
-        skillId: skillOf(trackId)?.id,
+        skillId: skillIn(st, trackId)?.id,
         trackId,
         lessonId: lesson.id,
         state: 'planned',
@@ -338,7 +344,7 @@ async function runTool(ctx: Ctx, name: string, input: Record<string, unknown>): 
 type Outcome = { ok: true; plan: Plan } | { ok: false; reason: string };
 
 async function loop(ctx: Ctx): Promise<Outcome> {
-  const track = getTrack(ctx.trackId)!;
+  const track = trackIn(ctx.st, ctx.trackId)!;
   const messages: AgentMessage[] = [{
     role: 'user',
     content: `Die Person hat eben eine Lektion im Bereich «${track.name}» abgeschlossen (Ereignis ${ctx.ev.id}). Plane den nächsten Schritt. trackId: ${ctx.trackId}`,
@@ -363,6 +369,8 @@ async function loop(ctx: Ctx): Promise<Outcome> {
         reason: String(i.reason ?? '').replace(/ß/g, 'ss').trim(),
         basedOn: Array.isArray(i.basedOn) ? i.basedOn.map(String) : [],
       };
+      // Nothing else reachable (one track, one new node): there is no alternative to offer.
+      if (![...reachableIds(ctx.st, ctx.staged)].some((id) => id !== plan.nodeId)) plan.alternativeNodeId = '';
       const problems = checkPlan(ctx.st, plan, { nodes: ctx.staged, lessons: [] });
       return problems.length ? { ok: false, reason: `Plan abgelehnt: ${problems.join('; ')}` } : { ok: true, plan };
     }
@@ -423,6 +431,7 @@ export async function runPlanner(st: Stored, ev: LearningEvent): Promise<void> {
     st, ev, run, trackId: ev.trackId, deadline: Date.now() + LIMITS.totalMs(), staged: [],
     count: { mapAdds: 0, generateCalls: 0, records: 0, references: 0, notes: 0 },
     generationFailed: false,
+    generated: [],
   };
 
   let outcome: Outcome;
@@ -447,7 +456,7 @@ export async function runPlanner(st: Stored, ev: LearningEvent): Promise<void> {
       ruleId: 'A1',
       ruleName: RULE_NAME.A1,
       nodeId: plan.nodeId,
-      alternativeNodeId: plan.alternativeNodeId,
+      alternativeNodeId: plan.alternativeNodeId || undefined,
       observation: observation(ctx, plan.basedOn),
       reason: plan.reason,
       why: 'Der Agent hat ein Ziel aus deiner Mission und deinen Lerneinträgen gewählt. Die Regeln haben den Plan geprüft: erreichbar, passt in die Zeit, mit Alternative und Belegen.',
@@ -463,9 +472,14 @@ export async function runPlanner(st: Stored, ev: LearningEvent): Promise<void> {
     for (const n of s.nodes) if (n.provisionalOf) delete n.provisionalOf;
     if (current?.provisional) delete current.provisional;
     // Generation failed: the rules take over and may use the whole pool of this track.
-    const filled = current && current.id === ruleRec?.id ? fillFromPool(st, ev.trackId) : 0;
-    if (filled) recommend(st);
-    Object.assign(run, { outcome: 'fallback', note: `Plan nach Regeln${filled ? ` mit ${filled} vorbereiteten Lektionen` : ''}. Grund: ${outcome.reason}` });
+    // Own tracks have no pool: there a valid lesson the agent made goes on the map, else the rules let the generator write one.
+    const stillOpen = () => current && current.id === ruleRec?.id && openRecommendation(s)?.id === current.id;
+    const filled = stillOpen() ? fillFromPool(st, ev.trackId) : 0;
+    const written = !filled && stillOpen() ? await ruleLesson(st, ev.trackId, ctx.generated) : null;
+    if (filled || (written && stillOpen())) recommend(st);
+    const reused = written && ctx.generated.some((l) => l.id === written.lessonId);
+    const how = filled ? ` mit ${filled} vorbereiteten Lektionen` : reused ? ' mit der Lektion, die der Agent erzeugt hat' : written ? ' mit einer Lektion, deren Ziel die Regeln gewählt haben' : '';
+    Object.assign(run, { outcome: 'fallback', note: `Plan nach Regeln${how}. Grund: ${outcome.reason}` });
     console.warn(`Planer ${run.id} (${ev.trackId}): Rückfall auf Regeln. ${outcome.reason}`);
   }
   run.finishedAt = nowIso();

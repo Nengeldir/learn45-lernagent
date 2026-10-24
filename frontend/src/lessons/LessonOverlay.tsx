@@ -11,7 +11,7 @@ import { MissionCard } from './MissionCard.tsx';
 import { Video } from './Video.tsx';
 
 export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (showNext: boolean) => void }) {
-  const { view, setView, content } = useStore();
+  const { view, setView } = useStore();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<LessonResult | null>(null);
@@ -21,7 +21,7 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
   const sessionId = view!.session.id;
   // The first time a track is opened, the mission question comes before the lesson.
   const trackId = view?.session.nodes.find((n) => n.id === nodeId)?.trackId;
-  const missionTrack = content?.skills.flatMap((s) => s.tracks).find((t) => t.id === trackId);
+  const missionTrack = view?.skills.flatMap((s) => s.tracks).find((t) => t.id === trackId);
   const needsMission = Boolean(missionTrack && !view?.workspace.missions.some((m) => m.trackId === trackId));
   const [askMission] = useState(needsMission);
   const [missionDone, setMissionDone] = useState(false);
@@ -55,7 +55,7 @@ export function LessonOverlay({ nodeId, onClose }: { nodeId: string; onClose: (s
     }
   };
 
-  const track = content?.skills.flatMap((s) => s.tracks).find((t) => t.id === lesson?.trackId);
+  const track = view?.skills.flatMap((s) => s.tracks).find((t) => t.id === lesson?.trackId);
   const missed = result?.criteria.filter((c) => c.status === 'missed').map((c) => track?.criteria.find((x) => x.id === c.key)).filter(Boolean) ?? [];
   const rec = view?.recommendation;
   const recNode = view?.session.nodes.find((n) => n.id === rec?.nodeId);

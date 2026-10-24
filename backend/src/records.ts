@@ -5,7 +5,7 @@
 import type {
   LearningEvent, LearningRecord, LernstandEntry, LernstandState, RecordKind, ReferenceEntry, ReviewItem, Track,
 } from '@l45/shared';
-import { criterionLabel, getTrack, ruleOfThumb } from './content.ts';
+import { criterionLabel, ruleOfThumb, trackIn } from './tracks.ts';
 import { newId, nowIso } from './util.ts';
 import { nextRecordId, writeRecord, writeReference, type Stored } from './workspace.ts';
 
@@ -40,7 +40,7 @@ export function metWithoutHelp(ev: LearningEvent, criterion: string) {
 export function checkRecord(st: Stored, r: RecordInput): string[] {
   const e: string[] = [];
   const s = st.session;
-  const track = getTrack(r.trackId);
+  const track = trackIn(st, r.trackId);
   if (!track) return [`unbekannter Bereich ${r.trackId}`];
   if (!RECORD_KINDS.includes(r.kind)) e.push(`unbekannte Art ${String(r.kind)}`);
   if (!r.title?.trim() || r.title.length > 100) e.push('Titel fehlt oder ist zu lang (100 Zeichen)');
@@ -114,7 +114,7 @@ export function addRecord(st: Stored, input: RecordInput): LearningRecord {
   writeRecord(st.profile.id, rec);
   if (rec.kind === 'demonstrated' && rec.criterion) {
     queueReview(st, rec);
-    addReference(st, rec.trackId, { section: 'rule', title: criterionLabel(rec.trackId, rec.criterion), text: ruleOfThumb(rec.trackId, rec.criterion) ?? rec.body, basedOn: [rec.id] });
+    addReference(st, rec.trackId, { section: 'rule', title: criterionLabel(st, rec.trackId, rec.criterion), text: ruleOfThumb(st, rec.trackId, rec.criterion) ?? rec.body, basedOn: [rec.id] });
   }
   return rec;
 }
@@ -142,7 +142,7 @@ function missedSince(st: Stored, r: LearningRecord) {
  */
 export function recordFromEvent(st: Stored, ev: LearningEvent): LearningRecord[] {
   const out: LearningRecord[] = [];
-  const keys = [...new Set(ev.result.criteria.map((c) => c.key))].filter((k) => k !== 'entscheid' && getTrack(ev.trackId)?.criteria.some((c) => c.id === k));
+  const keys = [...new Set(ev.result.criteria.map((c) => c.key))].filter((k) => k !== 'entscheid' && trackIn(st, ev.trackId)?.criteria.some((c) => c.id === k));
   const before = st.session.events.slice(0, st.session.events.findIndex((x) => x.id === ev.id));
   for (const key of keys) {
     if (outcome(ev, key) !== 'met' || ev.helpUsed || ev.attempts > 1) continue;
@@ -150,13 +150,13 @@ export function recordFromEvent(st: Stored, ev: LearningEvent): LearningRecord[]
     const demo = active('demonstrated');
     const misc = active('misconception');
     const misses = before.filter((x) => x.trackId === ev.trackId && outcome(x, key) === 'missed');
-    const label = criterionLabel(ev.trackId, key);
+    const label = criterionLabel(st, ev.trackId, key);
     try {
       if (misses.length && !misc && !demo) {
         out.push(addRecord(st, {
           kind: 'misconception', trackId: ev.trackId, criterion: key, author: 'rule',
           title: `«${label}» jetzt erkannt`,
-          body: `Zuerst ${misses.length}× verpasst, jetzt ohne Hinweis gelöst. Noch einmal üben, damit es hält. Merksatz: ${ruleOfThumb(ev.trackId, key) ?? ''}`,
+          body: `Zuerst ${misses.length}× verpasst, jetzt ohne Hinweis gelöst. Noch einmal üben, damit es hält. Merksatz: ${ruleOfThumb(st, ev.trackId, key) ?? ''}`,
           evidence: [misses.at(-1)!.id, ev.id],
         }));
       } else if (ev.mode === 'alone' && (!demo || missedSince(st, demo))) {
@@ -231,6 +231,6 @@ export function addReference(st: Stored, trackId: string, entry: ReferenceEntry)
   } else {
     list.push({ ...entry, title: swiss(entry.title), text: swiss(entry.text) });
   }
-  writeReference(st.profile.id, trackId, getTrack(trackId)?.name ?? trackId, list);
+  writeReference(st.profile.id, trackId, trackIn(st, trackId)?.name ?? trackId, list);
   return !same;
 }

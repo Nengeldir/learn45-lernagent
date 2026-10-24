@@ -1,10 +1,12 @@
 // Rule-based judging. Every lesson type returns met/missed per criterion of its track,
-// so the agent can treat all types the same way.
+// so the agent can treat all types the same way. The track is the learner's: prepared or their own.
 import type {
   AiChatLesson, Answer, ChatTurn, CriterionResult, LessonResult, MarkEvidenceLesson, MockPart, MockSiteLesson,
-  PartialCheck, VideoLesson,
+  PartialCheck, Track, VideoLesson,
 } from '@l45/shared';
-import { criterionLabel, ruleOfThumb } from './content.ts';
+
+const criterionLabel = (track: Track | undefined, id: string) => track?.criteria.find((c) => c.id === id)?.label ?? id;
+const ruleOfThumb = (track: Track | undefined, id: string) => track?.criteria.find((c) => c.id === id)?.ruleOfThumb;
 
 const n = (count: number, one: string, many: string) => (count === 1 ? one : many.replace('{n}', String(count)));
 
@@ -22,7 +24,7 @@ export function partialMarkEvidence(lesson: MarkEvidenceLesson, a: MarkAnswer): 
   return { complete: !missing && !wrong, message: parts.join(' ') || 'Alles stimmt.' };
 }
 
-export function judgeMarkEvidence(lesson: MarkEvidenceLesson, a: MarkAnswer): LessonResult {
+export function judgeMarkEvidence(lesson: MarkEvidenceLesson, a: MarkAnswer, track?: Track): LessonResult {
   const criteria: CriterionResult[] = [];
   const items: LessonResult['items'] = [];
   let falseAlarms = 0;
@@ -31,7 +33,7 @@ export function judgeMarkEvidence(lesson: MarkEvidenceLesson, a: MarkAnswer): Le
     if (s.verdict === 'erfunden') {
       const ok = mark === 'erfunden';
       const key = s.criterion ?? 'quelle';
-      criteria.push({ key, label: criterionLabel(lesson.trackId, key), status: ok ? 'met' : 'missed' });
+      criteria.push({ key, label: criterionLabel(track, key), status: ok ? 'met' : 'missed' });
       items.push({ label: s.text, correct: ok, text: `${ok ? 'Richtig erkannt.' : 'Übersehen.'} ${s.explanation}${s.correction ? ` Korrekt wäre: «${s.correction}»` : ''}` });
     } else {
       const ok = mark !== 'erfunden';
@@ -60,13 +62,13 @@ export function partialMockSite(lesson: MockSiteLesson, a: MockAnswer): PartialC
   return { complete: found === signals.length && verdictOk, message: verdictOk ? msg : `${msg} Prüfe auch deinen Entscheid noch einmal.` };
 }
 
-export function judgeMockSite(lesson: MockSiteLesson, a: MockAnswer): LessonResult {
+export function judgeMockSite(lesson: MockSiteLesson, a: MockAnswer, track?: Track): LessonResult {
   const criteria: CriterionResult[] = [];
   const items: LessonResult['items'] = [];
   for (const p of parts(lesson)) {
     const marked = a.marked.includes(p.id);
     if (p.signal) {
-      criteria.push({ key: p.signal.criterion, label: criterionLabel(lesson.trackId, p.signal.criterion), status: marked ? 'met' : 'missed' });
+      criteria.push({ key: p.signal.criterion, label: criterionLabel(track, p.signal.criterion), status: marked ? 'met' : 'missed' });
       items.push({ label: p.text, correct: marked, text: `${marked ? 'Gefunden.' : 'Übersehen.'} ${p.signal.explanation}` });
     } else if (marked) {
       items.push({ label: p.text, correct: lesson.content.correctVerdict === 'phishing', text: `Kein starkes Zeichen. ${p.harmless ?? ''}`.trim() });
@@ -88,13 +90,13 @@ export function judgeMockSite(lesson: MockSiteLesson, a: MockAnswer): LessonResu
 
 // --- Video with questions ------------------------------------------------------------------
 
-export function judgeVideo(lesson: VideoLesson, a: Extract<Answer, { type: 'video' }>): LessonResult {
+export function judgeVideo(lesson: VideoLesson, a: Extract<Answer, { type: 'video' }>, track?: Track): LessonResult {
   const criteria: CriterionResult[] = [];
   const items: LessonResult['items'] = [];
   lesson.content.questions.forEach((q, i) => {
     const ok = a.answers[i] === q.correct;
     const key = q.criterion ?? lesson.targets[0];
-    criteria.push({ key, label: criterionLabel(lesson.trackId, key), status: ok ? 'met' : 'missed' });
+    criteria.push({ key, label: criterionLabel(track, key), status: ok ? 'met' : 'missed' });
     items.push({ label: q.prompt, correct: ok, text: `${ok ? 'Richtig.' : `Richtig wäre: «${q.options[q.correct]}».`} ${q.explanation}` });
   });
   const ok = criteria.filter((c) => c.status === 'met').length;
@@ -105,20 +107,20 @@ export function judgeVideo(lesson: VideoLesson, a: Extract<Answer, { type: 'vide
 
 export const learnerText = (turns: ChatTurn[]) => turns.filter((t) => t.role === 'learner').map((t) => t.text).join('\n');
 
-export function judgeChatKeywords(lesson: AiChatLesson, turns: ChatTurn[]): LessonResult {
+export function judgeChatKeywords(lesson: AiChatLesson, turns: ChatTurn[], track?: Track): LessonResult {
   const text = learnerText(turns).toLowerCase();
   const criteria: CriterionResult[] = lesson.content.criteria.map((c) => ({
     key: c.id,
     label: c.label,
     status: c.patterns.some((p) => new RegExp(p, 'i').test(text)) ? 'met' : 'missed',
   }));
-  return chatResult(lesson, criteria, 'keywords');
+  return chatResult(lesson, criteria, 'keywords', track);
 }
 
-export function chatResult(lesson: AiChatLesson, criteria: CriterionResult[], judgedBy: LessonResult['judgedBy']): LessonResult {
+export function chatResult(lesson: AiChatLesson, criteria: CriterionResult[], judgedBy: LessonResult['judgedBy'], track?: Track): LessonResult {
   const items = criteria.map((c) => {
     const def = lesson.content.criteria.find((x) => x.id === c.key);
-    const tip = ruleOfThumb(lesson.trackId, c.key);
+    const tip = ruleOfThumb(track, c.key);
     return {
       label: c.label,
       correct: c.status === 'met',

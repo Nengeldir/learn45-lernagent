@@ -1,21 +1,23 @@
 // Generates one lesson with the model, using only the existing lesson types. The model fills content into
 // the schema; the server sets ids, targets, labels and provenance, shuffles quiz answers and validates.
 import { randomInt } from 'node:crypto';
-import type { DccLevel, Lesson, LessonType, ModelCall } from '@l45/shared';
+import type { DccLevel, Lesson, LessonType, ModelCall, Track } from '@l45/shared';
 import { DCC_LEVELS } from '@l45/shared';
 import { keywordPatterns } from './agent.ts';
-import { getTrack } from './content.ts';
 import { slug } from './md.ts';
 import { callModel, plannerModelName } from './provider.ts';
-import { resourcesOf } from './resources.ts';
+import { sourcesOf } from './resources.ts';
 import { extractJson, nowIso } from './util.ts';
 import { validateLesson } from './validate.ts';
 
 export const LESSON_TYPES: LessonType[] = ['video', 'mark-evidence', 'mock-site', 'ai-chat'];
+/** At most this many lessons per session come from the model (agent, rules and new tracks together). */
+export const GENERATED_PER_SESSION = 10;
 
 export interface GenerateInput {
   type: LessonType;
-  trackId: string;
+  /** A track of this learner: prepared, or their own with its own sources */
+  track: Track;
   criterion: string;
   level: DccLevel;
   /** From the planner: what the example should be about, tied to the mission */
@@ -79,14 +81,14 @@ export function shuffleQuiz<Q extends { options: string[]; correct: number }>(qu
 }
 
 export async function generateLesson(input: GenerateInput, onCall: (c: ModelCall) => void): Promise<GenerateResult> {
-  const track = getTrack(input.trackId);
-  if (!track) return { ok: false, errors: [`unbekannter Bereich ${input.trackId}`] };
-  if (!LESSON_TYPES.includes(input.type)) return { ok: false, errors: [`Typ muss einer von ${LESSON_TYPES.join(', ')} sein`] };
+  const { track } = input;
+  const types = track.custom?.lessonTypes ?? LESSON_TYPES;
+  if (!types.includes(input.type)) return { ok: false, errors: [`Typ muss in diesem Bereich einer von ${types.join(', ')} sein`] };
   if (!DCC_LEVELS.includes(input.level)) return { ok: false, errors: ['level muss Grundstufe, Mittelstufe oder Fortgeschritten sein'] };
   const targets = [...new Set([input.criterion, ...(input.reviewOf ?? [])])];
   const unknown = targets.filter((t) => !track.criteria.some((c) => c.id === t));
   if (unknown.length) return { ok: false, errors: [`unbekannte Kriterien: ${unknown.join(', ')}`] };
-  const sources = resourcesOf(track.id);
+  const sources = sourcesOf(track);
   if (!sources.length) return { ok: false, errors: ['Für diesen Bereich gibt es keine geprüften Quellen'] };
   const review = targets.length > 1;
 

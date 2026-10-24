@@ -50,7 +50,34 @@ export interface Track {
   criteria: Criterion[];
   /** Asked the first time the track is opened: three suggestions, plus a default when skipped */
   mission?: { suggestions: string[]; default: string };
+  /** Only for a track the learner created from an own topic. Prepared tracks come from data/skills.json. */
+  custom?: CustomTrackInfo;
 }
+
+/** A source a lesson may build on. Prepared tracks: data/resources/<trackId>.md. Custom tracks: proposed by the model. */
+export interface TrackSource {
+  title: string;
+  url: string;
+  /** What it covers, when to use it */
+  note: string;
+}
+
+export interface CustomTrackInfo {
+  /** What the learner typed, e.g. "Security+ Prüfung bestehen" */
+  topic: string;
+  createdAt: string;
+  /** Model that designed the track */
+  model: string;
+  /** Prior knowledge the learner stated. Sets the level of the first lessons. Not a DCC level. */
+  selfLevel: DccLevel;
+  /** Proposed by the model; kept only if the address answered when the track was made */
+  sources: TrackSource[];
+  /** Lesson types that fit the topic */
+  lessonTypes: LessonType[];
+}
+
+/** Skill that holds the tracks a learner created from own topics */
+export const CUSTOM_SKILL = { id: 'custom', name: 'Eigene Themen', dccBased: false } as const;
 
 export interface Criterion {
   id: string;
@@ -260,7 +287,7 @@ export interface MapNode {
   helpUsed?: boolean;
 }
 
-export type RuleId = 'R0' | 'R1' | 'R2' | 'R3' | 'R4' | 'R5' | 'R6' | 'R7' | 'A1';
+export type RuleId = 'R0' | 'R1' | 'R2' | 'R3' | 'R4' | 'R5' | 'R6' | 'R7' | 'R8' | 'A1';
 
 export interface Recommendation {
   id: string;
@@ -310,7 +337,7 @@ export interface LearningEvent {
 
 export interface ModelCall {
   at: string;
-  purpose: 'chat' | 'judge' | 'hint' | 'generate' | 'plan';
+  purpose: 'chat' | 'judge' | 'hint' | 'generate' | 'plan' | 'design';
   ok: boolean;
   fallback: boolean;
   ms: number;
@@ -463,6 +490,10 @@ export interface SessionView {
   modelStatus: ModelStatus;
   /** Whether a planner agent can run (Anthropic or mock, not simulated offline) */
   agentAvailable: boolean;
+  /** Whether the learner can create tracks from own topics (needs a model) */
+  canCreateTracks: boolean;
+  /** The learner's tracks, grouped by skill: prepared ones they added and their own. Empty at the start. */
+  skills: Skill[];
   workspace: WorkspaceView;
 }
 
