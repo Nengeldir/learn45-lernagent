@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { compileSource, evaluateScene, getWorldBounds, validateRenderableScene } from '@l45/animlib/core';
@@ -131,7 +132,7 @@ describe('general video pipeline', () => {
   it('uses a bundled manifest without a speech key or paid request', async () => {
     const folder = await temp();
     const speak = vi.fn(async () => pcm);
-    const service = new VideoService({ output: folder, published: new URL('../../frontend/public/videos', import.meta.url).pathname, speechCache: folder, speaker: { config, pcm: speak } });
+    const service = new VideoService({ output: folder, published: fileURLToPath(new URL('../../frontend/public/videos', import.meta.url)), speechCache: folder, speaker: { config, pcm: speak } });
     for (const lesson of lessons) {
       const status = await service.prepare(lesson);
       expect(status).toEqual({ state: 'ready', manifestUrl: `/videos/${lesson.id}/manifest.json` });
